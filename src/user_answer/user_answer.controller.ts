@@ -1,8 +1,10 @@
-import { Controller, Get, Post, Param, Query, Body, ParseIntPipe, UsePipes, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Param, Query, Body, ParseIntPipe, UsePipes, UseGuards, Req } from '@nestjs/common';
 import { ApiTags, ApiResponse, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
 import { ZodValidationPipe } from 'nestjs-zod';
+import { Request } from 'express';
 import { UserAnswerService } from './user_answer.service';
 import { JwtAuthGuard } from '@/auth/guard/jwt-auth.guard';
+import { SessionId } from '@/common/decorators';
 import { UserAnswerCreate, UserAnswerQuery, UserAnswerFilter, UserAnswerCreateSchema, UserAnswerQuerySchema, UserAnswerFilterSchema, UserAnswerListResponse, UserAnswerDetailedListResponse, UserAnswerPerformanceListResponse, UserAnswerSessionListResponse, UserAnswerDetailResponse, UserAnswerCountResponse, UserAnswerStatsResponse, UserAnswerCreateResponse, userAnswerCreateOpenapi, userAnswerListResponseOpenapi, userAnswerDetailedListResponseOpenapi, userAnswerPerformanceListResponseOpenapi, userAnswerSessionListResponseOpenapi, userAnswerDetailResponseOpenapi, userAnswerCountResponseOpenapi, userAnswerStatsResponseOpenapi, userAnswerCreateResponseOpenapi } from './schemas/user_answer.schema';
 
 @ApiTags('User Answers')
@@ -15,13 +17,21 @@ export class UserAnswerController {
   /**
    * Create a new user answer
    * Validates chosen option and returns correctness information
+   * Session ID is automatically generated from JWT token (not sent by frontend)
    */
   @Post()
   @ApiBody({ schema: userAnswerCreateOpenapi })
   @ApiResponse({ schema: userAnswerCreateResponseOpenapi })
   @UsePipes(new ZodValidationPipe(UserAnswerCreateSchema))
-  async create(@Body() createUserAnswerDto: UserAnswerCreate): Promise<UserAnswerCreateResponse> {
-    return this.userAnswerService.create(createUserAnswerDto);
+  async create(@Body() createUserAnswerDto: UserAnswerCreate, @Req() req: Request, @SessionId() sessionId: string): Promise<UserAnswerCreateResponse> {
+    // Extract user info from JWT token (available after JwtAuthGuard)
+    const user = (req as any).user;
+
+    if (!user?.user_id) {
+      throw new Error('User not authenticated');
+    }
+
+    return this.userAnswerService.create(createUserAnswerDto, user, sessionId);
   }
 
   /**

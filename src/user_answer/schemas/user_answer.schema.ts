@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { zodToOpenAPI } from 'nestjs-zod';
 import { PaginationMetaSchema, PaginationSchema } from '@/domain/shared/schemas/pagination.schema';
 
-// Base user answer schema - complete user answer entity
+// Base user answer schema - complete user answer entity (for internal use only)
 export const UserAnswerSchema = z.object({
   id: z.number(),
   users_id: z.number(),
@@ -10,14 +10,14 @@ export const UserAnswerSchema = z.object({
   option_id: z.number(),
   is_correct: z.boolean(),
   response_time: z.number().min(0).default(0),
-  session_id: z.string().min(1, 'Session ID is required').max(45),
+  session_id: z.string().min(1, 'Session ID is required').max(36),
   used_hint: z.boolean().default(false),
   confidence_level: z.number().min(0).max(9.99).default(0),
   difficulty_at_time: z.number().min(0).max(9.99).default(0),
   answared_at: z.date(),
 });
 
-// User answer basic schema - for listing user answers
+// User answer basic schema - for listing user answers (excludes session_id)
 export const UserAnswerBasicSchema = UserAnswerSchema.pick({
   id: true,
   users_id: true,
@@ -27,7 +27,7 @@ export const UserAnswerBasicSchema = UserAnswerSchema.pick({
   answared_at: true,
 });
 
-// User answer performance schema - for analytics
+// User answer performance schema - for analytics (excludes session_id)
 export const UserAnswerPerformanceSchema = UserAnswerSchema.pick({
   id: true,
   users_id: true,
@@ -39,36 +39,36 @@ export const UserAnswerPerformanceSchema = UserAnswerSchema.pick({
   used_hint: true,
 });
 
-// User answer session schema - for session tracking
+// User answer session schema - for session tracking (excludes session_id from response)
 export const UserAnswerSessionSchema = UserAnswerSchema.pick({
   id: true,
   users_id: true,
-  session_id: true,
   is_correct: true,
   response_time: true,
   answared_at: true,
 });
 
-// For creating user answers - excludes auto-generated and system-determined fields
+// For creating user answers - excludes auto-generated and system-determined fields, including session_id
 export const UserAnswerCreateSchema = UserAnswerSchema.omit({
   id: true,
   is_correct: true, // System determines this based on chosen option
   answared_at: true,
+  session_id: true, // System generates this from JWT - cannot be sent by frontend
 });
 
-// For updating user answers - all fields optional except required ones
+// For updating user answers - all fields optional except required ones (excludes session_id)
 export const UserAnswerUpdateSchema = UserAnswerSchema.partial().omit({
   id: true,
   answared_at: true,
+  session_id: true, // Session ID cannot be updated
 });
 
-// For user answer filtering and search
+// For user answer filtering and search (session_id only available for internal queries)
 export const UserAnswerFilterSchema = z.object({
   users_id: z.coerce.number().optional(),
   question_id: z.coerce.number().optional(),
   option_id: z.coerce.number().optional(),
   is_correct: z.coerce.boolean().optional(),
-  session_id: z.string().optional(),
   used_hint: z.coerce.boolean().optional(),
   confidence_level_min: z.coerce.number().min(0).max(9.99).optional(),
   confidence_level_max: z.coerce.number().min(0).max(9.99).optional(),
@@ -78,14 +78,19 @@ export const UserAnswerFilterSchema = z.object({
   answered_before: z.coerce.date().optional(),
 });
 
-// Query parameters schema for retrieve operations
+// Internal filter schema that includes session_id for internal service operations
+export const UserAnswerInternalFilterSchema = UserAnswerFilterSchema.extend({
+  session_id: z.string().optional(),
+});
+
+// Query parameters schema for retrieve operations (excludes session_id)
 export const UserAnswerQuerySchema = UserAnswerFilterSchema.merge(PaginationSchema).extend({
   sort_by: z.enum(['id', 'answared_at', 'response_time', 'confidence_level', 'difficulty_at_time']).optional(),
   sort_order: z.enum(['ASC', 'DESC']).default('DESC'),
 });
 
-// User answer with relationships schema
-const UserAnswerDetailSchema = UserAnswerSchema.extend({
+// User answer with relationships schema (excludes session_id)
+const UserAnswerDetailSchema = UserAnswerSchema.omit({ session_id: true }).extend({
   user: z
     .object({
       id: z.number(),
@@ -109,14 +114,14 @@ const UserAnswerDetailSchema = UserAnswerSchema.extend({
     .optional(),
 });
 
-// List response schemas for different user answer views
+// List response schemas for different user answer views (all exclude session_id)
 export const UserAnswerListResponseSchema = z.object({
   data: z.array(UserAnswerBasicSchema),
   meta: PaginationMetaSchema,
 });
 
 export const UserAnswerDetailedListResponseSchema = z.object({
-  data: z.array(UserAnswerSchema),
+  data: z.array(UserAnswerSchema.omit({ session_id: true })),
   meta: PaginationMetaSchema,
 });
 
@@ -130,15 +135,15 @@ export const UserAnswerSessionListResponseSchema = z.object({
   meta: PaginationMetaSchema,
 });
 
-// Single user answer response schema
+// Single user answer response schema (excludes session_id)
 export const UserAnswerDetailResponseSchema = z.object({
   data: UserAnswerDetailSchema,
 });
 
-// User answer create response schema - includes correctness validation and correct answers
+// User answer create response schema - includes correctness validation and correct answers (excludes session_id)
 export const UserAnswerCreateResponseSchema = z.object({
   data: z.object({
-    user_answer: UserAnswerSchema,
+    user_answer: UserAnswerSchema.omit({ session_id: true }),
     is_correct: z.boolean(),
     correct_options: z.array(
       z.object({
@@ -170,7 +175,7 @@ export const UserAnswerStatsResponseSchema = z.object({
 // OpenAPI schemas
 export const userAnswerCreateOpenapi: any = zodToOpenAPI(UserAnswerCreateSchema);
 export const userAnswerUpdateOpenapi: any = zodToOpenAPI(UserAnswerUpdateSchema);
-export const userAnswerResponseOpenapi: any = zodToOpenAPI(UserAnswerSchema);
+export const userAnswerResponseOpenapi: any = zodToOpenAPI(UserAnswerSchema.omit({ session_id: true }));
 export const userAnswerBasicOpenapi: any = zodToOpenAPI(UserAnswerBasicSchema);
 export const userAnswerPerformanceOpenapi: any = zodToOpenAPI(UserAnswerPerformanceSchema);
 export const userAnswerFilterOpenapi: any = zodToOpenAPI(UserAnswerFilterSchema);
@@ -192,6 +197,7 @@ export type UserAnswerSession = z.infer<typeof UserAnswerSessionSchema>;
 export type UserAnswerCreate = z.infer<typeof UserAnswerCreateSchema>;
 export type UserAnswerUpdate = z.infer<typeof UserAnswerUpdateSchema>;
 export type UserAnswerFilter = z.infer<typeof UserAnswerFilterSchema>;
+export type UserAnswerInternalFilter = z.infer<typeof UserAnswerInternalFilterSchema>;
 export type UserAnswerQuery = z.infer<typeof UserAnswerQuerySchema>;
 export type UserAnswerDetail = z.infer<typeof UserAnswerDetailSchema>;
 export type UserAnswerListResponse = z.infer<typeof UserAnswerListResponseSchema>;

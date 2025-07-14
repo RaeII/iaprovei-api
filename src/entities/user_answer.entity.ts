@@ -24,7 +24,7 @@ export class UserAnswer implements UserAnswerType {
   @Column({ name: 'response_time', default: 0 })
   response_time: number;
 
-  @Column({ name: 'session_id', length: 45 })
+  @Column({ name: 'session_id', length: 36 })
   session_id: string;
 
   @Column({ name: 'used_hint', type: 'tinyint', default: 0 })

@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { UserAnswer } from '@/entities/user_answer.entity';
 import { DataNotFoundException } from '@/domain/shared/exceptions/data-not-found.exception';
-import { UserAnswerCreate, UserAnswerQuery, UserAnswerFilter, UserAnswerListResponse, UserAnswerDetailedListResponse, UserAnswerPerformanceListResponse, UserAnswerSessionListResponse, UserAnswerDetail, UserAnswerCountResponse, UserAnswerStatsResponse, UserAnswerCreateResponse } from './schemas/user_answer.schema';
+import { UserAnswerCreate, UserAnswerQuery, UserAnswerFilter, UserAnswerInternalFilter, UserAnswerListResponse, UserAnswerDetailedListResponse, UserAnswerPerformanceListResponse, UserAnswerSessionListResponse, UserAnswerDetail, UserAnswerCountResponse, UserAnswerStatsResponse, UserAnswerCreateResponse } from './schemas/user_answer.schema';
 import { createPaginationMeta, generateOffset } from '@/utils/query-utils';
 import { QuestionOptionService } from '@/question_option/question_option.service';
 
@@ -18,28 +18,35 @@ export class UserAnswerService {
   /**
    * Create a new user answer
    * Validates the chosen option and determines correctness automatically
+   * Session ID is provided by the controller decorator
    * Returns both the user answer and correct answer information
    */
-  async create(createUserAnswerDto: UserAnswerCreate): Promise<UserAnswerCreateResponse> {
+  async create(createUserAnswerDto: UserAnswerCreate, userInfo: { user_id: number; username: string }, sessionId: string): Promise<UserAnswerCreateResponse> {
     // Get the chosen option to validate it exists and check correctness
     const chosenOption = await this.questionOptionService.findOneInternal(createUserAnswerDto.option_id);
 
     // Get all correct options for this question to return in response
     const correctOptionsResponse = await this.questionOptionService.findCorrectByQuestion(chosenOption.question_id);
 
-    // Create the user answer with system-determined correctness
+    // Create the user answer with system-determined correctness and provided session_id
     const newUserAnswer = this.userAnswersRepository.create({
       ...createUserAnswerDto,
+      users_id: userInfo.user_id, // Ensure users_id matches the authenticated user
+      session_id: sessionId, // Session ID provided by controller decorator
       is_correct: chosenOption.is_correct, // System determines this based on the chosen option
       answared_at: new Date(),
     });
 
     const savedUserAnswer = await this.userAnswersRepository.save(newUserAnswer);
 
+    // Remove session_id from the response
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { session_id: _, ...userAnswerResponse } = savedUserAnswer;
+
     // Return comprehensive response with correctness validation and correct answers
     return {
       data: {
-        user_answer: savedUserAnswer,
+        user_answer: userAnswerResponse,
         is_correct: chosenOption.is_correct,
         correct_options: correctOptionsResponse.data.map(option => ({
           id: option.id,
@@ -92,7 +99,7 @@ export class UserAnswerService {
 
   /**
    * Retrieve user answers with all details
-   * Includes all fields for comprehensive analysis
+   * Includes all fields for comprehensive analysis (excludes session_id from response)
    */
   async findAllDetailed(query: UserAnswerQuery): Promise<UserAnswerDetailedListResponse> {
     const { page, limit, sort_by, sort_order, ...filters } = query;
@@ -114,8 +121,12 @@ export class UserAnswerService {
 
     const meta = createPaginationMeta(total, page, limit);
 
+    // Remove session_id from each answer before returning
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const sanitizedAnswers = userAnswers.map(({ session_id: _, ...answer }) => answer);
+
     return {
-      data: userAnswers,
+      data: sanitizedAnswers,
       meta,
     };
   }
@@ -164,15 +175,15 @@ export class UserAnswerService {
 
   /**
    * Retrieve user answers by session
-   * Optimized for session tracking and progress monitoring
+   * Optimized for session tracking and progress monitoring (excludes session_id from response)
    */
   async findAllBySession(query: UserAnswerQuery): Promise<UserAnswerSessionListResponse> {
     const { page, limit, sort_by, sort_order, ...filters } = query;
 
     const queryBuilder = this.createBaseQueryBuilder(filters);
 
-    // Select session-relevant fields
-    queryBuilder.select(['userAnswer.id', 'userAnswer.users_id', 'userAnswer.session_id', 'userAnswer.is_correct', 'userAnswer.response_time', 'userAnswer.answared_at']);
+    // Select session-relevant fields (excluding session_id from selection)
+    queryBuilder.select(['userAnswer.id', 'userAnswer.users_id', 'userAnswer.is_correct', 'userAnswer.response_time', 'userAnswer.answared_at']);
 
     // Apply sorting
     if (sort_by) {
@@ -193,7 +204,6 @@ export class UserAnswerService {
       data: userAnswers.map(answer => ({
         id: answer.id,
         users_id: answer.users_id,
-        session_id: answer.session_id,
         is_correct: answer.is_correct,
         response_time: answer.response_time,
         answared_at: answer.answared_at,
@@ -203,7 +213,7 @@ export class UserAnswerService {
   }
 
   /**
-   * Retrieve single user answer with full details and relationships
+   * Retrieve single user answer with full details and relationships (excludes session_id)
    */
   async findOne(id: number): Promise<UserAnswerDetail> {
     const userAnswer = await this.userAnswersRepository.findOne({
@@ -232,7 +242,10 @@ export class UserAnswerService {
       throw new DataNotFoundException(`UserAnswer with id "${id}"`, 'Resposta do Usuário', UserAnswerService.name);
     }
 
-    return userAnswer;
+    // Remove session_id from the response
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { session_id: _, ...sanitizedAnswer } = userAnswer;
+    return sanitizedAnswer;
   }
 
   /**
@@ -285,8 +298,9 @@ export class UserAnswerService {
   /**
    * Create base query builder with common filtering logic
    * Follows DRY principle and enables consistent filtering across methods
+   * Uses internal filter type to support session_id filtering when needed
    */
-  private createBaseQueryBuilder(filters: UserAnswerFilter): SelectQueryBuilder<UserAnswer> {
+  private createBaseQueryBuilder(filters: UserAnswerFilter | UserAnswerInternalFilter): SelectQueryBuilder<UserAnswer> {
     const queryBuilder = this.userAnswersRepository.createQueryBuilder('userAnswer');
 
     // Apply filters
@@ -306,9 +320,11 @@ export class UserAnswerService {
       queryBuilder.andWhere('userAnswer.is_correct = :isCorrect', { isCorrect: filters.is_correct });
     }
 
-    if (filters.session_id) {
-      queryBuilder.andWhere('userAnswer.session_id = :sessionId', { sessionId: filters.session_id });
-    }
+    // session_id filtering only available for internal operations (temporarily disabled)
+    // TODO: Implement session_id filtering for internal operations when needed
+    // if (this.isInternalFilter(filters) && filters.session_id) {
+    //   queryBuilder.andWhere('userAnswer.session_id = :sessionId', { sessionId: filters.session_id });
+    // }
 
     if (filters.used_hint !== undefined) {
       queryBuilder.andWhere('userAnswer.used_hint = :usedHint', { usedHint: filters.used_hint });
