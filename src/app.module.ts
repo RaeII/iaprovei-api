@@ -13,6 +13,7 @@ import { ContestModule } from './contest/contest.module';
 import { SubjectModule } from './subject/subject.module';
 import { QuestionModule } from './question/question.module';
 import { QuestionOptionModule } from './question_option/question_option.module';
+import { UserAnswerModule } from './user_answer/user_answer.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { QuestionOptionModule } from './question_option/question_option.module';
     SubjectModule,
     QuestionModule,
     QuestionOptionModule,
+    UserAnswerModule,
   ],
   providers: [
     OverallFilterProvider,
