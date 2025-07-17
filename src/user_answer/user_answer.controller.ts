@@ -22,8 +22,7 @@ export class UserAnswerController {
   @Post()
   @ApiBody({ schema: userAnswerCreateOpenapi })
   @ApiResponse({ schema: userAnswerCreateResponseOpenapi })
-  @UsePipes(new ZodValidationPipe(UserAnswerCreateSchema))
-  async create(@Body() createUserAnswerDto: UserAnswerCreate, @Req() req: Request, @SessionId() sessionId: string): Promise<UserAnswerCreateResponse> {
+  async create(@Body(new ZodValidationPipe(UserAnswerCreateSchema)) createUserAnswerDto: UserAnswerCreate, @Req() req: Request, @SessionId() sessionId: string): Promise<UserAnswerCreateResponse> {
     // Extract user info from JWT token (available after JwtAuthGuard)
     const user = (req as any).user;
 

@@ -152,6 +152,7 @@ export const UserAnswerCreateResponseSchema = z.object({
         option_letter: z.string().optional(),
       })
     ),
+    ai_correction: z.string().optional(), // AI-powered correction for incorrect answers
   }),
 });
 

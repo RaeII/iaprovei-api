@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { Question } from '@/entities/question.entity';
 import { DataNotFoundException } from '@/domain/shared/exceptions/data-not-found.exception';
-import { QuestionQuery, QuestionFilter, QuestionListResponse, QuestionDetailedListResponse, QuestionStatsListResponse, QuestionDetail } from './schemas/question.schema';
+import { QuestionQuery, QuestionFilter, QuestionListResponse, QuestionDetailedListResponse, QuestionStatsListResponse, QuestionDetail, QuestionEagerDetail } from './schemas/question.schema';
 import { createPaginationMeta, generateOffset } from '@/utils/query-utils';
 
 @Injectable()
@@ -144,6 +144,32 @@ export class QuestionService {
             name: question.subject.name,
           }
         : undefined,
+    };
+  }
+
+  /**
+   * Retrieve a single question by ID with full details
+   * Includes related subject and contest information
+   */
+  async findOneEager(id: number): Promise<QuestionEagerDetail> {
+    const question = await this.questionsRepository.findOne({
+      where: { id },
+      relations: ['subject', 'subject.contest'],
+    });
+
+    if (!question) {
+      throw new DataNotFoundException(`Question with id "${id}"`, 'Questão', QuestionService.name);
+    }
+
+    return {
+      ...question,
+      subject: question.subject
+        ? {
+            id: question.subject.id,
+            name: question.subject.name,
+          }
+        : undefined,
+      contest: question.subject?.contest ? question.subject?.contest : undefined,
     };
   }
 

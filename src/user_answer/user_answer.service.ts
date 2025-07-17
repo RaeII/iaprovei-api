@@ -6,13 +6,15 @@ import { DataNotFoundException } from '@/domain/shared/exceptions/data-not-found
 import { UserAnswerCreate, UserAnswerQuery, UserAnswerFilter, UserAnswerInternalFilter, UserAnswerListResponse, UserAnswerDetailedListResponse, UserAnswerPerformanceListResponse, UserAnswerSessionListResponse, UserAnswerDetail, UserAnswerCountResponse, UserAnswerStatsResponse, UserAnswerCreateResponse } from './schemas/user_answer.schema';
 import { createPaginationMeta, generateOffset } from '@/utils/query-utils';
 import { QuestionOptionService } from '@/question_option/question_option.service';
+import { QuestionService } from '@/question/question.service';
 
 @Injectable()
 export class UserAnswerService {
   constructor(
     @InjectRepository(UserAnswer)
     private userAnswersRepository: Repository<UserAnswer>,
-    private questionOptionService: QuestionOptionService
+    private questionOptionService: QuestionOptionService,
+    private questionService: QuestionService
   ) {}
 
   /**
@@ -43,18 +45,18 @@ export class UserAnswerService {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { session_id: _, ...userAnswerResponse } = savedUserAnswer;
 
-    // Return comprehensive response with correctness validation and correct answers
-    return {
-      data: {
-        user_answer: userAnswerResponse,
-        is_correct: chosenOption.is_correct,
-        correct_options: correctOptionsResponse.data.map(option => ({
-          id: option.id,
-          option_text: option.option_text,
-          option_letter: option.option_letter,
-        })),
-      },
+    // Initialize response data
+    const responseData: any = {
+      user_answer: userAnswerResponse,
+      is_correct: chosenOption.is_correct,
+      correct_options: correctOptionsResponse.data.map(option => ({
+        id: option.id,
+        option_text: option.option_text,
+        option_letter: option.option_letter,
+      })),
     };
+
+    return { data: responseData };
   }
 
   /**
@@ -292,6 +294,37 @@ export class UserAnswerService {
         average_response_time: Math.round((parseFloat(result.avg_response_time) || 0) * 100) / 100,
         average_confidence_level: Math.round((parseFloat(result.avg_confidence_level) || 0) * 100) / 100,
       },
+    };
+  }
+
+  /**
+   * Gather all necessary data for AI correction request
+   * Gets question with full relationship chain and all options
+   * Optimized for AI service requirements with parallel API calls
+   */
+  async gatherAiRequestData(
+    questionId: number,
+    chosenOptionId?: number
+  ): Promise<{
+    question: any;
+    all_options: any[];
+    chosen_option: any;
+    correct_options: any[];
+  }> {
+    // Run independent API calls in parallel for better performance
+    // eslint-disable-next-line prettier/prettier
+    const [question, allOptionsResponse, chosenOption, correctOptionsResponse] = await Promise.all([
+      this.questionService.findOneEager(questionId),
+      this.questionOptionService.findByQuestion(questionId),
+      chosenOptionId ? this.questionOptionService.findOneInternal(chosenOptionId) : null,
+      this.questionOptionService.findCorrectByQuestion(questionId),
+    ]);
+
+    return {
+      question,
+      all_options: allOptionsResponse.data,
+      chosen_option: chosenOption,
+      correct_options: correctOptionsResponse.data,
     };
   }
 

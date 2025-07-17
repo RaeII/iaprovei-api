@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { zodToOpenAPI } from 'nestjs-zod';
 import { PaginationMetaSchema, PaginationSchema } from '@/domain/shared/schemas/pagination.schema';
+import { ContestIdentitySchema } from '@/contest/schemas/contest.schema';
 
 // Enum schemas matching the TypeORM enums
 export const QuestionTypeSchema = z.enum(['multiple_choice', 'true_false', 'essay']);
@@ -111,6 +112,17 @@ const QuestionDetailSchema = QuestionSchema.extend({
     .optional(),
 });
 
+export const QuestionEagerDetailSchema = QuestionSchema.extend({
+  subject: z
+    .object({
+      id: z.number(),
+      name: z.string(),
+      contest_id: z.number(),
+    })
+    .optional(),
+  contest: ContestIdentitySchema,
+});
+
 // List response schemas for different question views
 export const QuestionListResponseSchema = z.object({
   data: z.array(QuestionBasicSchema),
@@ -176,3 +188,4 @@ export type QuestionStatsListResponse = z.infer<typeof QuestionStatsListResponse
 export type QuestionDetailResponse = z.infer<typeof QuestionDetailResponseSchema>;
 export type QuestionCountResponse = z.infer<typeof QuestionCountResponseSchema>;
 export type QuestionExistsResponse = z.infer<typeof QuestionExistsResponseSchema>;
+export type QuestionEagerDetail = z.infer<typeof QuestionEagerDetailSchema>;
