@@ -1,1 +1,2 @@
-export { SessionId } from './session-id.decorator';
+export * from './session-id.decorator';
+export * from './user-context.decorator';

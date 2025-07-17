@@ -14,6 +14,8 @@ import { SubjectModule } from './subject/subject.module';
 import { QuestionModule } from './question/question.module';
 import { QuestionOptionModule } from './question_option/question_option.module';
 import { UserAnswerModule } from './user_answer/user_answer.module';
+import { AiAssistanceSessionModule } from './ai_assistance_session/ai_assistance_session.module';
+import { AiAssistanceMessageModule } from './ai_assistance_message/ai_assistance_message.module';
 
 @Module({
   imports: [
@@ -35,6 +37,8 @@ import { UserAnswerModule } from './user_answer/user_answer.module';
     QuestionModule,
     QuestionOptionModule,
     UserAnswerModule,
+    AiAssistanceSessionModule,
+    AiAssistanceMessageModule,
   ],
   providers: [
     OverallFilterProvider,
@@ -43,6 +47,5 @@ import { UserAnswerModule } from './user_answer/user_answer.module';
       useClass: ZodValidationPipe,
     },
   ],
-  controllers: [],
 })
 export class AppModule {}
