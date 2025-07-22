@@ -1,9 +1,9 @@
 import { Controller, Get, Param, Query, ParseIntPipe, UsePipes, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { QuestionService } from './question.service';
 import { JwtAuthGuard } from '@/auth/guard/jwt-auth.guard';
-import { QuestionQuerySchema, QuestionQuery, QuestionListResponse, QuestionDetailedListResponse, QuestionStatsListResponse, QuestionDetailResponse, questionListResponseOpenapi, questionDetailedListResponseOpenapi, questionStatsListResponseOpenapi, questionDetailResponseOpenapi, questionExistsResponseOpenapi, QuestionExistsResponse, QuestionCountResponse, questionCountResponseOpenapi, QuestionFilter } from './schemas/question.schema';
+import { QuestionQuerySchema, QuestionQuery, QuestionListResponse, QuestionDetailedListResponse, QuestionStatsListResponse, QuestionDetailResponse, questionListResponseOpenapi, questionDetailedListResponseOpenapi, questionStatsListResponseOpenapi, questionDetailResponseOpenapi, questionExistsResponseOpenapi, QuestionExistsResponse, QuestionCountResponse, questionCountResponseOpenapi, QuestionFilter, QuestionTypeEnumOpenapi, DifficultyLevelEnumOpenapi } from './schemas/question.schema';
 
 @ApiTags('Question')
 @Controller('questions')
@@ -15,6 +15,11 @@ export class QuestionController {
   @Get()
   @ApiResponse({ schema: questionListResponseOpenapi })
   @UsePipes(new ZodValidationPipe(QuestionQuerySchema))
+  @ApiQuery({ name: 'question_type', required: false, type: String, enum: QuestionTypeEnumOpenapi.enum })
+  @ApiQuery({ name: 'difficulty_level', required: false, type: String, enum: DifficultyLevelEnumOpenapi.enum })
+  @ApiQuery({ name: 'exam_board', required: false, type: String })
+  @ApiQuery({ name: 'exam_year', required: false, type: Number })
+  @ApiQuery({ name: 'is_active', required: false, type: Boolean })
   async findAll(@Query() query: QuestionQuery): Promise<QuestionListResponse> {
     return this.questionService.findAll(query);
   }
@@ -22,6 +27,11 @@ export class QuestionController {
   @Get('detailed')
   @ApiResponse({ schema: questionDetailedListResponseOpenapi })
   @UsePipes(new ZodValidationPipe(QuestionQuerySchema))
+  @ApiQuery({ name: 'question_type', required: false, type: String, enum: QuestionTypeEnumOpenapi.enum })
+  @ApiQuery({ name: 'difficulty_level', required: false, type: String, enum: DifficultyLevelEnumOpenapi.enum })
+  @ApiQuery({ name: 'exam_board', required: false, type: String })
+  @ApiQuery({ name: 'exam_year', required: false, type: Number })
+  @ApiQuery({ name: 'is_active', required: false, type: Boolean })
   async findAllDetailed(@Query() query: QuestionQuery): Promise<QuestionDetailedListResponse> {
     return this.questionService.findAllDetailed(query);
   }
@@ -29,6 +39,11 @@ export class QuestionController {
   @Get('stats')
   @ApiResponse({ schema: questionStatsListResponseOpenapi })
   @UsePipes(new ZodValidationPipe(QuestionQuerySchema))
+  @ApiQuery({ name: 'question_type', required: false, type: String, enum: QuestionTypeEnumOpenapi.enum })
+  @ApiQuery({ name: 'difficulty_level', required: false, type: String, enum: DifficultyLevelEnumOpenapi.enum })
+  @ApiQuery({ name: 'exam_board', required: false, type: String })
+  @ApiQuery({ name: 'exam_year', required: false, type: Number })
+  @ApiQuery({ name: 'is_active', required: false, type: Boolean })
   async findAllStats(@Query() query: QuestionQuery): Promise<QuestionStatsListResponse> {
     return this.questionService.findAllStats(query);
   }
@@ -41,20 +56,13 @@ export class QuestionController {
 
   @Get('subject/:subjectId')
   @ApiResponse({ schema: questionListResponseOpenapi })
+  @ApiQuery({ name: 'question_type', required: false, type: String, enum: QuestionTypeEnumOpenapi.enum })
+  @ApiQuery({ name: 'difficulty_level', required: false, type: String, enum: DifficultyLevelEnumOpenapi.enum })
+  @ApiQuery({ name: 'exam_board', required: false, type: String })
+  @ApiQuery({ name: 'exam_year', required: false, type: Number })
+  @ApiQuery({ name: 'is_active', required: false, type: Boolean })
   async findBySubject(@Param('subjectId', ParseIntPipe) subjectId: number, @Query(new ZodValidationPipe(QuestionQuerySchema.omit({ subject_id: true }))) query: Omit<QuestionQuery, 'subject_id'>): Promise<QuestionListResponse> {
     return this.questionService.findBySubject(subjectId, query);
-  }
-
-  @Get('difficulty/:level')
-  @ApiResponse({ schema: questionListResponseOpenapi })
-  async findByDifficultyLevel(@Param('level') difficultyLevel: string, @Query(new ZodValidationPipe(QuestionQuerySchema.omit({ difficulty_level: true }))) query: Omit<QuestionQuery, 'difficulty_level'>): Promise<QuestionListResponse> {
-    return this.questionService.findByDifficultyLevel(difficultyLevel, query);
-  }
-
-  @Get('exam/:examBoard/:examYear')
-  @ApiResponse({ schema: questionListResponseOpenapi })
-  async findByExam(@Param('examBoard') examBoard: string, @Param('examYear', ParseIntPipe) examYear: number, @Query(new ZodValidationPipe(QuestionQuerySchema.omit({ exam_board: true, exam_year: true }))) query: Omit<QuestionQuery, 'exam_board' | 'exam_year'>): Promise<QuestionListResponse> {
-    return this.questionService.findByExam(examBoard, examYear, query);
   }
 
   @Get('count')

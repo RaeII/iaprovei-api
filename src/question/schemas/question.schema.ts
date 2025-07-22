@@ -5,7 +5,9 @@ import { ContestIdentitySchema } from '@/contest/schemas/contest.schema';
 
 // Enum schemas matching the TypeORM enums
 export const QuestionTypeSchema = z.enum(['multiple_choice', 'true_false', 'essay']);
+export const QuestionTypeEnumOpenapi: any = zodToOpenAPI(QuestionTypeSchema);
 export const DifficultyLevelSchema = z.enum(['easy', 'medium', 'hard']);
+export const DifficultyLevelEnumOpenapi: any = zodToOpenAPI(DifficultyLevelSchema);
 
 // Base question schema - complete question entity
 export const QuestionSchema = z.object({

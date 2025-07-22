@@ -16,7 +16,7 @@ import { QuestionOptionModule } from './question_option/question_option.module';
 import { UserAnswerModule } from './user_answer/user_answer.module';
 import { AiAssistanceSessionModule } from './ai_assistance_session/ai_assistance_session.module';
 import { AiAssistanceMessageModule } from './ai_assistance_message/ai_assistance_message.module';
-import { AiAssistantModule } from './ai_assistant/ai_assistant.module';
+import { AiAssistanceModule } from './ai_assistance/ai_assistance.module';
 import openaiConfig from './config/openai.config';
 
 @Module({
@@ -41,7 +41,7 @@ import openaiConfig from './config/openai.config';
     UserAnswerModule,
     AiAssistanceSessionModule,
     AiAssistanceMessageModule,
-    AiAssistantModule,
+    AiAssistanceModule,
   ],
   providers: [
     OverallFilterProvider,

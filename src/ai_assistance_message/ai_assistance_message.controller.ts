@@ -9,7 +9,7 @@ import { AiAssistanceMessageQuerySchema, AiAssistanceMessageQuery, AiAssistanceM
 import { SessionId } from '@/common/decorators/session-id.decorator';
 
 @ApiTags('AI Assistance Message')
-@Controller('ai-assistance-messages')
+@Controller('ai-assistance/messages')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class AiAssistanceMessageController {

@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { IAiProvider } from '../interfaces/ai-provider.interface';
-import { AiAssistantQuestionExplanationRequest, AiAssistantQuestionExplanationResponse, AiAssistantRequest, AiAssistantResponse } from '../schemas/ai_assistant.schema';
+import { AiAssistanceQuestionExplanationRequest, AiAssistanceQuestionExplanationResponse, AiAssistanceRequest, AiAssistanceResponse } from '../schemas/ai_assistance.schema';
 import { MisconfiguredServiceException } from '../../domain/shared/exceptions/misconfigured-service.exception';
 
 @Injectable()
@@ -22,7 +22,7 @@ export class OpenAiProvider implements IAiProvider {
     });
   }
 
-  async correctUserAnswer(request: AiAssistantRequest): Promise<AiAssistantResponse> {
+  async correctUserAnswer(request: AiAssistanceRequest): Promise<AiAssistanceResponse> {
     try {
       this.logger.log('Requesting answer correction from OpenAI');
 
@@ -62,7 +62,7 @@ export class OpenAiProvider implements IAiProvider {
     }
   }
 
-  async getQuestionExplanation(request: AiAssistantQuestionExplanationRequest): Promise<AiAssistantQuestionExplanationResponse> {
+  async getQuestionExplanation(request: AiAssistanceQuestionExplanationRequest): Promise<AiAssistanceQuestionExplanationResponse> {
     try {
       this.logger.log('Requesting question explanation from OpenAI');
 
@@ -110,7 +110,7 @@ export class OpenAiProvider implements IAiProvider {
     return this.configService.get('openai.questionExplanationSystemPrompt');
   }
 
-  private buildUserMessage(request: AiAssistantRequest): string {
+  private buildUserMessage(request: AiAssistanceRequest): string {
     return `The actual course institution is ${request.institution}, the actual subject is ${request.subject}, the questions is "${request.question}", that is a multi choice option, the options are:
 
 ${request.options.join('\n')}
@@ -120,7 +120,7 @@ The correct answer is "${request.correct_answer}". The default explantion for it
 The student answer is "${request.student_answer}" that is incorrect, make a correction_suggestion for the student.`;
   }
 
-  private buildQuestionExplanationUserMessage(request: AiAssistantQuestionExplanationRequest): string {
+  private buildQuestionExplanationUserMessage(request: AiAssistanceQuestionExplanationRequest): string {
     return `The actual course institution is ${request.institution}, the actual subject is ${request.subject}, the questions is "${request.question}", that is a multi choice option, the options are:
 
 ${request.options.join('\n')}

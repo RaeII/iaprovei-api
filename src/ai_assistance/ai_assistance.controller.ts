@@ -1,7 +1,7 @@
 import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { ZodValidationPipe } from 'nestjs-zod';
-import { AiAssistantService } from './ai_assistant.service';
-import { AiAssistantApiResponse, AiAssistantQuestionExplanationApiRequest, AiAssistantQuestionExplanationApiRequestSchema, AiAssistantQuestionExplanationApiResponse, AiAssistantRequestPayload, AiAssistantRequestPayloadSchema, aiAssistantApiResponseOpenapi, aiAssistantQuestionExplanationApiRequestOpenapi, aiAssistantQuestionExplanationApiResponseOpenapi, aiAssistantRequestPayloadOpenapi } from './schemas/ai_assistant.schema';
+import { AiAssistanceService } from './ai_assistance.service';
+import { AiAssistanceApiResponse, AiAssistanceQuestionExplanationApiRequest, AiAssistanceQuestionExplanationApiRequestSchema, AiAssistantQuestionExplanationApiResponse, AiAssistantRequestPayload, AiAssistanceRequestPayloadSchema, aiAssistanceApiResponseOpenapi, aiAssistanceQuestionExplanationApiRequestOpenapi, aiAssistanceQuestionExplanationApiResponseOpenapi, aiAssistanceRequestPayloadOpenapi } from './schemas/ai_assistance.schema';
 import { UserAnswerService } from '@/user_answer/user_answer.service';
 import { ApiBearerAuth, ApiBody, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { BasicUserInfo, SessionId } from '@/common/decorators';
@@ -9,20 +9,20 @@ import { AiAssistanceMessageService } from '@/ai_assistance_message/ai_assistanc
 import { JwtAuthGuard } from '@/auth/guard/jwt-auth.guard';
 
 @ApiTags('AI Assistant')
-@Controller('ai-assistant')
+@Controller('ai-assistance')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
-export class AiAssistantController {
+export class AiAssistanceController {
   constructor(
-    private readonly aiAssistantService: AiAssistantService,
+    private readonly aiAssistantService: AiAssistanceService,
     private readonly aiAssistanceMessageService: AiAssistanceMessageService,
     private readonly userAnswerService: UserAnswerService
   ) {}
 
   @Post('correct-answer')
-  @ApiBody({ schema: aiAssistantRequestPayloadOpenapi })
-  @ApiResponse({ schema: aiAssistantApiResponseOpenapi })
-  async correctUserAnswer(@Body(new ZodValidationPipe(AiAssistantRequestPayloadSchema)) request: AiAssistantRequestPayload, @SessionId() sessionId: string, @BasicUserInfo() userInfo: { user_id: number; username: string }): Promise<AiAssistantApiResponse> {
+  @ApiBody({ schema: aiAssistanceRequestPayloadOpenapi })
+  @ApiResponse({ schema: aiAssistanceApiResponseOpenapi })
+  async correctUserAnswer(@Body(new ZodValidationPipe(AiAssistanceRequestPayloadSchema)) request: AiAssistantRequestPayload, @SessionId() sessionId: string, @BasicUserInfo() userInfo: { user_id: number; username: string }): Promise<AiAssistanceApiResponse> {
     const userAnswer = await this.userAnswerService.gatherAiRequestData(request.question_id, request.user_option_answer_id);
 
     const aiRequest = {
@@ -51,9 +51,9 @@ export class AiAssistantController {
   }
 
   @Post('question-explanation')
-  @ApiBody({ schema: aiAssistantQuestionExplanationApiRequestOpenapi })
-  @ApiResponse({ schema: aiAssistantQuestionExplanationApiResponseOpenapi })
-  async getQuestionExplanation(@Body(new ZodValidationPipe(AiAssistantQuestionExplanationApiRequestSchema)) request: AiAssistantQuestionExplanationApiRequest, @SessionId() sessionId: string, @BasicUserInfo() userInfo: { user_id: number; username: string }): Promise<AiAssistantQuestionExplanationApiResponse> {
+  @ApiBody({ schema: aiAssistanceQuestionExplanationApiRequestOpenapi })
+  @ApiResponse({ schema: aiAssistanceQuestionExplanationApiResponseOpenapi })
+  async getQuestionExplanation(@Body(new ZodValidationPipe(AiAssistanceQuestionExplanationApiRequestSchema)) request: AiAssistanceQuestionExplanationApiRequest, @SessionId() sessionId: string, @BasicUserInfo() userInfo: { user_id: number; username: string }): Promise<AiAssistantQuestionExplanationApiResponse> {
     const userAnswer = await this.userAnswerService.gatherAiRequestData(request.question_id);
 
     const aiRequest = {

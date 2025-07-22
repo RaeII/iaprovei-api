@@ -182,22 +182,6 @@ export class QuestionService {
   }
 
   /**
-   * Retrieve questions by difficulty level
-   * Used for difficulty-based question selection
-   */
-  async findByDifficultyLevel(difficultyLevel: string, query: Omit<QuestionQuery, 'difficulty_level'>): Promise<QuestionListResponse> {
-    return this.findAll({ ...query, difficulty_level: difficultyLevel as any });
-  }
-
-  /**
-   * Retrieve questions by exam board and year
-   * Useful for exam-specific question retrieval
-   */
-  async findByExam(examBoard: string, examYear: number, query: Omit<QuestionQuery, 'exam_board' | 'exam_year'>): Promise<QuestionListResponse> {
-    return this.findAll({ ...query, exam_board: examBoard, exam_year: examYear });
-  }
-
-  /**
    * Count questions by filters
    * Performance-optimized count operation
    */

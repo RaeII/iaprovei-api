@@ -23,7 +23,7 @@ export class QuestionOptionService {
     const queryBuilder = this.createBaseQueryBuilder(filters);
 
     // Select only basic fields for performance
-    queryBuilder.select(['question_option.id', 'question_option.question_id', 'question_option.option_text', 'question_option.option_letter', 'question_option.display_order']);
+    // queryBuilder.select(['question_option.id', 'question_option.question_id', 'question_option.option_text', 'question_option.option_letter', 'question_option.is_correct', 'question_option.display_order']);
 
     // Apply sorting
     if (sort_by) {
@@ -46,6 +46,7 @@ export class QuestionOptionService {
         question_id: option.question_id,
         option_text: option.option_text,
         option_letter: option.option_letter,
+        is_correct: option.is_correct,
         display_order: option.display_order,
       })),
       meta,
@@ -63,7 +64,7 @@ export class QuestionOptionService {
     const queryBuilder = this.createBaseQueryBuilder(filters);
 
     // Select detailed fields but explicitly exclude is_correct for security
-    queryBuilder.select(['question_option.id', 'question_option.question_id', 'question_option.option_text', 'question_option.option_letter', 'question_option.display_order', 'question_option.created_at']);
+    // queryBuilder.select(['question_option.id', 'question_option.question_id', 'question_option.option_text', 'question_option.option_letter', 'question_option.display_order', 'question_option.created_at']);
 
     // Apply sorting
     if (sort_by) {
@@ -86,6 +87,7 @@ export class QuestionOptionService {
         question_id: option.question_id,
         option_text: option.option_text,
         option_letter: option.option_letter,
+        is_correct: option.is_correct,
         display_order: option.display_order,
         created_at: option.created_at,
       })),
@@ -97,10 +99,10 @@ export class QuestionOptionService {
    * Retrieve a single question option by ID (PUBLIC - SECURE)
    * Returns detailed information but omits is_correct field for security
    */
-  async findOne(id: number): Promise<Omit<QuestionOptionSchema, 'is_correct'>> {
+  async findOne(id: number): Promise<QuestionOptionSchema> {
     const questionOption = await this.questionOptionsRepository.findOne({
       where: { id },
-      select: ['id', 'question_id', 'option_text', 'option_letter', 'display_order', 'created_at'],
+      select: ['id', 'question_id', 'option_text', 'option_letter', 'is_correct', 'display_order', 'created_at'],
     });
 
     if (!questionOption) {
@@ -112,6 +114,7 @@ export class QuestionOptionService {
       question_id: questionOption.question_id,
       option_text: questionOption.option_text,
       option_letter: questionOption.option_letter || '',
+      is_correct: questionOption.is_correct,
       display_order: questionOption.display_order,
       created_at: questionOption.created_at,
     };

@@ -1,22 +1,22 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { AiAssistantService } from './ai_assistant.service';
+import { AiAssistanceService } from './ai_assistance.service';
 import { OpenAiProvider } from './providers/openai.provider';
 import { AI_PROVIDER_TOKEN } from './interfaces/ai-provider.interface';
-import { AiAssistantController } from './ai_assistant.controller';
+import { AiAssistanceController } from './ai_assistance.controller';
 import { UserAnswerModule } from '@/user_answer/user_answer.module';
 import { AiAssistanceMessageModule } from '@/ai_assistance_message/ai_assistance_message.module';
 
 @Module({
   imports: [ConfigModule, UserAnswerModule, AiAssistanceMessageModule],
-  controllers: [AiAssistantController],
+  controllers: [AiAssistanceController],
   providers: [
-    AiAssistantService,
+    AiAssistanceService,
     {
       provide: AI_PROVIDER_TOKEN,
       useClass: OpenAiProvider,
     },
   ],
-  exports: [AiAssistantService],
+  exports: [AiAssistanceService],
 })
-export class AiAssistantModule {}
+export class AiAssistanceModule {}

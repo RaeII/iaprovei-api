@@ -19,6 +19,7 @@ export const QuestionOptionBasicSchema = QuestionOptionSchema.pick({
   question_id: true,
   option_text: true,
   option_letter: true,
+  is_correct: true,
   display_order: true,
 });
 
@@ -54,7 +55,7 @@ export const QuestionOptionListResponseSchema = z.object({
 });
 
 export const QuestionOptionDetailedListResponseSchema = z.object({
-  data: z.array(QuestionOptionSchema.omit({ is_correct: true })),
+  data: z.array(QuestionOptionSchema),
   meta: PaginationMetaSchema,
 });
 
