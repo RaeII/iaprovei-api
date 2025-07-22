@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { zodToOpenAPI } from 'nestjs-zod';
+import { SubjectSchema } from '@/subject/schemas/subject.schema';
 
 // Enum schemas matching the TypeORM enums
 export const ContestStatusSchema = z.enum(['available', 'coming_soon', 'draft']);
@@ -63,6 +64,19 @@ export const ContestDetailsSchema = ContestSchema.pick({
   difficulty_level_translated: z.string(),
 });
 
+export const ContestWithSubjectsSchema = ContestSchema.pick({
+  id: true,
+  name: true,
+  institution: true,
+  status: true,
+}).extend({
+  subjects: z.array(
+    SubjectSchema.pick({ id: true, name: true }).extend({
+      user_answer_questions_percentage: z.number().default(0), // Percentage of questions completed (0-100)
+    })
+  ),
+});
+
 // Query parameters for listing contests
 export const ContestQuerySchema = z.object({
   status: ContestStatusSchema.optional(),
@@ -102,11 +116,16 @@ export const ContestUpdateSchema = ContestSchema.partial().omit({
   created_at: true,
 });
 
+export const ContestWithSubjectsResponseSchema = z.object({
+  data: z.array(ContestWithSubjectsSchema),
+});
+
 // OpenAPI schemas
 export const contestCreateOpenapi: any = zodToOpenAPI(ContestCreateSchema);
 export const contestUpdateOpenapi: any = zodToOpenAPI(ContestUpdateSchema);
 export const contestSummaryOpenapi: any = zodToOpenAPI(ContestSummarySchema);
 export const contestDetailsOpenapi: any = zodToOpenAPI(ContestDetailsSchema);
+export const contestWithSubjectsOpenapi: any = zodToOpenAPI(ContestWithSubjectsSchema);
 export const contestQueryOpenapi: any = zodToOpenAPI(ContestQuerySchema);
 export const contestCountOpenapi: any = zodToOpenAPI(ContestCountSchema);
 export const contestListResponseOpenapi: any = zodToOpenAPI(ContestListResponseSchema);
@@ -116,6 +135,8 @@ export const contestExistsResponseOpenapi: any = zodToOpenAPI(ContestExistsRespo
 // Type exports - inferred from Zod schemas
 export type Contest = z.infer<typeof ContestSchema>;
 export type ContestIdentity = z.infer<typeof ContestIdentitySchema>;
+export type ContestWithSubjects = z.infer<typeof ContestWithSubjectsSchema>;
+export type ContestWithSubjectsResponse = z.infer<typeof ContestWithSubjectsResponseSchema>;
 export type ContestSummary = z.infer<typeof ContestSummarySchema>;
 export type ContestDetails = z.infer<typeof ContestDetailsSchema>;
 export type ContestQuery = z.infer<typeof ContestQuerySchema>;

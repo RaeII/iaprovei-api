@@ -2,7 +2,8 @@ import { Controller, Get, Param, Query, ParseIntPipe, UseGuards } from '@nestjs/
 import { ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { ContestService } from './contest.service';
 import { JwtAuthGuard } from '@/auth/guard/jwt-auth.guard';
-import { ContestQuery, ContestCount, ContestListResponse, ContestDetailsResponse, ContestExistsResponse, ContestStatusSchema, contestListResponseOpenapi, contestDetailsResponseOpenapi, contestCountOpenapi, contestExistsResponseOpenapi } from './schemas/contest.schema';
+import { BasicUserInfo } from '@/common/decorators/user-context.decorator';
+import { ContestQuery, ContestCount, ContestListResponse, ContestDetailsResponse, ContestExistsResponse, ContestStatusSchema, contestListResponseOpenapi, contestDetailsResponseOpenapi, contestCountOpenapi, contestExistsResponseOpenapi, ContestWithSubjectsResponse, contestWithSubjectsOpenapi } from './schemas/contest.schema';
 import { ContestStatus } from '@/entities/contest.entity';
 
 @Controller('contests')
@@ -24,6 +25,17 @@ export class ContestController {
       fullDetails: query.fullDetails,
     });
     return { contests };
+  }
+
+  @Get('with-subjects')
+  @UseGuards(JwtAuthGuard)
+  @ApiResponse({ schema: contestWithSubjectsOpenapi })
+  async findAllWithSubjects(@Query() query: ContestQuery, @BasicUserInfo() userInfo: { user_id: number; username: string }): Promise<ContestWithSubjectsResponse> {
+    const contests = await this.contestService.findAllWithSubjects({
+      ...query,
+      userId: userInfo.user_id,
+    });
+    return { data: contests };
   }
 
   @Get('count')

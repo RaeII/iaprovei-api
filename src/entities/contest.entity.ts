@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
 import { Contest as ContestType } from '@/contest/schemas/contest.schema';
+import { Subject } from './subject.entity';
 
 export enum ContestStatus {
   AVAILABLE = 'available',
@@ -58,4 +59,8 @@ export class Contest implements ContestType {
 
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamp', nullable: true })
   updated_at: Date;
+
+  // Relationship with Subjects
+  @OneToMany(() => Subject, subject => subject.contest)
+  subjects: Subject[];
 }
