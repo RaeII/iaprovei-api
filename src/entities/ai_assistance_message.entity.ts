@@ -15,7 +15,7 @@ export enum MessageTypeEnum {
   OTHER = 'other',
 }
 
-@Entity('ia_assistence_messages')
+@Entity('ai_assistance_messages')
 export class AiAssistanceMessage implements AiAssistanceMessageType {
   @PrimaryGeneratedColumn()
   id: number;

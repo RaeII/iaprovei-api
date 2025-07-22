@@ -5,9 +5,10 @@ import { OpenAiProvider } from './providers/openai.provider';
 import { AI_PROVIDER_TOKEN } from './interfaces/ai-provider.interface';
 import { AiAssistantController } from './ai_assistant.controller';
 import { UserAnswerModule } from '@/user_answer/user_answer.module';
+import { AiAssistanceMessageModule } from '@/ai_assistance_message/ai_assistance_message.module';
 
 @Module({
-  imports: [ConfigModule, UserAnswerModule],
+  imports: [ConfigModule, UserAnswerModule, AiAssistanceMessageModule],
   controllers: [AiAssistantController],
   providers: [
     AiAssistantService,
