@@ -8,6 +8,7 @@ import { AiAssistanceMessageQuery, AiAssistanceMessageFilter, AiAssistanceMessag
 import { createPaginationMeta, generateOffset } from '@/utils/query-utils';
 import { AiAssistanceMessageValidator } from './ai_assistance_message.validator';
 import { AiAssistanceSessionService } from '@/ai_assistance_session/ai_assistance_session.service';
+import { UserBasicInfo } from '@/user/schemas/user.schema';
 
 @Injectable()
 export class AiAssistanceMessageService {
@@ -18,16 +19,16 @@ export class AiAssistanceMessageService {
     private aiAssistanceSessionService: AiAssistanceSessionService
   ) {}
 
-  async create(createAiAssistanceMessageDto: AiAssistanceMessageCreate, userInfo: { user_id: number; username: string }, sessionId: string): Promise<AiAssistanceMessageDetailResponse> {
+  async create(createAiAssistanceMessageDto: AiAssistanceMessageCreate, userInfo: UserBasicInfo, sessionId: string): Promise<AiAssistanceMessageDetailResponse> {
     await Promise.all([this.aiAssistanceMessageValidator.assertQuestionExists(createAiAssistanceMessageDto.question_id), this.aiAssistanceMessageValidator.assertMessageIsValid(createAiAssistanceMessageDto.message)]);
     // Find existing session or create a new one
-    let chat = await this.aiAssistanceSessionService.findByQuestionAndUser(createAiAssistanceMessageDto.question_id, userInfo.user_id);
+    let chat = await this.aiAssistanceSessionService.findByQuestionAndUser(createAiAssistanceMessageDto.question_id, userInfo.id);
 
     if (!chat) {
       // Create new session
       chat = await this.aiAssistanceSessionService.create({
         question_id: createAiAssistanceMessageDto.question_id,
-        user_id: userInfo.user_id,
+        user_id: userInfo.id,
         session_id: sessionId,
       });
     }
@@ -205,9 +206,9 @@ export class AiAssistanceMessageService {
    * Retrieve messages by question ID and user ID with pagination
    * User-friendly endpoint that automatically finds the session
    */
-  async findByQuestionAndUser(questionId: number, userId: number, query: Omit<AiAssistanceMessageQuery, 'assistence_sessions_id'>): Promise<AiAssistanceMessageListResponse> {
+  async findByQuestionAndUser(questionId: number, userInfo: UserBasicInfo, query: Omit<AiAssistanceMessageQuery, 'assistence_sessions_id'>): Promise<AiAssistanceMessageListResponse> {
     // Find the session for this question and user
-    const session = await this.aiAssistanceSessionService.findByQuestionAndUser(questionId, userId);
+    const session = await this.aiAssistanceSessionService.findByQuestionAndUser(questionId, userInfo.id);
 
     if (!session) {
       // Return empty result if no session exists (no messages yet)

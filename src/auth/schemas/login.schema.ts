@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { zodToOpenAPI } from 'nestjs-zod';
-import { UserCreateSchema } from '@/user/schemas/user.schema';
+import { UserCreateSchema, UserMeSchema } from '@/user/schemas/user.schema';
 
 export const LoginSchema = z.object({
   email: z.string().email(),
@@ -10,6 +10,7 @@ export const LoginResponseSchema = z.object({
   id: z.number(),
   access_token: z.string(),
   refresh_token: z.string(),
+  user: UserMeSchema,
 });
 export const RefreshTokenResponseSchema = z.object({
   id: z.number(),

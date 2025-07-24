@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { zodToOpenAPI } from 'nestjs-zod';
-import { loginResponseOpenapi } from '@/auth/schemas/login.schema';
 
 // Enum schemas matching the TypeORM enums
 export const EducationLevelSchema = z.enum(['ensino_superior', 'ensino_medio', 'curso_tecnico', 'outros']);
@@ -40,11 +39,28 @@ export const UserSchema = z.object({
   last_login_at: z.date().optional(),
 });
 
+export const UserListDataSchema = UserSchema.omit({
+  password_hash: true,
+});
+
+export const UserMeSchema = UserSchema.omit({
+  password_hash: true,
+  referral_code: true,
+  reffered_by_user_id: true,
+  is_active: true,
+  email_verified: true,
+});
+
 // User identity schema - for user identification
 export const UserIdentitySchema = UserSchema.pick({
   id: true,
   username: true,
   email: true,
+});
+
+export const UserBasicInfoSchema = UserSchema.pick({
+  id: true,
+  username: true,
 });
 
 // User credentials schema - for authentication
@@ -119,23 +135,32 @@ export const UserUpdateSchema = UserSchema.partial()
   });
 
 export const UserListResponseSchema = z.object({
-  data: z.array(UserSchema),
+  data: z.array(UserListDataSchema),
 });
 
 export const UserDetailResponseSchema = z.object({
-  data: UserSchema,
+  data: UserListDataSchema,
+});
+
+export const UserMeResponseSchema = z.object({
+  data: UserMeSchema,
 });
 
 // OpenAPI schemas
+export const userMeOpenapi: any = zodToOpenAPI(UserMeResponseSchema);
+export const userListResponseOpenapi: any = zodToOpenAPI(UserListResponseSchema);
 export const userCreateOpenapi: any = zodToOpenAPI(UserCreateSchema);
 export const userUpdateOpenapi: any = zodToOpenAPI(UserUpdateSchema);
-export const userResponseOpenapi: any = loginResponseOpenapi;
-export const userListResponseOpenapi: any = zodToOpenAPI(UserListResponseSchema);
+export const userResponseOpenapi: any = zodToOpenAPI(UserDetailResponseSchema);
 export const userDetailResponseOpenapi: any = zodToOpenAPI(UserDetailResponseSchema);
 
 // Type exports - inferred from Zod schemas
 export type User = z.infer<typeof UserSchema>;
 export type UserIdentity = z.infer<typeof UserIdentitySchema>;
+export type UserMeResponse = z.infer<typeof UserMeResponseSchema>;
+export type UserListData = z.infer<typeof UserListDataSchema>;
+export type UserMe = z.infer<typeof UserMeSchema>;
+export type UserBasicInfo = z.infer<typeof UserBasicInfoSchema>;
 export type UserCredentials = z.infer<typeof UserCredentialsSchema>;
 export type UserProfile = z.infer<typeof UserProfileSchema>;
 export type UserStudyPreferences = z.infer<typeof UserStudyPreferencesSchema>;

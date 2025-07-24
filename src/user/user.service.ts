@@ -2,20 +2,27 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
-import { User } from '@/entities/user.entity';
+import { User as UserEntity } from '@/entities/user.entity';
 import { UserValidator } from '@/user/user.validator';
 import { DataNotFoundException } from '@/domain/shared/exceptions/data-not-found.exception';
-import { UserCreate, UserUpdate } from './schemas/user.schema';
+import { UserCreate, UserListData, UserMe, UserUpdate, User, UserMeSchema, UserListDataSchema } from './schemas/user.schema';
 
 @Injectable()
 export class UserService {
   constructor(
-    @InjectRepository(User)
-    private usersRepository: Repository<User>,
+    @InjectRepository(UserEntity)
+    private usersRepository: Repository<UserEntity>,
     private userValidator: UserValidator
   ) {}
 
-  async create(createUserDto: UserCreate): Promise<User> {
+  // Helper method to get UserMe select fields automatically from schema
+  private getUserMeSelectFields(): (keyof UserEntity)[] {
+    // Get the keys from UserMeSchema shape
+    const userMeKeys = Object.keys(UserMeSchema.shape) as (keyof UserEntity)[];
+    return userMeKeys;
+  }
+
+  async create(createUserDto: UserCreate): Promise<UserMe> {
     await this.userValidator.assertEmailIsNotAlreadyInUse(createUserDto.email);
     await this.userValidator.assertUsernameIsNotAlreadyInUse(createUserDto.username);
 
@@ -35,17 +42,39 @@ export class UserService {
       best_streak: 0,
       is_active: true,
       email_verified: false,
-    } as Partial<User>);
+    } as Partial<UserEntity>);
 
-    return this.usersRepository.save(newUser);
+    const savedUser = await this.usersRepository.save(newUser);
+    
+    // Fetch the saved user with only UserMe fields
+    return this.findMe(savedUser.id);
   }
 
-  async findAll(): Promise<User[]> {
-    return this.usersRepository.find();
+  async findAll(): Promise<UserListData[]> {
+    return this.usersRepository.find({ select: Object.keys(UserListDataSchema.shape) as (keyof UserEntity)[] });
   }
 
-  async findOne(id: number): Promise<User> {
+  async findOne(id: number): Promise<UserListData> {
+    const user = await this.usersRepository.findOne({ where: { id }, select: Object.keys(UserListDataSchema.shape) as (keyof UserEntity)[] });
+    if (!user) {
+      throw new DataNotFoundException(`User with id "${id}"`, 'Usuário', UserService.name);
+    }
+    return user;
+  }
+  
+  async findOneEager(id: number): Promise<User> {
     const user = await this.usersRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new DataNotFoundException(`User with id "${id}"`, 'Usuário', UserService.name);
+    }
+    return user;
+  }
+
+  async findMe(id: number): Promise<UserMe> {
+    const user = await this.usersRepository.findOne({ 
+      where: { id },
+      select: this.getUserMeSelectFields()
+    });
     if (!user) {
       throw new DataNotFoundException(`User with id "${id}"`, 'Usuário', UserService.name);
     }
@@ -56,8 +85,8 @@ export class UserService {
     return this.usersRepository.findOne({ where: { email } });
   }
 
-  async update(id: number, updateUserDto: UserUpdate): Promise<User> {
-    const user = await this.findOne(id);
+  async update(id: number, updateUserDto: UserUpdate): Promise<UserMe> {
+    const user = await this.findOneEager(id);
 
     // Handle password update if provided
     if (updateUserDto.password) {
@@ -69,7 +98,10 @@ export class UserService {
       Object.assign(user, updateUserDto);
     }
 
-    return this.usersRepository.save(user);
+    await this.usersRepository.save(user as UserEntity);
+    
+    // Return the updated user with only UserMe fields
+    return this.findMe(id);
   }
 
   async remove(id: number): Promise<void> {

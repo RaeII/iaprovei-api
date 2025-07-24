@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Request } from 'express';
 import { AuthService } from '@/auth/auth.service';
+import { UserBasicInfo } from '@/user/schemas/user.schema';
 
 /**
  * UserContextService - Common service for extracting user information from requests
@@ -85,7 +86,7 @@ export class UserContextService {
    * @returns Basic user info
    * @throws Error if user is not authenticated
    */
-  getBasicUserInfo(req: Request): { user_id: number; username: string } {
+  getBasicUserInfo(req: Request): UserBasicInfo {
     const user = (req as AuthenticatedRequest).user;
 
     if (!user?.user_id) {
@@ -93,7 +94,7 @@ export class UserContextService {
     }
 
     return {
-      user_id: user.user_id,
+      id: user.user_id,
       username: user.username,
     };
   }
@@ -105,7 +106,7 @@ export class UserContextService {
    */
   async isCurrentUserAdmin(req: Request): Promise<boolean> {
     const userInfo = this.getBasicUserInfo(req);
-    return this.authService.isUserAdmin(userInfo.user_id);
+    return this.authService.isUserAdmin(userInfo.id);
   }
 
   /**

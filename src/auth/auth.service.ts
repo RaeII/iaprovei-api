@@ -23,11 +23,16 @@ export class AuthService {
 
   async login(user: any) {
     const payload = { username: user.username, sub: user.id };
+    const userData = await this.usersService.findMe(user.id);
     // return {
     //   access_token: this.jwtService.sign(payload, { expiresIn: '1h' }),
     //   refresh_token: this.jwtService.sign(payload, { expiresIn: '7d' }),
     // };
-    return this.jwtService.generateAuthTokenWithRefreshToken(payload);
+    const loginData = await this.jwtService.generateAuthTokenWithRefreshToken(payload);
+    return {
+      ...loginData,
+      user: userData,
+    };
   }
 
   async refreshToken(userId: number) {
@@ -38,7 +43,11 @@ export class AuthService {
 
   async signup(signupData: Signup) {
     const user = await this.usersService.create(signupData);
-    return this.login(user);
+    const loginData = await this.login(user);
+    return {
+      ...loginData,
+      user: user,
+    };
   }
 
   /**

@@ -18,7 +18,6 @@ export class OverallFilter implements ExceptionFilter {
 
   private getMessage(exception: unknown): string {
     if (exception instanceof ZodValidationException) {
-      console.log(exception.getZodError());
       return ZodUtils.formatZodError(exception.getZodError());
     } else if (exception instanceof HttpException) {
       return this.getMessageFromHttpException(exception.getResponse());

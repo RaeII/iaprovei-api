@@ -71,6 +71,6 @@ export class AiAssistanceMessageController {
   @ApiResponse({ schema: aiAssistanceMessageListResponseOpenapi })
   async findByQuestionId(@Param('questionId', ParseIntPipe) questionId: number, @Query(new ZodValidationPipe(AiAssistanceMessageQuerySchema.omit({ assistence_sessions_id: true }))) query: Omit<AiAssistanceMessageQuery, 'assistence_sessions_id'>, @Req() req: Request): Promise<AiAssistanceMessageListResponse> {
     const userInfo = this.userContextService.getBasicUserInfo(req);
-    return this.aiAssistanceMessageService.findByQuestionAndUser(questionId, userInfo.user_id, query);
+    return this.aiAssistanceMessageService.findByQuestionAndUser(questionId, userInfo, query);
   }
 }

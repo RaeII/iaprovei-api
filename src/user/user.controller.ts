@@ -1,18 +1,22 @@
 import { Controller, Get, Put, Param, Delete, UsePipes, UseGuards, Body, ParseIntPipe, ForbiddenException } from '@nestjs/common';
 import { UserService } from '@/user/user.service';
 import { User } from '@/entities/user.entity';
-import { UserDetailResponse, userDetailResponseOpenapi, UserListResponse, userListResponseOpenapi, UserUpdate, UserUpdateSchema } from './schemas/user.schema';
+import { UserBasicInfo, UserDetailResponse, UserListResponse, UserMe, userDetailResponseOpenapi, userListResponseOpenapi, UserUpdate, UserUpdateSchema, userMeOpenapi, UserMeResponse } from './schemas/user.schema';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/auth/guard/jwt-auth.guard';
 import { BasicUserInfo } from '@/common/decorators';
 import { CustomForbiddenException } from '@/domain/shared/exceptions/custom-fobidden.exception';
+import { Role } from '@/auth/enums/role.enum';
+import { Roles } from '@/common/decorators/roles.decorator';
+import { UserValidator } from './user.validator';
 
 @Controller('users')
 @ApiBearerAuth()
 export class UserController {
-  constructor(private readonly usersService: UserService) {}
+  constructor(private readonly usersService: UserService, private readonly userValidator: UserValidator) {}
 
+  @Roles(Role.ADMIN)
   @UseGuards(JwtAuthGuard)
   @Get()
   @ApiResponse({ schema: userListResponseOpenapi })
@@ -21,30 +25,30 @@ export class UserController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Get(':id')
-  @ApiResponse({ schema: userDetailResponseOpenapi })
-  async findOne(@Param('id', ParseIntPipe) id: number, @BasicUserInfo() user: User): Promise<UserDetailResponse> {
-    if (user.id !== id) {
-      throw new CustomForbiddenException('Fetch other users data');
-    }
-    return { data: await this.usersService.findOne(+id) };
+  @Get('me')
+  @ApiResponse({ schema: userMeOpenapi })
+  async findMe(@BasicUserInfo() user: UserBasicInfo): Promise<UserMeResponse> {
+    return { data: await this.usersService.findMe(user.id) };
   }
 
   @UseGuards(JwtAuthGuard)
-  @Get('me')
+  @Get(':id')
   @ApiResponse({ schema: userDetailResponseOpenapi })
-  async findMe(@BasicUserInfo() user: User): Promise<UserDetailResponse> {
-    return { data: await this.usersService.findOne(user.id) };
+  async findOne(@Param('id', ParseIntPipe) id: number, @BasicUserInfo() user: UserBasicInfo): Promise<UserDetailResponse> {
+    await this.userValidator.assertIsOwner(id, user);
+    return { data: await this.usersService.findOne(+id) };
   }
 
   @Put(':id')
   @UsePipes(new ZodValidationPipe(UserUpdateSchema))
-  async update(@Param('id', ParseIntPipe) id: number, @Body() updateUserDto: UserUpdate): Promise<User> {
+  async update(@Param('id', ParseIntPipe) id: number, @Body() updateUserDto: UserUpdate, @BasicUserInfo() user: UserBasicInfo): Promise<UserMe> {
+    await this.userValidator.assertIsOwner(id, user);
     return this.usersService.update(+id, updateUserDto);
   }
 
   @Delete(':id')
-  async remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
+  async remove(@Param('id', ParseIntPipe) id: number, @BasicUserInfo() user: User): Promise<void> {
+    await this.userValidator.assertIsOwner(id, user);
     return this.usersService.remove(+id);
   }
 }

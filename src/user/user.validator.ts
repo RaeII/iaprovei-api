@@ -3,15 +3,18 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { UniqueDataException } from '@/domain/shared/exceptions/unique-data.exception';
 import { User } from '@/entities/user.entity';
 import { Repository } from 'typeorm';
+import { CustomForbiddenException } from '@/domain/shared/exceptions/custom-fobidden.exception';
+import { DataNotFoundException } from '@/domain/shared/exceptions';
+import { UserBasicInfo } from './schemas/user.schema';
 
 @Injectable()
 export class UserValidator {
-  constructor(@InjectRepository(User) private usersRepository: Repository<User>) {}
+  constructor(@InjectRepository(User) private repository: Repository<User>) {}
 
   async assertEmailIsNotAlreadyInUse(email: string): Promise<void> {
     if (!email) return; // Email is optional in the new schema
 
-    const existingUser = await this.usersRepository.findOne({ where: { email } });
+    const existingUser = await this.repository.findOne({ where: { email } });
     if (existingUser) {
       throw new UniqueDataException(`Email ${email}`, 'Email', UserValidator.name);
     }
@@ -19,9 +22,18 @@ export class UserValidator {
   }
 
   async assertUsernameIsNotAlreadyInUse(username: string): Promise<void> {
-    const existingUser = await this.usersRepository.findOne({ where: { username } });
+    const existingUser = await this.repository.findOne({ where: { username } });
     if (existingUser) {
       throw new UniqueDataException(`Username ${username}`, 'Username', UserValidator.name);
+    }
+    return;
+  }
+
+  async assertIsOwner(id: number, user: UserBasicInfo): Promise<void> {
+    const userData = await this.repository.findOne({ select: { id: true }, where: { id } });
+
+    if (user.id !== userData?.id) {
+      throw new CustomForbiddenException('Manage other users data');
     }
     return;
   }
