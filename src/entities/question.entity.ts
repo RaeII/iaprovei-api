@@ -1,6 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { Subject } from './subject.entity';
 import { Question as QuestionType } from '@/question/schemas/question.schema';
+import { QuestionOption } from './question_option.entity';
 
 export enum QuestionTypeEnum {
   MULTIPLE_CHOICE = 'multiple_choice',
@@ -80,4 +81,7 @@ export class Question implements QuestionType {
   @ManyToOne(() => Subject)
   @JoinColumn({ name: 'subject_id' })
   subject: Subject;
+
+  @OneToMany(() => QuestionOption, questionOption => questionOption.question)
+  questionOptions: QuestionOption[];
 }

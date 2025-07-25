@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { zodToOpenAPI } from 'nestjs-zod';
 import { PaginationMetaSchema, PaginationSchema } from '@/domain/shared/schemas/pagination.schema';
 import { ContestIdentitySchema } from '@/contest/schemas/contest.schema';
+import { QuestionOptionBasicSchema } from '@/question_option/schemas/question_option.schema';
 
 // Enum schemas matching the TypeORM enums
 export const QuestionTypeSchema = z.enum(['multiple_choice', 'true_false', 'essay']);
@@ -41,6 +42,11 @@ export const QuestionBasicSchema = QuestionSchema.pick({
   difficulty_level: true,
   exam_board: true,
   exam_year: true,
+});
+
+// Question with options schema - for listing questions with their options
+export const QuestionWithOptionsSchema = QuestionBasicSchema.extend({
+  questionOptions: z.array(QuestionOptionBasicSchema).optional(),
 });
 
 // Question statistics schema - for performance tracking
@@ -95,14 +101,15 @@ export const QuestionFilterSchema = z.object({
   difficulty_level: DifficultyLevelSchema.optional(),
   exam_board: z.string().optional(),
   exam_year: z.coerce.number().optional(),
-  is_active: z.coerce.boolean().optional(),
+  is_active: z.coerce.number().optional(),
 });
 
 // Query parameters schema for retrieve operations
 export const QuestionQuerySchema = QuestionFilterSchema.merge(PaginationSchema).extend({
   sort_by: z.enum(['id', 'created_at', 'exam_year', 'difficulty_level', 'success_rate']).optional(),
   sort_order: z.enum(['ASC', 'DESC']).default('DESC'),
-  include_inactive: z.boolean().default(false),
+  include_inactive: z.coerce.number().default(0),
+  include_options: z.coerce.number().default(0),
 });
 
 const QuestionDetailSchema = QuestionSchema.extend({
@@ -127,7 +134,7 @@ export const QuestionEagerDetailSchema = QuestionSchema.extend({
 
 // List response schemas for different question views
 export const QuestionListResponseSchema = z.object({
-  data: z.array(QuestionBasicSchema),
+  data: z.array(z.union([QuestionBasicSchema, QuestionWithOptionsSchema])),
   meta: PaginationMetaSchema,
 });
 
@@ -163,6 +170,7 @@ export const questionCreateOpenapi: any = zodToOpenAPI(QuestionCreateSchema);
 export const questionUpdateOpenapi: any = zodToOpenAPI(QuestionUpdateSchema);
 export const questionResponseOpenapi: any = zodToOpenAPI(QuestionSchema);
 export const questionBasicOpenapi: any = zodToOpenAPI(QuestionBasicSchema);
+export const questionWithOptionsOpenapi: any = zodToOpenAPI(QuestionWithOptionsSchema);
 export const questionStatsOpenapi: any = zodToOpenAPI(QuestionStatsSchema);
 export const questionFilterOpenapi: any = zodToOpenAPI(QuestionFilterSchema);
 export const questionQueryOpenapi: any = zodToOpenAPI(QuestionQuerySchema);
@@ -176,6 +184,7 @@ export const questionCountResponseOpenapi: any = zodToOpenAPI(QuestionCountRespo
 // Type exports - inferred from Zod schemas
 export type Question = z.infer<typeof QuestionSchema>;
 export type QuestionBasic = z.infer<typeof QuestionBasicSchema>;
+export type QuestionWithOptions = z.infer<typeof QuestionWithOptionsSchema>;
 export type QuestionStats = z.infer<typeof QuestionStatsSchema>;
 export type QuestionContent = z.infer<typeof QuestionContentSchema>;
 export type QuestionMetadata = z.infer<typeof QuestionMetadataSchema>;

@@ -18,12 +18,17 @@ export class QuestionService {
    * Optimized for performance by selecting only necessary fields
    */
   async findAll(query: QuestionQuery): Promise<QuestionListResponse> {
-    const { page, limit, sort_by, sort_order, include_inactive, ...filters } = query;
+    const { page, limit, sort_by, sort_order, include_inactive, include_options, ...filters } = query;
 
     const queryBuilder = this.createBaseQueryBuilder(filters, include_inactive);
 
-    // Select only basic fields for performance
-    queryBuilder.select(['question.id', 'question.affirmation', 'question.question_type', 'question.difficulty_level', 'question.exam_board', 'question.exam_year']);
+    // Select only basic fields for performance (including created_at for sorting)
+    queryBuilder.select(['question.id', 'question.affirmation', 'question.question_type', 'question.difficulty_level', 'question.exam_board', 'question.exam_year', 'question.created_at']);
+
+    // Conditionally include question options if requested
+    if (include_options) {
+      queryBuilder.leftJoinAndSelect('question.questionOptions', 'questionOptions');
+    }
 
     // Apply sorting
     if (sort_by) {
@@ -48,6 +53,16 @@ export class QuestionService {
         difficulty_level: question.difficulty_level,
         exam_board: question.exam_board,
         exam_year: question.exam_year,
+        ...(include_options && {
+          questionOptions:
+            question.questionOptions?.map(option => ({
+              id: option.id,
+              option_text: option.option_text,
+              option_letter: option.option_letter,
+              is_correct: option.is_correct,
+              display_order: option.display_order,
+            })) || [],
+        }),
       })),
       meta,
     };
@@ -186,7 +201,7 @@ export class QuestionService {
    * Performance-optimized count operation
    */
   async count(filters: QuestionFilter = {}): Promise<number> {
-    const queryBuilder = this.createBaseQueryBuilder(filters, filters.is_active === false);
+    const queryBuilder = this.createBaseQueryBuilder(filters, 0);
     return queryBuilder.getCount();
   }
 
@@ -203,7 +218,7 @@ export class QuestionService {
    * Create base query builder with common filtering logic
    * Follows DRY principle and enables consistent filtering
    */
-  private createBaseQueryBuilder(filters: QuestionFilter, includeInactive: boolean): SelectQueryBuilder<Question> {
+  private createBaseQueryBuilder(filters: QuestionFilter, includeInactive: number): SelectQueryBuilder<Question> {
     const queryBuilder = this.questionsRepository.createQueryBuilder('question');
 
     // Apply filters

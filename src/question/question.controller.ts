@@ -19,7 +19,8 @@ export class QuestionController {
   @ApiQuery({ name: 'difficulty_level', required: false, type: String, enum: DifficultyLevelEnumOpenapi.enum })
   @ApiQuery({ name: 'exam_board', required: false, type: String })
   @ApiQuery({ name: 'exam_year', required: false, type: Number })
-  @ApiQuery({ name: 'is_active', required: false, type: Boolean })
+  @ApiQuery({ name: 'is_active', required: false, type: Number, enum: [0, 1] })
+  @ApiQuery({ name: 'include_options', required: false, type: Number, enum: [0, 1], description: 'Include question options in the response' })
   async findAll(@Query() query: QuestionQuery): Promise<QuestionListResponse> {
     return this.questionService.findAll(query);
   }
@@ -60,7 +61,8 @@ export class QuestionController {
   @ApiQuery({ name: 'difficulty_level', required: false, type: String, enum: DifficultyLevelEnumOpenapi.enum })
   @ApiQuery({ name: 'exam_board', required: false, type: String })
   @ApiQuery({ name: 'exam_year', required: false, type: Number })
-  @ApiQuery({ name: 'is_active', required: false, type: Boolean })
+  @ApiQuery({ name: 'is_active', required: false, type: Number, enum: [0, 1] })
+  @ApiQuery({ name: 'include_options', required: false, type: Number, enum: [0, 1], description: 'Include question options in the response' })
   async findBySubject(@Param('subjectId', ParseIntPipe) subjectId: number, @Query(new ZodValidationPipe(QuestionQuerySchema.omit({ subject_id: true }))) query: Omit<QuestionQuery, 'subject_id'>): Promise<QuestionListResponse> {
     return this.questionService.findBySubject(subjectId, query);
   }
