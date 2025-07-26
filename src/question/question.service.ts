@@ -51,7 +51,7 @@ export class QuestionService {
     if (userId && questions.length > 0 && query?.subject_id) {
       const lastAnsweredQuestionId = await this.getLastAnsweredQuestionIdForSubject(userId, query.subject_id);
       if (lastAnsweredQuestionId) {
-        userQuestionProgression = questions.filter(question => question.id > lastAnsweredQuestionId);
+        userQuestionProgression = questions[questions.length - 1].id === lastAnsweredQuestionId ? questions : questions.filter(question => question.id > lastAnsweredQuestionId);
       } else {
         // If user hasn't answered any questions in this subject, all questions are progression
         userQuestionProgression = questions;
