@@ -46,7 +46,26 @@ export const QuestionBasicSchema = QuestionSchema.pick({
 
 // Question with options schema - for listing questions with their options
 export const QuestionWithOptionsSchema = QuestionBasicSchema.extend({
-  questionOptions: z.array(QuestionOptionBasicSchema).optional(),
+  question_options: z.array(QuestionOptionBasicSchema).optional(),
+});
+
+// Last user answer schema - for tracking user progress
+export const LastUserAnswerSchema = z.object({
+  id: z.number(),
+  option_id: z.number(),
+  is_correct: z.boolean(),
+  answered_at: z.date(),
+});
+
+// // Question with last user answer schema - for showing user progress
+// export const QuestionWithLastAnswerSchema = QuestionBasicSchema.extend({
+//   last_user_answer: LastUserAnswerSchema.optional(),
+// });
+
+// Question with options and last answer schema - comprehensive view
+export const QuestionWithOptionsAndLastAnswerSchema = QuestionBasicSchema.extend({
+  question_options: z.array(QuestionOptionBasicSchema).optional(),
+  last_user_answer: LastUserAnswerSchema.optional(),
 });
 
 // Question statistics schema - for performance tracking
@@ -107,7 +126,7 @@ export const QuestionFilterSchema = z.object({
 // Query parameters schema for retrieve operations
 export const QuestionQuerySchema = QuestionFilterSchema.merge(PaginationSchema).extend({
   sort_by: z.enum(['id', 'created_at', 'exam_year', 'difficulty_level', 'success_rate']).optional(),
-  sort_order: z.enum(['ASC', 'DESC']).default('DESC'),
+  sort_order: z.enum(['ASC', 'DESC']).default('ASC'),
   include_inactive: z.coerce.number().default(0),
   include_options: z.coerce.number().default(0),
 });
@@ -134,7 +153,10 @@ export const QuestionEagerDetailSchema = QuestionSchema.extend({
 
 // List response schemas for different question views
 export const QuestionListResponseSchema = z.object({
-  data: z.array(z.union([QuestionBasicSchema, QuestionWithOptionsSchema])),
+  data: z.object({
+    questions: z.array(z.union([QuestionBasicSchema, QuestionWithOptionsSchema, QuestionWithOptionsAndLastAnswerSchema])),
+    user_question_progression: z.array(QuestionBasicSchema).optional(),
+  }),
   meta: PaginationMetaSchema,
 });
 
@@ -185,6 +207,9 @@ export const questionCountResponseOpenapi: any = zodToOpenAPI(QuestionCountRespo
 export type Question = z.infer<typeof QuestionSchema>;
 export type QuestionBasic = z.infer<typeof QuestionBasicSchema>;
 export type QuestionWithOptions = z.infer<typeof QuestionWithOptionsSchema>;
+export type LastUserAnswer = z.infer<typeof LastUserAnswerSchema>;
+// export type QuestionWithLastAnswer = z.infer<typeof QuestionWithLastAnswerSchema>;
+export type QuestionWithOptionsAndLastAnswer = z.infer<typeof QuestionWithOptionsAndLastAnswerSchema>;
 export type QuestionStats = z.infer<typeof QuestionStatsSchema>;
 export type QuestionContent = z.infer<typeof QuestionContentSchema>;
 export type QuestionMetadata = z.infer<typeof QuestionMetadataSchema>;

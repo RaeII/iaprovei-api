@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { Question } from '@/entities/question.entity';
+import { UserAnswer } from '@/entities/user_answer.entity';
 import { DataNotFoundException } from '@/domain/shared/exceptions/data-not-found.exception';
 import { QuestionQuery, QuestionFilter, QuestionListResponse, QuestionDetailedListResponse, QuestionStatsListResponse, QuestionDetail, QuestionEagerDetail } from './schemas/question.schema';
 import { createPaginationMeta, generateOffset } from '@/utils/query-utils';
@@ -10,14 +11,17 @@ import { createPaginationMeta, generateOffset } from '@/utils/query-utils';
 export class QuestionService {
   constructor(
     @InjectRepository(Question)
-    private questionsRepository: Repository<Question>
+    private questionsRepository: Repository<Question>,
+    @InjectRepository(UserAnswer)
+    private userAnswersRepository: Repository<UserAnswer>
   ) {}
 
   /**
    * Retrieve all questions with pagination and filtering
    * Optimized for performance by selecting only necessary fields
+   * Includes last user answer if userId is provided
    */
-  async findAll(query: QuestionQuery): Promise<QuestionListResponse> {
+  async findAll(query: QuestionQuery, userId?: number): Promise<QuestionListResponse> {
     const { page, limit, sort_by, sort_order, include_inactive, include_options, ...filters } = query;
 
     const queryBuilder = this.createBaseQueryBuilder(filters, include_inactive);
@@ -27,7 +31,7 @@ export class QuestionService {
 
     // Conditionally include question options if requested
     if (include_options) {
-      queryBuilder.leftJoinAndSelect('question.questionOptions', 'questionOptions');
+      queryBuilder.leftJoinAndSelect('question.question_options', 'questionOptions');
     }
 
     // Apply sorting
@@ -43,27 +47,44 @@ export class QuestionService {
 
     const [questions, total] = await queryBuilder.getManyAndCount();
 
+    let userQuestionProgression = [];
+    if (userId && questions.length > 0 && query?.subject_id) {
+      const lastAnsweredQuestionId = await this.getLastAnsweredQuestionIdForSubject(userId, query.subject_id);
+      if (lastAnsweredQuestionId) {
+        userQuestionProgression = questions.filter(question => question.id > lastAnsweredQuestionId);
+      } else {
+        // If user hasn't answered any questions in this subject, all questions are progression
+        userQuestionProgression = questions;
+      }
+    }
+
     const meta = createPaginationMeta(total, page, limit);
 
     return {
-      data: questions.map(question => ({
-        id: question.id,
-        affirmation: question.affirmation,
-        question_type: question.question_type,
-        difficulty_level: question.difficulty_level,
-        exam_board: question.exam_board,
-        exam_year: question.exam_year,
-        ...(include_options && {
-          questionOptions:
-            question.questionOptions?.map(option => ({
-              id: option.id,
-              option_text: option.option_text,
-              option_letter: option.option_letter,
-              is_correct: option.is_correct,
-              display_order: option.display_order,
-            })) || [],
-        }),
-      })),
+      data: {
+        questions: questions.map(question => ({
+          id: question.id,
+          affirmation: question.affirmation,
+          question_type: question.question_type,
+          difficulty_level: question.difficulty_level,
+          exam_board: question.exam_board,
+          exam_year: question.exam_year,
+          ...(include_options && {
+            question_options:
+              question.question_options?.map(option => ({
+                id: option.id,
+                option_text: option.option_text,
+                option_letter: option.option_letter,
+                is_correct: option.is_correct,
+                display_order: option.display_order,
+              })) || [],
+          }),
+        })),
+        ...(userId &&
+          query?.subject_id && {
+            user_question_progression: userQuestionProgression,
+          }),
+      },
       meta,
     };
   }
@@ -192,8 +213,8 @@ export class QuestionService {
    * Retrieve questions by subject ID
    * Optimized for subject-specific question retrieval
    */
-  async findBySubject(subjectId: number, query: Omit<QuestionQuery, 'subject_id'>): Promise<QuestionListResponse> {
-    return this.findAll({ ...query, subject_id: subjectId });
+  async findBySubject(subjectId: number, query: Omit<QuestionQuery, 'subject_id'>, userId?: number): Promise<QuestionListResponse> {
+    return this.findAll({ ...query, subject_id: subjectId }, userId);
   }
 
   /**
@@ -212,6 +233,16 @@ export class QuestionService {
   async exists(id: number): Promise<boolean> {
     const count = await this.questionsRepository.count({ where: { id } });
     return count > 0;
+  }
+
+  /**
+   * Get the ID of the last answered question for a specific subject by a user
+   * This is more efficient than getting all answers and helps determine user progression
+   */
+  private async getLastAnsweredQuestionIdForSubject(userId: number, subjectId: number): Promise<number | null> {
+    const result = await this.userAnswersRepository.createQueryBuilder('ua').innerJoin('ua.question', 'q').select('ua.question_id').where('ua.users_id = :userId', { userId }).andWhere('q.subject_id = :subjectId', { subjectId }).orderBy('ua.answared_at', 'ASC').limit(1).getRawOne();
+
+    return result?.ua_question_id || null;
   }
 
   /**

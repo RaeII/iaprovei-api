@@ -83,5 +83,5 @@ export class Question implements QuestionType {
   subject: Subject;
 
   @OneToMany(() => QuestionOption, questionOption => questionOption.question)
-  questionOptions: QuestionOption[];
+  question_options: QuestionOption[];
 }

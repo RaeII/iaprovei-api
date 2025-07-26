@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Param, Delete, UsePipes, UseGuards, Body, ParseIntPipe, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Put, Param, Delete, UsePipes, UseGuards, Body, ParseIntPipe } from '@nestjs/common';
 import { UserService } from '@/user/user.service';
 import { User } from '@/entities/user.entity';
 import { UserBasicInfo, UserDetailResponse, UserListResponse, UserMe, userDetailResponseOpenapi, userListResponseOpenapi, UserUpdate, UserUpdateSchema, userMeOpenapi, UserMeResponse } from './schemas/user.schema';
@@ -6,7 +6,6 @@ import { ZodValidationPipe } from 'nestjs-zod';
 import { ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/auth/guard/jwt-auth.guard';
 import { BasicUserInfo } from '@/common/decorators';
-import { CustomForbiddenException } from '@/domain/shared/exceptions/custom-fobidden.exception';
 import { Role } from '@/auth/enums/role.enum';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { UserValidator } from './user.validator';
@@ -14,7 +13,10 @@ import { UserValidator } from './user.validator';
 @Controller('users')
 @ApiBearerAuth()
 export class UserController {
-  constructor(private readonly usersService: UserService, private readonly userValidator: UserValidator) {}
+  constructor(
+    private readonly usersService: UserService,
+    private readonly userValidator: UserValidator
+  ) {}
 
   @Roles(Role.ADMIN)
   @UseGuards(JwtAuthGuard)
