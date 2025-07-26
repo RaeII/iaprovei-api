@@ -4,7 +4,7 @@ import { ZodValidationPipe } from 'nestjs-zod';
 import { QuestionService } from './question.service';
 import { JwtAuthGuard } from '@/auth/guard/jwt-auth.guard';
 import { BasicUserInfo } from '@/common/decorators/user-context.decorator';
-import { QuestionQuerySchema, QuestionQuery, QuestionListResponse, QuestionDetailedListResponse, QuestionStatsListResponse, QuestionDetailResponse, questionListResponseOpenapi, questionDetailedListResponseOpenapi, questionStatsListResponseOpenapi, questionDetailResponseOpenapi, questionExistsResponseOpenapi, QuestionExistsResponse, QuestionCountResponse, questionCountResponseOpenapi, QuestionFilter, QuestionTypeEnumOpenapi, DifficultyLevelEnumOpenapi } from './schemas/question.schema';
+import { QuestionQuerySchema, QuestionQuery, QuestionListResponse, QuestionDetailedListResponse, QuestionStatsListResponse, QuestionDetailResponse, questionListResponseOpenapi, questionDetailedListResponseOpenapi, questionStatsListResponseOpenapi, questionDetailResponseOpenapi, questionExistsResponseOpenapi, QuestionExistsResponse, QuestionCountResponse, questionCountResponseOpenapi, QuestionFilter, QuestionTypeEnumOpenapi, DifficultyLevelEnumOpenapi, questionWithUserQuestionProgressionResponseOpenapi, QuestionWithUserQuestionProgressionResponse } from './schemas/question.schema';
 import { UserBasicInfo } from '@/user/schemas/user.schema';
 
 @ApiTags('Question')
@@ -59,14 +59,18 @@ export class QuestionController {
 
   @Get('subject/:subjectId')
   @ApiResponse({ schema: questionListResponseOpenapi })
-  @ApiQuery({ name: 'question_type', required: false, type: String, enum: QuestionTypeEnumOpenapi.enum })
-  @ApiQuery({ name: 'difficulty_level', required: false, type: String, enum: DifficultyLevelEnumOpenapi.enum })
-  @ApiQuery({ name: 'exam_board', required: false, type: String })
-  @ApiQuery({ name: 'exam_year', required: false, type: Number })
   @ApiQuery({ name: 'is_active', required: false, type: Number, enum: [0, 1] })
   @ApiQuery({ name: 'include_options', required: false, type: Number, enum: [0, 1], description: 'Include question options in the response' })
   async findBySubject(@Param('subjectId', ParseIntPipe) subjectId: number, @Query(new ZodValidationPipe(QuestionQuerySchema.omit({ subject_id: true }))) query: Omit<QuestionQuery, 'subject_id'>, @BasicUserInfo() userInfo: UserBasicInfo): Promise<QuestionListResponse> {
     return this.questionService.findBySubject(subjectId, query, userInfo.id);
+  }
+
+  @Get('subject/:subjectId/user-progression')
+  @ApiResponse({ schema: questionWithUserQuestionProgressionResponseOpenapi })
+  @ApiQuery({ name: 'is_active', required: false, type: Number, enum: [0, 1] })
+  @ApiQuery({ name: 'include_options', required: false, type: Number, enum: [0, 1], description: 'Include question options in the response' })
+  async findBySubjectUserProgression(@Param('subjectId', ParseIntPipe) subjectId: number, @Query(new ZodValidationPipe(QuestionQuerySchema.omit({ subject_id: true }))) query: Omit<QuestionQuery, 'subject_id'>, @BasicUserInfo() userInfo: UserBasicInfo): Promise<QuestionWithUserQuestionProgressionResponse> {
+    return this.questionService.findBySubjectUserProgression(subjectId, query, userInfo.id);
   }
 
   @Get('count')

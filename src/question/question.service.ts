@@ -4,7 +4,7 @@ import { Repository, SelectQueryBuilder } from 'typeorm';
 import { Question } from '@/entities/question.entity';
 import { UserAnswer } from '@/entities/user_answer.entity';
 import { DataNotFoundException } from '@/domain/shared/exceptions/data-not-found.exception';
-import { QuestionQuery, QuestionFilter, QuestionListResponse, QuestionDetailedListResponse, QuestionStatsListResponse, QuestionDetail, QuestionEagerDetail } from './schemas/question.schema';
+import { QuestionQuery, QuestionFilter, QuestionListResponse, QuestionDetailedListResponse, QuestionStatsListResponse, QuestionDetail, QuestionEagerDetail, QuestionWithUserQuestionProgressionResponse } from './schemas/question.schema';
 import { createPaginationMeta, generateOffset } from '@/utils/query-utils';
 
 @Injectable()
@@ -215,6 +215,15 @@ export class QuestionService {
    */
   async findBySubject(subjectId: number, query: Omit<QuestionQuery, 'subject_id'>, userId?: number): Promise<QuestionListResponse> {
     return this.findAll({ ...query, subject_id: subjectId }, userId);
+  }
+
+  // TODO: Create own select
+  async findBySubjectUserProgression(subjectId: number, query: Omit<QuestionQuery, 'subject_id'>, userId?: number): Promise<QuestionWithUserQuestionProgressionResponse> {
+    const questions = await this.findAll({ ...query, subject_id: subjectId }, userId);
+    return {
+      user_question_progression: questions.data.user_question_progression,
+      // meta: questions.meta,
+    };
   }
 
   /**
