@@ -63,10 +63,13 @@ export class UserAnswerService {
    * Retrieve user answers with pagination and filtering (basic view)
    * Optimized for performance by selecting only essential fields
    */
-  async findAll(query: UserAnswerQuery): Promise<UserAnswerListResponse> {
+  async findAll(query: UserAnswerQuery, userId?: number): Promise<UserAnswerListResponse> {
     const { page, limit, sort_by, sort_order, ...filters } = query;
 
     const queryBuilder = this.createBaseQueryBuilder(filters);
+    if (userId) {
+      queryBuilder.where('userAnswer.users_id = :userId', { userId });
+    }
 
     // Select only basic fields for performance
     queryBuilder.select(['userAnswer.id', 'userAnswer.users_id', 'userAnswer.question_id', 'userAnswer.option_id', 'userAnswer.is_correct', 'userAnswer.answared_at']);
@@ -137,14 +140,14 @@ export class UserAnswerService {
    * Retrieve user answers for performance analysis
    * Optimized for analytics and performance tracking
    */
-  async findAllPerformance(query: UserAnswerQuery): Promise<UserAnswerPerformanceListResponse> {
+  async findAllPerformance(query: UserAnswerQuery, userId: number): Promise<UserAnswerPerformanceListResponse> {
     const { page, limit, sort_by, sort_order, ...filters } = query;
 
     const queryBuilder = this.createBaseQueryBuilder(filters);
 
     // Select performance-relevant fields
     queryBuilder.select(['userAnswer.id', 'userAnswer.users_id', 'userAnswer.question_id', 'userAnswer.is_correct', 'userAnswer.response_time', 'userAnswer.confidence_level', 'userAnswer.difficulty_at_time', 'userAnswer.used_hint']);
-
+    queryBuilder.where('userAnswer.users_id = :userId', { userId });
     // Apply sorting
     if (sort_by) {
       queryBuilder.orderBy(`userAnswer.${sort_by}`, sort_order);
@@ -179,14 +182,14 @@ export class UserAnswerService {
    * Retrieve user answers by session
    * Optimized for session tracking and progress monitoring (excludes session_id from response)
    */
-  async findAllBySession(query: UserAnswerQuery): Promise<UserAnswerSessionListResponse> {
+  async findAllBySession(query: UserAnswerQuery, userId: number): Promise<UserAnswerSessionListResponse> {
     const { page, limit, sort_by, sort_order, ...filters } = query;
 
     const queryBuilder = this.createBaseQueryBuilder(filters);
 
     // Select session-relevant fields (excluding session_id from selection)
     queryBuilder.select(['userAnswer.id', 'userAnswer.users_id', 'userAnswer.is_correct', 'userAnswer.response_time', 'userAnswer.answared_at']);
-
+    queryBuilder.where('userAnswer.users_id = :userId', { userId });
     // Apply sorting
     if (sort_by) {
       queryBuilder.orderBy(`userAnswer.${sort_by}`, sort_order);
@@ -266,8 +269,9 @@ export class UserAnswerService {
    * Get user answer statistics
    * Optimized aggregation query for performance analytics
    */
-  async getStats(filters: UserAnswerFilter): Promise<UserAnswerStatsResponse> {
+  async getStats(filters: UserAnswerFilter, userId: number): Promise<UserAnswerStatsResponse> {
     const queryBuilder = this.createBaseQueryBuilder(filters);
+    queryBuilder.where('userAnswer.users_id = :userId', { userId });
 
     // eslint-disable-next-line prettier/prettier
     const result = await queryBuilder

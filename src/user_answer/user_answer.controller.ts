@@ -1,11 +1,12 @@
-import { Controller, Get, Post, Param, Query, Body, ParseIntPipe, UsePipes, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Query, Body, UseGuards, Req } from '@nestjs/common';
 import { ApiTags, ApiResponse, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { Request } from 'express';
 import { UserAnswerService } from './user_answer.service';
 import { JwtAuthGuard } from '@/auth/guard/jwt-auth.guard';
-import { SessionId } from '@/common/decorators';
-import { UserAnswerCreate, UserAnswerQuery, UserAnswerFilter, UserAnswerCreateSchema, UserAnswerQuerySchema, UserAnswerFilterSchema, UserAnswerListResponse, UserAnswerDetailedListResponse, UserAnswerPerformanceListResponse, UserAnswerSessionListResponse, UserAnswerDetailResponse, UserAnswerCountResponse, UserAnswerStatsResponse, UserAnswerCreateResponse, userAnswerCreateOpenapi, userAnswerListResponseOpenapi, userAnswerDetailedListResponseOpenapi, userAnswerPerformanceListResponseOpenapi, userAnswerSessionListResponseOpenapi, userAnswerDetailResponseOpenapi, userAnswerCountResponseOpenapi, userAnswerStatsResponseOpenapi, userAnswerCreateResponseOpenapi } from './schemas/user_answer.schema';
+import { BasicUserInfo, SessionId } from '@/common/decorators';
+import { UserAnswerCreate, UserAnswerQuery, UserAnswerFilter, UserAnswerCreateSchema, UserAnswerQuerySchema, UserAnswerFilterSchema, UserAnswerListResponse, UserAnswerPerformanceListResponse, UserAnswerSessionListResponse, UserAnswerStatsResponse, UserAnswerCreateResponse, userAnswerCreateOpenapi, userAnswerListResponseOpenapi, userAnswerPerformanceListResponseOpenapi, userAnswerSessionListResponseOpenapi, userAnswerStatsResponseOpenapi, userAnswerCreateResponseOpenapi } from './schemas/user_answer.schema';
+import { UserBasicInfo } from '@/user/schemas/user.schema';
 
 @ApiTags('User Answers')
 @Controller('user-answers')
@@ -37,23 +38,22 @@ export class UserAnswerController {
    * Retrieve user answers with basic information (default view)
    * Optimized for performance with minimal data transfer
    */
-  @Get()
+  @Get('me')
   @ApiResponse({ schema: userAnswerListResponseOpenapi })
-  @UsePipes(new ZodValidationPipe(UserAnswerQuerySchema))
-  async findAll(@Query() query: UserAnswerQuery): Promise<UserAnswerListResponse> {
-    return this.userAnswerService.findAll(query);
+  async findAll(@Query(new ZodValidationPipe(UserAnswerQuerySchema)) query: UserAnswerQuery, @BasicUserInfo() userInfo: UserBasicInfo): Promise<UserAnswerListResponse> {
+    return this.userAnswerService.findAll(query, userInfo.id);
   }
 
-  /**
-   * Retrieve user answers with detailed information
-   * Includes all fields for comprehensive analysis
-   */
-  @Get('detailed')
-  @ApiResponse({ schema: userAnswerDetailedListResponseOpenapi })
-  @UsePipes(new ZodValidationPipe(UserAnswerQuerySchema))
-  async findAllDetailed(@Query() query: UserAnswerQuery): Promise<UserAnswerDetailedListResponse> {
-    return this.userAnswerService.findAllDetailed(query);
-  }
+  // /**
+  //  * Retrieve user answers with detailed information
+  //  * Includes all fields for comprehensive analysis
+  //  */
+  // @Get('detailed')
+  // @ApiResponse({ schema: userAnswerDetailedListResponseOpenapi })
+  // @UsePipes(new ZodValidationPipe(UserAnswerQuerySchema))
+  // async findAllDetailed(@Query() query: UserAnswerQuery): Promise<UserAnswerDetailedListResponse> {
+  //   return this.userAnswerService.findAllDetailed(query);
+  // }
 
   /**
    * Retrieve user answers for performance analysis
@@ -61,9 +61,8 @@ export class UserAnswerController {
    */
   @Get('performance')
   @ApiResponse({ schema: userAnswerPerformanceListResponseOpenapi })
-  @UsePipes(new ZodValidationPipe(UserAnswerQuerySchema))
-  async findAllPerformance(@Query() query: UserAnswerQuery): Promise<UserAnswerPerformanceListResponse> {
-    return this.userAnswerService.findAllPerformance(query);
+  async findAllPerformance(@Query(new ZodValidationPipe(UserAnswerQuerySchema)) query: UserAnswerQuery, @BasicUserInfo() userInfo: UserBasicInfo): Promise<UserAnswerPerformanceListResponse> {
+    return this.userAnswerService.findAllPerformance(query, userInfo.id);
   }
 
   /**
@@ -72,9 +71,8 @@ export class UserAnswerController {
    */
   @Get('sessions')
   @ApiResponse({ schema: userAnswerSessionListResponseOpenapi })
-  @UsePipes(new ZodValidationPipe(UserAnswerQuerySchema))
-  async findAllBySession(@Query() query: UserAnswerQuery): Promise<UserAnswerSessionListResponse> {
-    return this.userAnswerService.findAllBySession(query);
+  async findAllBySession(@Query(new ZodValidationPipe(UserAnswerQuerySchema)) query: UserAnswerQuery, @BasicUserInfo() userInfo: UserBasicInfo): Promise<UserAnswerSessionListResponse> {
+    return this.userAnswerService.findAllBySession(query, userInfo.id);
   }
 
   /**
@@ -83,29 +81,28 @@ export class UserAnswerController {
    */
   @Get('stats')
   @ApiResponse({ schema: userAnswerStatsResponseOpenapi })
-  @UsePipes(new ZodValidationPipe(UserAnswerFilterSchema))
-  async getStats(@Query() filters: UserAnswerFilter): Promise<UserAnswerStatsResponse> {
-    return this.userAnswerService.getStats(filters);
+  async getStats(@Query(new ZodValidationPipe(UserAnswerFilterSchema)) filters: UserAnswerFilter, @BasicUserInfo() userInfo: UserBasicInfo): Promise<UserAnswerStatsResponse> {
+    return this.userAnswerService.getStats(filters, userInfo.id);
   }
 
-  /**
-   * Get count of user answers
-   * Useful for pagination and overview statistics
-   */
-  @Get('count')
-  @ApiResponse({ schema: userAnswerCountResponseOpenapi })
-  @UsePipes(new ZodValidationPipe(UserAnswerFilterSchema))
-  async count(@Query() filters: UserAnswerFilter): Promise<UserAnswerCountResponse> {
-    return this.userAnswerService.count(filters);
-  }
+  // /**
+  //  * Get count of user answers
+  //  * Useful for pagination and overview statistics
+  //  */
+  // @Get('count')
+  // @ApiResponse({ schema: userAnswerCountResponseOpenapi })
+  // @UsePipes(new ZodValidationPipe(UserAnswerFilterSchema))
+  // async count(@Query() filters: UserAnswerFilter): Promise<UserAnswerCountResponse> {
+  //   return this.userAnswerService.count(filters);
+  // }
 
-  /**
-   * Retrieve single user answer with full details and relationships
-   */
-  @Get(':id')
-  @ApiResponse({ schema: userAnswerDetailResponseOpenapi })
-  async findOne(@Param('id', ParseIntPipe) id: number): Promise<UserAnswerDetailResponse> {
-    const userAnswer = await this.userAnswerService.findOne(id);
-    return { data: userAnswer };
-  }
+  // /**
+  //  * Retrieve single user answer with full details and relationships
+  //  */
+  // @Get(':id')
+  // @ApiResponse({ schema: userAnswerDetailResponseOpenapi })
+  // async findOne(@Param('id', ParseIntPipe) id: number): Promise<UserAnswerDetailResponse> {
+  //   const userAnswer = await this.userAnswerService.findOne(id);
+  //   return { data: userAnswer };
+  // }
 }
