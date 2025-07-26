@@ -7,6 +7,7 @@ import { ApiBearerAuth, ApiBody, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { BasicUserInfo, SessionId } from '@/common/decorators';
 import { AiAssistanceMessageService } from '@/ai_assistance_message/ai_assistance_message.service';
 import { JwtAuthGuard } from '@/auth/guard/jwt-auth.guard';
+import { UserBasicInfo } from '@/user/schemas/user.schema';
 
 @ApiTags('AI Assistant')
 @Controller('ai-assistance')
@@ -22,7 +23,7 @@ export class AiAssistanceController {
   @Post('correct-answer')
   @ApiBody({ schema: aiAssistanceRequestPayloadOpenapi })
   @ApiResponse({ schema: aiAssistanceApiResponseOpenapi })
-  async correctUserAnswer(@Body(new ZodValidationPipe(AiAssistanceRequestPayloadSchema)) request: AiAssistantRequestPayload, @SessionId() sessionId: string, @BasicUserInfo() userInfo: { user_id: number; username: string }): Promise<AiAssistanceApiResponse> {
+  async correctUserAnswer(@Body(new ZodValidationPipe(AiAssistanceRequestPayloadSchema)) request: AiAssistantRequestPayload, @SessionId() sessionId: string, @BasicUserInfo() userInfo: UserBasicInfo): Promise<AiAssistanceApiResponse> {
     const userAnswer = await this.userAnswerService.gatherAiRequestData(request.question_id, request.user_option_answer_id);
 
     const aiRequest = {
@@ -53,7 +54,7 @@ export class AiAssistanceController {
   @Post('question-explanation')
   @ApiBody({ schema: aiAssistanceQuestionExplanationApiRequestOpenapi })
   @ApiResponse({ schema: aiAssistanceQuestionExplanationApiResponseOpenapi })
-  async getQuestionExplanation(@Body(new ZodValidationPipe(AiAssistanceQuestionExplanationApiRequestSchema)) request: AiAssistanceQuestionExplanationApiRequest, @SessionId() sessionId: string, @BasicUserInfo() userInfo: { user_id: number; username: string }): Promise<AiAssistantQuestionExplanationApiResponse> {
+  async getQuestionExplanation(@Body(new ZodValidationPipe(AiAssistanceQuestionExplanationApiRequestSchema)) request: AiAssistanceQuestionExplanationApiRequest, @SessionId() sessionId: string, @BasicUserInfo() userInfo: UserBasicInfo): Promise<AiAssistantQuestionExplanationApiResponse> {
     const userAnswer = await this.userAnswerService.gatherAiRequestData(request.question_id);
 
     const aiRequest = {

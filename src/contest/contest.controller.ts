@@ -5,6 +5,7 @@ import { JwtAuthGuard } from '@/auth/guard/jwt-auth.guard';
 import { BasicUserInfo } from '@/common/decorators/user-context.decorator';
 import { ContestQuery, ContestCount, ContestListResponse, ContestDetailsResponse, ContestExistsResponse, ContestStatusSchema, contestListResponseOpenapi, contestDetailsResponseOpenapi, contestCountOpenapi, contestExistsResponseOpenapi, ContestWithSubjectsResponse, contestWithSubjectsOpenapi } from './schemas/contest.schema';
 import { ContestStatus } from '@/entities/contest.entity';
+import { UserBasicInfo } from '@/user/schemas/user.schema';
 
 @Controller('contests')
 @ApiBearerAuth()
@@ -30,10 +31,10 @@ export class ContestController {
   @Get('with-subjects')
   @UseGuards(JwtAuthGuard)
   @ApiResponse({ schema: contestWithSubjectsOpenapi })
-  async findAllWithSubjects(@Query() query: ContestQuery, @BasicUserInfo() userInfo: { user_id: number; username: string }): Promise<ContestWithSubjectsResponse> {
+  async findAllWithSubjects(@Query() query: ContestQuery, @BasicUserInfo() userInfo: UserBasicInfo): Promise<ContestWithSubjectsResponse> {
     const contests = await this.contestService.findAllWithSubjects({
       ...query,
-      userId: userInfo.user_id,
+      userId: userInfo.id,
     });
     return { data: contests };
   }
