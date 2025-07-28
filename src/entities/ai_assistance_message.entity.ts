@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { AiAssistanceSession } from './ai_assistance_session.entity';
-import { AiAssistanceMessage as AiAssistanceMessageType } from '@/ai_assistance_message/schemas/ai_assistance_message.schema';
+import { AiAssistanceMessage as AiAssistanceMessageType } from '@/modules/ai_assistance_message/schemas/ai_assistance_message.schema';
 
 export enum SenderEnum {
   USER = 'user',

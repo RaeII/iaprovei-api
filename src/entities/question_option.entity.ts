@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Question } from './question.entity';
-import { QuestionOption as QuestionOptionType } from '@/question_option/schemas/question_option.schema';
+import { QuestionOption as QuestionOptionType } from '@/modules/question_option/schemas/question_option.schema';
 
 @Entity('question_options')
 export class QuestionOption implements QuestionOptionType {

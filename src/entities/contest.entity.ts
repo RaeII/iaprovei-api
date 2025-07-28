@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
-import { Contest as ContestType } from '@/contest/schemas/contest.schema';
+import { Contest as ContestType } from '@/modules/contest/schemas/contest.schema';
 import { Subject } from './subject.entity';
 
 export enum ContestStatus {

@@ -1,5 +1,5 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import { UserContextService } from '../services/user-context.service';
+import { UserContextService } from '../../shared/services/user-context.service';
 
 /**
  * Decorator to inject user context (with admin status) into controller methods

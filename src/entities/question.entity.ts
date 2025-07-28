@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { Subject } from './subject.entity';
-import { Question as QuestionType } from '@/question/schemas/question.schema';
+import { Question as QuestionType } from '@/modules/question/schemas/question.schema';
 import { QuestionOption } from './question_option.entity';
 
 export enum QuestionTypeEnum {
