@@ -1,11 +1,10 @@
-import { Controller, Get, Post, Query, Body, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Query, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiResponse, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
 import { ZodValidationPipe } from 'nestjs-zod';
-import { Request } from 'express';
 import { UserAnswerService } from './user_answer.service';
 import { JwtAuthGuard } from '@/auth/guard/jwt-auth.guard';
 import { BasicUserInfo, SessionId } from '@/common/decorators';
-import { UserAnswerCreate, UserAnswerQuery, UserAnswerFilter, UserAnswerCreateSchema, UserAnswerQuerySchema, UserAnswerFilterSchema, UserAnswerListResponse, UserAnswerPerformanceListResponse, UserAnswerSessionListResponse, UserAnswerStatsResponse, UserAnswerCreateResponse, userAnswerCreateOpenapi, userAnswerListResponseOpenapi, userAnswerPerformanceListResponseOpenapi, userAnswerSessionListResponseOpenapi, userAnswerStatsResponseOpenapi, userAnswerCreateResponseOpenapi } from './schemas/user_answer.schema';
+import { UserAnswerQuery, UserAnswerFilter, UserAnswerQuerySchema, UserAnswerFilterSchema, UserAnswerListResponse, UserAnswerPerformanceListResponse, UserAnswerSessionListResponse, UserAnswerStatsResponse, UserAnswerCreateResponse, userAnswerCreateOpenapi, userAnswerListResponseOpenapi, userAnswerPerformanceListResponseOpenapi, userAnswerSessionListResponseOpenapi, userAnswerStatsResponseOpenapi, userAnswerCreateResponseOpenapi, UserAnswerCreatePayload, UserAnswerCreatePayloadSchema } from './schemas/user_answer.schema';
 import { UserBasicInfo } from '@/user/schemas/user.schema';
 
 @ApiTags('User Answers')
@@ -23,15 +22,8 @@ export class UserAnswerController {
   @Post()
   @ApiBody({ schema: userAnswerCreateOpenapi })
   @ApiResponse({ schema: userAnswerCreateResponseOpenapi })
-  async create(@Body(new ZodValidationPipe(UserAnswerCreateSchema)) createUserAnswerDto: UserAnswerCreate, @Req() req: Request, @SessionId() sessionId: string): Promise<UserAnswerCreateResponse> {
-    // Extract user info from JWT token (available after JwtAuthGuard)
-    const user = (req as any).user;
-
-    if (!user?.user_id) {
-      throw new Error('User not authenticated');
-    }
-
-    return this.userAnswerService.create(createUserAnswerDto, user, sessionId);
+  async create(@Body(new ZodValidationPipe(UserAnswerCreatePayloadSchema)) createUserAnswerDto: UserAnswerCreatePayload, @BasicUserInfo() userBasicInfo: UserBasicInfo, @SessionId() sessionId: string): Promise<UserAnswerCreateResponse> {
+    return this.userAnswerService.create({ ...createUserAnswerDto, users_id: userBasicInfo.id }, sessionId);
   }
 
   /**

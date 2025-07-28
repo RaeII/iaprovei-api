@@ -56,6 +56,11 @@ export const UserAnswerCreateSchema = UserAnswerSchema.omit({
   session_id: true, // System generates this from JWT - cannot be sent by frontend
 });
 
+// For creating user answers - excludes auto-generated and system-determined fields, including session_id
+export const UserAnswerCreatePayloadSchema = UserAnswerCreateSchema.omit({
+  users_id: true,
+});
+
 // For updating user answers - all fields optional except required ones (excludes session_id)
 export const UserAnswerUpdateSchema = UserAnswerSchema.partial().omit({
   id: true,
@@ -174,7 +179,7 @@ export const UserAnswerStatsResponseSchema = z.object({
 });
 
 // OpenAPI schemas
-export const userAnswerCreateOpenapi: any = zodToOpenAPI(UserAnswerCreateSchema);
+export const userAnswerCreateOpenapi: any = zodToOpenAPI(UserAnswerCreatePayloadSchema);
 export const userAnswerUpdateOpenapi: any = zodToOpenAPI(UserAnswerUpdateSchema);
 export const userAnswerResponseOpenapi: any = zodToOpenAPI(UserAnswerSchema.omit({ session_id: true }));
 export const userAnswerBasicOpenapi: any = zodToOpenAPI(UserAnswerBasicSchema);
@@ -196,6 +201,7 @@ export type UserAnswerBasic = z.infer<typeof UserAnswerBasicSchema>;
 export type UserAnswerPerformance = z.infer<typeof UserAnswerPerformanceSchema>;
 export type UserAnswerSession = z.infer<typeof UserAnswerSessionSchema>;
 export type UserAnswerCreate = z.infer<typeof UserAnswerCreateSchema>;
+export type UserAnswerCreatePayload = z.infer<typeof UserAnswerCreatePayloadSchema>;
 export type UserAnswerUpdate = z.infer<typeof UserAnswerUpdateSchema>;
 export type UserAnswerFilter = z.infer<typeof UserAnswerFilterSchema>;
 export type UserAnswerInternalFilter = z.infer<typeof UserAnswerInternalFilterSchema>;

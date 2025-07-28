@@ -23,7 +23,8 @@ export class UserAnswerService {
    * Session ID is provided by the controller decorator
    * Returns both the user answer and correct answer information
    */
-  async create(createUserAnswerDto: UserAnswerCreate, userInfo: { user_id: number; username: string }, sessionId: string): Promise<UserAnswerCreateResponse> {
+  async create(createUserAnswerDto: UserAnswerCreate, sessionId: string): Promise<UserAnswerCreateResponse> {
+    console.log('createUserAnswerDto', createUserAnswerDto);
     // Get the chosen option to validate it exists and check correctness
     const chosenOption = await this.questionOptionService.findOneInternal(createUserAnswerDto.option_id);
 
@@ -33,7 +34,6 @@ export class UserAnswerService {
     // Create the user answer with system-determined correctness and provided session_id
     const newUserAnswer = this.userAnswersRepository.create({
       ...createUserAnswerDto,
-      users_id: userInfo.user_id, // Ensure users_id matches the authenticated user
       session_id: sessionId, // Session ID provided by controller decorator
       is_correct: chosenOption.is_correct, // System determines this based on the chosen option
       answared_at: new Date(),
