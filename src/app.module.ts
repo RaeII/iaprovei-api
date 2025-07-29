@@ -18,8 +18,10 @@ import { AiAssistanceMessageModule } from './modules/ai_assistance_message/ai_as
 import { AiAssistanceModule } from './modules/ai_assistance/ai_assistance.module';
 import { SharedModule } from './shared/shared.module';
 import openaiConfig from './config/openai.config';
+import { GlobalOptionsController } from './global-options.controller';
 
 @Module({
+  controllers: [GlobalOptionsController],
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
