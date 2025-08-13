@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { Subject } from './subject.entity';
+import { SkillCategory } from './skill_category.entity';
 import { Question as QuestionType } from '@/modules/question/schemas/question.schema';
 import { QuestionOption } from './question_option.entity';
 
@@ -77,10 +78,17 @@ export class Question implements QuestionType {
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamp', nullable: true })
   updated_at: Date;
 
-  // Relationship
+  @Column({ name: 'sub_subject_category_id', nullable: true })
+  sub_subject_category_id: number;
+
+  // Relations
   @ManyToOne(() => Subject)
   @JoinColumn({ name: 'subject_id' })
   subject: Subject;
+
+  @ManyToOne(() => SkillCategory)
+  @JoinColumn({ name: 'sub_subject_category_id' })
+  sub_subject_category: SkillCategory;
 
   @OneToMany(() => QuestionOption, questionOption => questionOption.question)
   question_options: QuestionOption[];

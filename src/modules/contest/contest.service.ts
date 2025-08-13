@@ -53,7 +53,7 @@ export class ContestService {
    * Includes percentage of user answers completed per subject for authenticated user
    */
   async findAllWithSubjects(options?: ContestQuery & { userId?: number }): Promise<ContestWithSubjects[]> {
-    const queryBuilder = this.contestsRepository.createQueryBuilder('contest').leftJoinAndSelect('contest.subjects', 'subjects', 'subjects.contest_id = contest.id AND subjects.is_active = 1');
+    const queryBuilder = this.contestsRepository.createQueryBuilder('contest').leftJoinAndSelect('contest.subjects', 'subjects', 'subjects.contest_id = contest.id AND subjects.is_active = 1').leftJoinAndSelect('subjects.skill_category', 'skill_category');
 
     // Add subquery to count unique questions answered by user per subject and get total questions if userId is provided
     if (options?.userId) {
@@ -70,7 +70,7 @@ export class ContestService {
       queryBuilder.andWhere('contest.is_active = 1');
     }
 
-    queryBuilder.select(['contest.id', 'contest.name', 'contest.institution', 'contest.status', 'subjects.id', 'subjects.name']).orderBy('contest.created_at', 'DESC');
+    queryBuilder.select(['contest.id', 'contest.name', 'contest.institution', 'contest.status', 'subjects.id', 'skill_category.name']).orderBy('contest.created_at', 'DESC');
 
     // Add answer count and total questions to selection if userId provided, calculate percentage
     if (options?.userId) {
@@ -102,7 +102,7 @@ export class ContestService {
           const subjectData = rawResultsMap.get(subject.id);
           return {
             id: subject.id,
-            name: subject.name,
+            name: subject.skill_category?.name || '',
             // user_answer_rate: options?.userId ? subjectData?.answeredCount || 0 : 0,
             user_answer_questions_percentage: options?.userId ? subjectData?.completionPercentage || 0 : 0,
           };

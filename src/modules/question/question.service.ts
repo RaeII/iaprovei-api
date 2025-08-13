@@ -29,6 +29,9 @@ export class QuestionService {
     // Select only basic fields for performance (including created_at for sorting)
     queryBuilder.select(['question.id', 'question.affirmation', 'question.question_type', 'question.difficulty_level', 'question.exam_board', 'question.exam_year', 'question.created_at']);
 
+    // Always include sub_subject_category relation to get the name
+    queryBuilder.leftJoinAndSelect('question.sub_subject_category', 'subSubjectCategory');
+
     // Conditionally include question options if requested
     if (include_options) {
       queryBuilder.leftJoinAndSelect('question.question_options', 'questionOptions');
@@ -51,10 +54,37 @@ export class QuestionService {
     if (userId && questions.length > 0 && query?.subject_id) {
       const lastAnsweredQuestionId = await this.getLastAnsweredQuestionIdForSubject(userId, query.subject_id);
       if (lastAnsweredQuestionId) {
-        userQuestionProgression = questions[questions.length - 1].id === lastAnsweredQuestionId ? questions : questions.filter(question => question.id > lastAnsweredQuestionId);
+        const filteredQuestions = questions[questions.length - 1].id === lastAnsweredQuestionId ? questions : questions.filter(question => question.id > lastAnsweredQuestionId);
+        userQuestionProgression = filteredQuestions.map(question => {
+          const transformedQuestion = this.transformQuestionWithSubCategory(question);
+          return {
+            id: transformedQuestion.id,
+            affirmation: transformedQuestion.affirmation,
+            question_type: transformedQuestion.question_type,
+            difficulty_level: transformedQuestion.difficulty_level,
+            exam_board: transformedQuestion.exam_board,
+            exam_year: transformedQuestion.exam_year,
+            ...(transformedQuestion.sub_subject_category_name && {
+              sub_subject_category_name: transformedQuestion.sub_subject_category_name,
+            }),
+          };
+        });
       } else {
         // If user hasn't answered any questions in this subject, all questions are progression
-        userQuestionProgression = questions;
+        userQuestionProgression = questions.map(question => {
+          const transformedQuestion = this.transformQuestionWithSubCategory(question);
+          return {
+            id: transformedQuestion.id,
+            affirmation: transformedQuestion.affirmation,
+            question_type: transformedQuestion.question_type,
+            difficulty_level: transformedQuestion.difficulty_level,
+            exam_board: transformedQuestion.exam_board,
+            exam_year: transformedQuestion.exam_year,
+            ...(transformedQuestion.sub_subject_category_name && {
+              sub_subject_category_name: transformedQuestion.sub_subject_category_name,
+            }),
+          };
+        });
       }
     }
 
@@ -62,24 +92,30 @@ export class QuestionService {
 
     return {
       data: {
-        questions: questions.map(question => ({
-          id: question.id,
-          affirmation: question.affirmation,
-          question_type: question.question_type,
-          difficulty_level: question.difficulty_level,
-          exam_board: question.exam_board,
-          exam_year: question.exam_year,
-          ...(include_options && {
-            question_options:
-              question.question_options?.map(option => ({
-                id: option.id,
-                option_text: option.option_text,
-                option_letter: option.option_letter,
-                is_correct: option.is_correct,
-                display_order: option.display_order,
-              })) || [],
-          }),
-        })),
+        questions: questions.map(question => {
+          const transformedQuestion = this.transformQuestionWithSubCategory(question);
+          return {
+            id: transformedQuestion.id,
+            affirmation: transformedQuestion.affirmation,
+            question_type: transformedQuestion.question_type,
+            difficulty_level: transformedQuestion.difficulty_level,
+            exam_board: transformedQuestion.exam_board,
+            exam_year: transformedQuestion.exam_year,
+            ...(transformedQuestion.sub_subject_category_name && {
+              sub_subject_category_name: transformedQuestion.sub_subject_category_name,
+            }),
+            ...(include_options && {
+              question_options:
+                transformedQuestion.question_options?.map(option => ({
+                  id: option.id,
+                  option_text: option.option_text,
+                  option_letter: option.option_letter,
+                  is_correct: option.is_correct,
+                  display_order: option.display_order,
+                })) || [],
+            }),
+          };
+        }),
         ...(userId &&
           query?.subject_id && {
             user_question_progression: userQuestionProgression,
@@ -165,22 +201,22 @@ export class QuestionService {
   async findOne(id: number): Promise<QuestionDetail> {
     const question = await this.questionsRepository.findOne({
       where: { id },
-      relations: ['subject'],
+      relations: ['subject', 'subject.skill_category', 'sub_subject_category'],
     });
 
     if (!question) {
       throw new DataNotFoundException(`Question with id "${id}"`, 'Questão', QuestionService.name);
     }
 
-    return {
+    return this.transformQuestionWithSubCategory({
       ...question,
       subject: question.subject
         ? {
             id: question.subject.id,
-            name: question.subject.name,
+            name: question.subject.skill_category?.name || '',
           }
         : undefined,
-    };
+    });
   }
 
   /**
@@ -190,23 +226,23 @@ export class QuestionService {
   async findOneEager(id: number): Promise<QuestionEagerDetail> {
     const question = await this.questionsRepository.findOne({
       where: { id },
-      relations: ['subject', 'subject.contest'],
+      relations: ['subject', 'subject.contest', 'subject.skill_category', 'sub_subject_category'],
     });
 
     if (!question) {
       throw new DataNotFoundException(`Question with id "${id}"`, 'Questão', QuestionService.name);
     }
 
-    return {
+    return this.transformQuestionWithSubCategory({
       ...question,
       subject: question.subject
         ? {
             id: question.subject.id,
-            name: question.subject.name,
+            name: question.subject.skill_category?.name || '',
           }
         : undefined,
       contest: question.subject?.contest ? question.subject?.contest : undefined,
-    };
+    });
   }
 
   /**
@@ -292,6 +328,22 @@ export class QuestionService {
       queryBuilder.andWhere('question.is_active = :isActive', { isActive: filters.is_active });
     }
 
+    if (filters.sub_subject_category_id) {
+      queryBuilder.andWhere('question.sub_subject_category_id = :subSubjectCategoryId', {
+        subSubjectCategoryId: filters.sub_subject_category_id,
+      });
+    }
+
     return queryBuilder;
+  }
+
+  /**
+   * Transform question data to include subcategory name from relation
+   */
+  private transformQuestionWithSubCategory(question: any): any {
+    return {
+      ...question,
+      sub_subject_category_name: question.sub_subject_category?.name || undefined,
+    };
   }
 }

@@ -19,6 +19,7 @@ import { AiAssistanceModule } from './modules/ai_assistance/ai_assistance.module
 import { SharedModule } from './shared/shared.module';
 import openaiConfig from './config/openai.config';
 import { GlobalOptionsController } from './global-options.controller';
+import { SkillCategoryModule } from './modules/skill_category/skill_category.module';
 
 @Module({
   controllers: [GlobalOptionsController],
@@ -44,6 +45,7 @@ import { GlobalOptionsController } from './global-options.controller';
     AiAssistanceMessageModule,
     AiAssistanceModule,
     SharedModule,
+    SkillCategoryModule,
   ],
   providers: [
     OverallFilterProvider,

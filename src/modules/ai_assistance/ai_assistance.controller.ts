@@ -28,7 +28,7 @@ export class AiAssistanceController {
 
     const aiRequest = {
       institution: userAnswer.question.contest.institution,
-      subject: userAnswer.question.subject.name,
+      subject: userAnswer.question.subject.skill_category?.name || '',
       question: userAnswer.question.affirmation,
       options: userAnswer.all_options.map(option => option.option_text),
       correct_answer: userAnswer.correct_options.map(option => option.option_text).join(', '),
@@ -59,7 +59,7 @@ export class AiAssistanceController {
 
     const aiRequest = {
       institution: userAnswer.question.contest.institution,
-      subject: userAnswer.question.subject.name,
+      subject: userAnswer.question.subject.skill_category?.name || '',
       question: userAnswer.question.affirmation,
       options: userAnswer.all_options.map(option => option.option_text),
       default_explanation: userAnswer.question.explanation,

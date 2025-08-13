@@ -5,20 +5,23 @@ import { zodToOpenAPI } from 'nestjs-zod';
 export const SubjectSchema = z.object({
   id: z.number(),
   contest_id: z.number(),
-  name: z.string().min(1, 'Subject name is required').max(255),
-  slug: z.string().min(1, 'Subject slug is required').max(255),
-  description: z.string().optional(),
+  skill_category_id: z.number(),
   display_order: z.number().min(0).default(0),
   total_questions: z.number().min(0).default(0),
   estimated_study_hours: z.number().min(1).optional(),
   is_active: z.boolean().default(true),
   created_at: z.date(),
   updated_at: z.date(),
+  // Virtual fields from skill_category
+  name: z.string().optional(), // Will be populated from skill_category
+  slug: z.string().optional(), // Will be populated from skill_category
+  description: z.string().optional(), // Will be populated from skill_category
 });
 
 // Subject identity schema - for subject identification
 export const SubjectIdentitySchema = SubjectSchema.pick({
   id: true,
+  skill_category_id: true,
   name: true,
   slug: true,
 });
@@ -27,6 +30,7 @@ export const SubjectIdentitySchema = SubjectSchema.pick({
 export const SubjectSummarySchema = SubjectSchema.pick({
   id: true,
   contest_id: true,
+  skill_category_id: true,
   name: true,
   slug: true,
   description: true,
@@ -39,6 +43,7 @@ export const SubjectSummarySchema = SubjectSchema.pick({
 export const SubjectDetailsSchema = SubjectSchema.pick({
   id: true,
   contest_id: true,
+  skill_category_id: true,
   name: true,
   slug: true,
   description: true,

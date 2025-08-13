@@ -1,6 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Subject as SubjectType } from '@/modules/subject/schemas/subject.schema';
 import { Contest } from './contest.entity';
+import { SkillCategory } from './skill_category.entity';
 
 @Entity('subjects')
 export class Subject implements SubjectType {
@@ -10,14 +11,8 @@ export class Subject implements SubjectType {
   @Column({ name: 'contest_id' })
   contest_id: number;
 
-  @Column({ length: 255 })
-  name: string;
-
-  @Column({ length: 255 })
-  slug: string;
-
-  @Column({ type: 'text', nullable: true })
-  description: string;
+  @Column({ name: 'skill_category_id' })
+  skill_category_id: number;
 
   @Column({ name: 'display_order', type: 'tinyint', default: 0 })
   display_order: number;
@@ -41,4 +36,9 @@ export class Subject implements SubjectType {
   @ManyToOne(() => Contest)
   @JoinColumn({ name: 'contest_id' })
   contest: Contest;
+
+  // Relationship with SkillCategory
+  @ManyToOne(() => SkillCategory)
+  @JoinColumn({ name: 'skill_category_id' })
+  skill_category: SkillCategory;
 }
