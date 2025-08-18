@@ -29,8 +29,8 @@ export class QuestionService {
     // Select only basic fields for performance (including created_at for sorting)
     queryBuilder.select(['question.id', 'question.affirmation', 'question.question_type', 'question.difficulty_level', 'question.exam_board', 'question.exam_year', 'question.created_at']);
 
-    // Always include sub_subject_category relation to get the name
-    queryBuilder.leftJoinAndSelect('question.sub_subject_category', 'subSubjectCategory');
+    // Always include sub_skill_category relation to get the name
+    queryBuilder.leftJoinAndSelect('question.sub_skill_category', 'subSkillCategory');
 
     // Conditionally include question options if requested
     if (include_options) {
@@ -64,8 +64,8 @@ export class QuestionService {
             difficulty_level: transformedQuestion.difficulty_level,
             exam_board: transformedQuestion.exam_board,
             exam_year: transformedQuestion.exam_year,
-            ...(transformedQuestion.sub_subject_category_name && {
-              sub_subject_category_name: transformedQuestion.sub_subject_category_name,
+            ...(transformedQuestion.sub_skill_category_name && {
+              sub_skill_category_name: transformedQuestion.sub_skill_category_name,
             }),
           };
         });
@@ -80,8 +80,8 @@ export class QuestionService {
             difficulty_level: transformedQuestion.difficulty_level,
             exam_board: transformedQuestion.exam_board,
             exam_year: transformedQuestion.exam_year,
-            ...(transformedQuestion.sub_subject_category_name && {
-              sub_subject_category_name: transformedQuestion.sub_subject_category_name,
+            ...(transformedQuestion.sub_skill_category_name && {
+              sub_skill_category_name: transformedQuestion.sub_skill_category_name,
             }),
           };
         });
@@ -101,8 +101,8 @@ export class QuestionService {
             difficulty_level: transformedQuestion.difficulty_level,
             exam_board: transformedQuestion.exam_board,
             exam_year: transformedQuestion.exam_year,
-            ...(transformedQuestion.sub_subject_category_name && {
-              sub_subject_category_name: transformedQuestion.sub_subject_category_name,
+            ...(transformedQuestion.sub_skill_category_name && {
+              sub_skill_category_name: transformedQuestion.sub_skill_category_name,
             }),
             ...(include_options && {
               question_options:
@@ -201,7 +201,7 @@ export class QuestionService {
   async findOne(id: number): Promise<QuestionDetail> {
     const question = await this.questionsRepository.findOne({
       where: { id },
-      relations: ['subject', 'subject.skill_category', 'sub_subject_category'],
+      relations: ['subject', 'subject.skill_category', 'sub_skill_category'],
     });
 
     if (!question) {
@@ -226,7 +226,7 @@ export class QuestionService {
   async findOneEager(id: number): Promise<QuestionEagerDetail> {
     const question = await this.questionsRepository.findOne({
       where: { id },
-      relations: ['subject', 'subject.contest', 'subject.skill_category', 'sub_subject_category'],
+      relations: ['subject', 'subject.contest', 'subject.skill_category', 'sub_skill_category'],
     });
 
     if (!question) {
@@ -328,9 +328,9 @@ export class QuestionService {
       queryBuilder.andWhere('question.is_active = :isActive', { isActive: filters.is_active });
     }
 
-    if (filters.sub_subject_category_id) {
-      queryBuilder.andWhere('question.sub_subject_category_id = :subSubjectCategoryId', {
-        subSubjectCategoryId: filters.sub_subject_category_id,
+    if (filters.sub_skill_category_id) {
+      queryBuilder.andWhere('question.sub_skill_category_id = :subSkillCategoryId', {
+        subSkillCategoryId: filters.sub_skill_category_id,
       });
     }
 
@@ -343,7 +343,7 @@ export class QuestionService {
   private transformQuestionWithSubCategory(question: any): any {
     return {
       ...question,
-      sub_subject_category_name: question.sub_subject_category?.name || undefined,
+      sub_skill_category_name: question.sub_skill_category?.name || undefined,
     };
   }
 }

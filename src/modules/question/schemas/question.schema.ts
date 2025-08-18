@@ -32,9 +32,9 @@ export const QuestionSchema = z.object({
   is_active: z.boolean().default(true),
   created_at: z.date(),
   updated_at: z.date(),
-  sub_subject_category_id: z.number().optional(),
+  sub_skill_category_id: z.number().optional(),
   // Virtual fields from relations
-  sub_subject_category_name: z.string().optional(),
+  sub_skill_category_name: z.string().optional(),
 });
 
 // Question basic info schema - for listing questions
@@ -119,7 +119,7 @@ export const QuestionUpdateSchema = QuestionSchema.partial().omit({
 // For question filtering and search
 export const QuestionFilterSchema = z.object({
   subject_id: z.coerce.number().optional(),
-  sub_subject_category_id: z.coerce.number().optional(),
+  sub_skill_category_id: z.coerce.number().optional(),
   question_type: QuestionTypeSchema.optional(),
   difficulty_level: DifficultyLevelSchema.optional(),
   exam_board: z.string().optional(),

@@ -78,17 +78,17 @@ export class Question implements QuestionType {
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamp', nullable: true })
   updated_at: Date;
 
-  @Column({ name: 'sub_subject_category_id', nullable: true })
-  sub_subject_category_id: number;
+  @Column({ name: 'sub_skill_category_id', nullable: true })
+  sub_skill_category_id: number;
 
   // Relations
   @ManyToOne(() => Subject)
   @JoinColumn({ name: 'subject_id' })
   subject: Subject;
 
-  @ManyToOne(() => SkillCategory)
-  @JoinColumn({ name: 'sub_subject_category_id' })
-  sub_subject_category: SkillCategory;
+  @ManyToOne(() => SkillCategory, { nullable: true })
+  @JoinColumn({ name: 'sub_skill_category_id' })
+  sub_skill_category: SkillCategory;
 
   @OneToMany(() => QuestionOption, questionOption => questionOption.question)
   question_options: QuestionOption[];
