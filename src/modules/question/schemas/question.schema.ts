@@ -33,6 +33,8 @@ export const QuestionSchema = z.object({
   created_at: z.date(),
   updated_at: z.date(),
   sub_skill_category_id: z.number().optional(),
+  question_statement_text_id: z.number().optional(),
+  statement: z.string().max(255).optional(),
   // Virtual fields from relations
   sub_skill_category_name: z.string().optional(),
 });
@@ -45,6 +47,8 @@ export const QuestionBasicSchema = QuestionSchema.pick({
   difficulty_level: true,
   exam_board: true,
   exam_year: true,
+  statement: true,
+  question_statement_text_id: true,
 });
 
 // Question with options schema - for listing questions with their options
@@ -165,7 +169,10 @@ export const QuestionListResponseSchema = z.object({
     .object({
       questions: z.array(z.union([QuestionBasicSchema, QuestionWithOptionsSchema, QuestionWithOptionsAndLastAnswerSchema])),
     })
-    .extend(QuestionWithUserQuestionProgressionSchema.shape),
+    .extend(QuestionWithUserQuestionProgressionSchema.shape)
+    .extend({
+      statements_texts: z.record(z.string(), z.string()),
+    }),
   meta: PaginationMetaSchema,
 });
 

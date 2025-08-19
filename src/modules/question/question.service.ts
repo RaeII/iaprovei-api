@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, SelectQueryBuilder } from 'typeorm';
+import { In, Repository, SelectQueryBuilder } from 'typeorm';
 import { Question } from '@/entities/question.entity';
 import { UserAnswer } from '@/entities/user_answer.entity';
+import { QuestionStatementText } from '@/entities/question_statement_text.entity';
 import { DataNotFoundException } from '@/common/exceptions/data-not-found.exception';
 import { QuestionQuery, QuestionFilter, QuestionListResponse, QuestionDetailedListResponse, QuestionStatsListResponse, QuestionDetail, QuestionEagerDetail, QuestionWithUserQuestionProgressionResponse } from './schemas/question.schema';
 import { createPaginationMeta, generateOffset } from '@/common/utils/query-utils';
@@ -13,7 +14,9 @@ export class QuestionService {
     @InjectRepository(Question)
     private questionsRepository: Repository<Question>,
     @InjectRepository(UserAnswer)
-    private userAnswersRepository: Repository<UserAnswer>
+    private userAnswersRepository: Repository<UserAnswer>,
+    @InjectRepository(QuestionStatementText)
+    private questionStatementTextRepository: Repository<QuestionStatementText>
   ) {}
 
   /**
@@ -27,7 +30,7 @@ export class QuestionService {
     const queryBuilder = this.createBaseQueryBuilder(filters, include_inactive);
 
     // Select only basic fields for performance (including created_at for sorting)
-    queryBuilder.select(['question.id', 'question.affirmation', 'question.question_type', 'question.difficulty_level', 'question.exam_board', 'question.exam_year', 'question.created_at']);
+    queryBuilder.select(['question.id', 'question.affirmation', 'question.question_type', 'question.difficulty_level', 'question.exam_board', 'question.exam_year', 'question.created_at', 'question.statement', 'question.question_statement_text_id']);
 
     // Always include sub_skill_category relation to get the name
     queryBuilder.leftJoinAndSelect('question.sub_skill_category', 'subSkillCategory');
@@ -50,63 +53,76 @@ export class QuestionService {
 
     const [questions, total] = await queryBuilder.getManyAndCount();
 
-    let userQuestionProgression = [];
+    // Build user progression if applicable
+    let userQuestionProgression = [] as any[];
     if (userId && questions.length > 0 && query?.subject_id) {
       const lastAnsweredQuestionId = await this.getLastAnsweredQuestionIdForSubject(userId, query.subject_id);
       if (lastAnsweredQuestionId) {
-        const filteredQuestions = questions[questions.length - 1].id === lastAnsweredQuestionId ? questions : questions.filter(question => question.id > lastAnsweredQuestionId);
-        userQuestionProgression = filteredQuestions.map(question => {
-          const transformedQuestion = this.transformQuestionWithSubCategory(question);
+        const filteredQuestions = questions[questions.length - 1].id === lastAnsweredQuestionId ? questions : questions.filter(q => q.id > lastAnsweredQuestionId);
+        userQuestionProgression = filteredQuestions.map(q => {
+          const tq = this.transformQuestionWithSubCategory(q);
           return {
-            id: transformedQuestion.id,
-            affirmation: transformedQuestion.affirmation,
-            question_type: transformedQuestion.question_type,
-            difficulty_level: transformedQuestion.difficulty_level,
-            exam_board: transformedQuestion.exam_board,
-            exam_year: transformedQuestion.exam_year,
-            ...(transformedQuestion.sub_skill_category_name && {
-              sub_skill_category_name: transformedQuestion.sub_skill_category_name,
-            }),
+            id: tq.id,
+            affirmation: tq.affirmation,
+            question_type: tq.question_type,
+            difficulty_level: tq.difficulty_level,
+            exam_board: tq.exam_board,
+            exam_year: tq.exam_year,
+            statement: tq.statement,
+            question_statement_text_id: tq.question_statement_text_id,
+            ...(tq.sub_skill_category_name && { sub_skill_category_name: tq.sub_skill_category_name }),
           };
         });
       } else {
-        // If user hasn't answered any questions in this subject, all questions are progression
-        userQuestionProgression = questions.map(question => {
-          const transformedQuestion = this.transformQuestionWithSubCategory(question);
+        userQuestionProgression = questions.map(q => {
+          const tq = this.transformQuestionWithSubCategory(q);
           return {
-            id: transformedQuestion.id,
-            affirmation: transformedQuestion.affirmation,
-            question_type: transformedQuestion.question_type,
-            difficulty_level: transformedQuestion.difficulty_level,
-            exam_board: transformedQuestion.exam_board,
-            exam_year: transformedQuestion.exam_year,
-            ...(transformedQuestion.sub_skill_category_name && {
-              sub_skill_category_name: transformedQuestion.sub_skill_category_name,
-            }),
+            id: tq.id,
+            affirmation: tq.affirmation,
+            question_type: tq.question_type,
+            difficulty_level: tq.difficulty_level,
+            exam_board: tq.exam_board,
+            exam_year: tq.exam_year,
+            statement: tq.statement,
+            question_statement_text_id: tq.question_statement_text_id,
+            ...(tq.sub_skill_category_name && { sub_skill_category_name: tq.sub_skill_category_name }),
           };
         });
       }
+    }
+
+    // Collect unique statement text IDs from both questions and progression to avoid duplicates
+    const statementTextIds = Array.from(new Set([...questions.map(q => q.question_statement_text_id).filter((v): v is number => !!v), ...userQuestionProgression.map(q => q.question_statement_text_id).filter((v): v is number => !!v)]));
+
+    // Load the statement texts for the collected IDs
+    let statements_texts: Record<string, string> = {};
+    if (statementTextIds.length > 0) {
+      const statementRows = await this.questionStatementTextRepository.find({ where: { id: In(statementTextIds) } });
+      statements_texts = statementRows.reduce<Record<string, string>>((acc, row) => {
+        acc[String(row.id)] = row.text || '';
+        return acc;
+      }, {});
     }
 
     const meta = createPaginationMeta(total, page, limit);
 
     return {
       data: {
-        questions: questions.map(question => {
-          const transformedQuestion = this.transformQuestionWithSubCategory(question);
+        questions: questions.map(q => {
+          const tq = this.transformQuestionWithSubCategory(q);
           return {
-            id: transformedQuestion.id,
-            affirmation: transformedQuestion.affirmation,
-            question_type: transformedQuestion.question_type,
-            difficulty_level: transformedQuestion.difficulty_level,
-            exam_board: transformedQuestion.exam_board,
-            exam_year: transformedQuestion.exam_year,
-            ...(transformedQuestion.sub_skill_category_name && {
-              sub_skill_category_name: transformedQuestion.sub_skill_category_name,
-            }),
+            id: tq.id,
+            affirmation: tq.affirmation,
+            question_type: tq.question_type,
+            difficulty_level: tq.difficulty_level,
+            exam_board: tq.exam_board,
+            exam_year: tq.exam_year,
+            statement: tq.statement,
+            question_statement_text_id: tq.question_statement_text_id,
+            ...(tq.sub_skill_category_name && { sub_skill_category_name: tq.sub_skill_category_name }),
             ...(include_options && {
               question_options:
-                transformedQuestion.question_options?.map(option => ({
+                tq.question_options?.map(option => ({
                   id: option.id,
                   option_text: option.option_text,
                   option_letter: option.option_letter,
@@ -116,10 +132,8 @@ export class QuestionService {
             }),
           };
         }),
-        ...(userId &&
-          query?.subject_id && {
-            user_question_progression: userQuestionProgression,
-          }),
+        ...(userId && query?.subject_id && { user_question_progression: userQuestionProgression }),
+        statements_texts,
       },
       meta,
     };

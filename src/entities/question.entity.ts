@@ -3,6 +3,7 @@ import { Subject } from './subject.entity';
 import { SkillCategory } from './skill_category.entity';
 import { Question as QuestionType } from '@/modules/question/schemas/question.schema';
 import { QuestionOption } from './question_option.entity';
+import { QuestionStatementText } from './question_statement_text.entity';
 
 export enum QuestionTypeEnum {
   MULTIPLE_CHOICE = 'multiple_choice',
@@ -81,6 +82,12 @@ export class Question implements QuestionType {
   @Column({ name: 'sub_skill_category_id', nullable: true })
   sub_skill_category_id: number;
 
+  @Column({ name: 'question_statement_text_id', nullable: true })
+  question_statement_text_id: number;
+
+  @Column({ type: 'text', nullable: true })
+  statement: string;
+
   // Relations
   @ManyToOne(() => Subject)
   @JoinColumn({ name: 'subject_id' })
@@ -89,6 +96,10 @@ export class Question implements QuestionType {
   @ManyToOne(() => SkillCategory, { nullable: true })
   @JoinColumn({ name: 'sub_skill_category_id' })
   sub_skill_category: SkillCategory;
+
+  @ManyToOne(() => QuestionStatementText, { nullable: true })
+  @JoinColumn({ name: 'question_statement_text_id' })
+  question_statement_text: QuestionStatementText;
 
   @OneToMany(() => QuestionOption, questionOption => questionOption.question)
   question_options: QuestionOption[];
