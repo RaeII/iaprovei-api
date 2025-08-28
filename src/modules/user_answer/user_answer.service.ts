@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
+import * as https from 'https';
+import * as http from 'http';
 import { UserAnswer } from '@/entities/user_answer.entity';
 import { DataNotFoundException } from '@/common/exceptions/data-not-found.exception';
 import { UserAnswerCreate, UserAnswerQuery, UserAnswerFilter, UserAnswerInternalFilter, UserAnswerListResponse, UserAnswerDetailedListResponse, UserAnswerPerformanceListResponse, UserAnswerSessionListResponse, UserAnswerDetail, UserAnswerCountResponse, UserAnswerStatsResponse, UserAnswerCreateResponse } from './schemas/user_answer.schema';
@@ -313,6 +315,10 @@ export class UserAnswerService {
     all_options: any[];
     chosen_option: any;
     correct_options: any[];
+    statement_text?: string;
+    image_file?: Buffer;
+    statement?: string;
+    question_type?: string;
   }> {
     // Run independent API calls in parallel for better performance
     // eslint-disable-next-line prettier/prettier
@@ -323,12 +329,60 @@ export class UserAnswerService {
       this.questionOptionService.findCorrectByQuestion(questionId),
     ]);
 
+    // Download image file if URL exists
+    let imageFile: Buffer | undefined;
+    if (question.image_url) {
+      try {
+        imageFile = await this.downloadImageFromUrl(question.image_url);
+      } catch (error) {
+        console.warn(`Failed to download image from ${question.image_url}:`, error.message);
+      }
+    }
+
     return {
       question,
       all_options: allOptionsResponse.data,
       chosen_option: chosenOption,
       correct_options: correctOptionsResponse.data,
+      statement_text: question.question_statement_text?.text,
+      image_file: imageFile,
+      statement: question.statement,
+      question_type: question.question_type,
     };
+  }
+
+  /**
+   * Download image from URL and return as Buffer
+   */
+  private async downloadImageFromUrl(url: string): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      const client = url.startsWith('https:') ? https : http;
+
+      client
+        .get(url, response => {
+          if (response.statusCode !== 200) {
+            reject(new Error(`HTTP ${response.statusCode}: ${response.statusMessage}`));
+            return;
+          }
+
+          const chunks: Buffer[] = [];
+
+          response.on('data', chunk => {
+            chunks.push(chunk);
+          });
+
+          response.on('end', () => {
+            resolve(Buffer.concat(chunks));
+          });
+
+          response.on('error', error => {
+            reject(error);
+          });
+        })
+        .on('error', error => {
+          reject(error);
+        });
+    });
   }
 
   /**

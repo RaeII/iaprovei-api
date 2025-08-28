@@ -209,7 +209,7 @@ export class QuestionService {
   async findOneEager(id: number): Promise<QuestionEagerDetail> {
     const question = await this.questionsRepository.findOne({
       where: { id },
-      relations: ['subject', 'subject.contest', 'subject.skill_category', 'sub_skill_category'],
+      relations: ['subject', 'subject.contest', 'subject.skill_category', 'sub_skill_category', 'question_statement_text'],
     });
 
     if (!question) {

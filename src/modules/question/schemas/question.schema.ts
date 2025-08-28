@@ -160,6 +160,13 @@ export const QuestionEagerDetailSchema = QuestionSchema.extend({
     })
     .optional(),
   contest: ContestIdentitySchema,
+  question_statement_text: z
+    .object({
+      id: z.number(),
+      text: z.string().optional(),
+      contests_id: z.number(),
+    })
+    .optional(),
 });
 
 export const QuestionWithLastAnsweredQuestionSchema = z.object({

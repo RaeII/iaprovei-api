@@ -10,10 +10,14 @@ export const AiAssistantRequestSchema = z.object({
   institution: z.string(),
   subject: z.string(),
   question: z.string(),
+  question_type: z.string().optional(),
   options: z.array(z.string()),
   correct_answer: z.string(),
   default_explanation: z.string(),
   student_answer: z.string(),
+  statement_text: z.string().optional(),
+  image_file: z.instanceof(Buffer).optional(),
+  statement: z.string().optional(),
 });
 
 export const AiAssistanceQuestionExplanationApiRequestSchema = z.object({
@@ -24,8 +28,12 @@ export const AiAssistantQuestionExplanationRequestSchema = z.object({
   institution: z.string(),
   subject: z.string(),
   question: z.string(),
+  question_type: z.string().optional(),
   options: z.array(z.string()),
   default_explanation: z.string(),
+  statement_text: z.string().optional(),
+  image_file: z.instanceof(Buffer).optional(),
+  statement: z.string().optional(),
 });
 
 export const AiAssistantResponseSchema = z.object({

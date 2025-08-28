@@ -27,20 +27,11 @@ export class OpenAiProvider implements IAiProvider {
       this.logger.log('Requesting answer correction from OpenAI');
 
       const systemPrompt = this.buildSystemPrompt();
-      const userMessage = this.buildUserMessage(request);
+      const messages = this.buildMessages(systemPrompt, request.image_file, this.buildUserMessage(request));
 
       const completion = await this.openai.chat.completions.create({
         model: this.configService.get<string>('openai.model'),
-        messages: [
-          {
-            role: 'system',
-            content: systemPrompt,
-          },
-          {
-            role: 'user',
-            content: userMessage,
-          },
-        ],
+        messages,
         temperature: this.configService.get<number>('openai.temperature'),
         max_tokens: this.configService.get<number>('openai.maxTokens'),
       });
@@ -67,20 +58,11 @@ export class OpenAiProvider implements IAiProvider {
       this.logger.log('Requesting question explanation from OpenAI');
 
       const systemPrompt = this.buildQuestionExplanationSystemPrompt();
-      const userMessage = this.buildQuestionExplanationUserMessage(request);
+      const messages = this.buildMessages(systemPrompt, request.image_file, this.buildQuestionExplanationUserMessage(request));
 
       const completion = await this.openai.chat.completions.create({
         model: this.configService.get<string>('openai.model'),
-        messages: [
-          {
-            role: 'system',
-            content: systemPrompt,
-          },
-          {
-            role: 'user',
-            content: userMessage,
-          },
-        ],
+        messages,
         temperature: this.configService.get<number>('openai.temperature'),
         max_tokens: this.configService.get<number>('openai.maxTokens'),
       });
@@ -110,20 +92,72 @@ export class OpenAiProvider implements IAiProvider {
     return this.configService.get('openai.questionExplanationSystemPrompt');
   }
 
-  private buildUserMessage(request: AiAssistanceRequest): string {
-    return `The actual course institution is ${request.institution}, the actual subject is ${request.subject}, the questions is "${request.question}", that is a multi choice option, the options are:
+  private buildMessages(systemPrompt: string, imageFile: Buffer | undefined, userMessage: string): any[] {
+    const messages: any[] = [
+      {
+        role: 'system',
+        content: systemPrompt,
+      },
+    ];
 
+    if (imageFile) {
+      // Convert Buffer to base64 for OpenAI Vision API
+      const base64Image = imageFile.toString('base64');
+      messages.push({
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: userMessage,
+          },
+          {
+            type: 'image_url',
+            image_url: {
+              url: `data:image/jpeg;base64,${base64Image}`,
+            },
+          },
+        ] as any,
+      });
+    } else {
+      messages.push({
+        role: 'user',
+        content: userMessage,
+      });
+    }
+
+    return messages;
+  }
+
+  private buildUserMessage(request: AiAssistanceRequest): string {
+    let message = `The actual course institution is ${request.institution}, the actual subject is ${request.subject}.`;
+
+    message += `\n\`\`\`The questions:\n${request?.statement_text ? request?.statement_text + '\n' : ''}\n${request?.statement ? request?.statement + '\n' : ''}\n${request.question}\n\`\`\`
+
+That is a ${request?.question_type || 'multi choice'} option, the options are:
 ${request.options.join('\n')}
 
-The correct answer is "${request.correct_answer}". The default explantion for it is "${request.default_explanation}".
+The correct answer is "${request.correct_answer}".`;
 
-The student answer is "${request.student_answer}" that is incorrect, make a correction_suggestion for the student.`;
+    if (request.default_explanation) {
+      message += `\nThe default explanation for it is "${request.default_explanation}".`;
+    }
+
+    message += `The student answer is "${request.student_answer}" that is incorrect, make a correction_suggestion for the student.`;
+    return message;
   }
 
   private buildQuestionExplanationUserMessage(request: AiAssistanceQuestionExplanationRequest): string {
-    return `The actual course institution is ${request.institution}, the actual subject is ${request.subject}, the questions is "${request.question}", that is a multi choice option, the options are:
+    let message = `The actual course institution is ${request.institution}, the actual subject is ${request.subject}.`;
 
-${request.options.join('\n')}
-The default explantion for it is "${request.default_explanation}".`;
+    message += `\n\`\`\`The questions:\n${request?.statement_text ? request?.statement_text + '\n' : ''}\n${request?.statement ? request?.statement + '\n' : ''}\n${request.question}\n\`\`\`
+    
+That is a ${request?.question_type || 'multi choice'} option, the options are:
+${request.options.join('\n')}`;
+
+    if (request.default_explanation) {
+      message += `\nThe default explanation for it is "${request.default_explanation}".`;
+    }
+
+    return message;
   }
 }

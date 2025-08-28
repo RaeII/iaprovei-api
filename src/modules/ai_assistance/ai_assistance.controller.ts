@@ -28,12 +28,16 @@ export class AiAssistanceController {
 
     const aiRequest = {
       institution: userAnswer.question.contest.institution,
-      subject: userAnswer.question.subject.skill_category?.name || '',
+      subject: userAnswer.question.subject?.name || '',
       question: userAnswer.question.affirmation,
-      options: userAnswer.all_options.map(option => option.option_text),
+      question_type: userAnswer.question_type,
+      options: userAnswer.all_options.map(option => `${option.option_letter}) ${option.option_text}`),
       correct_answer: userAnswer.correct_options.map(option => option.option_text).join(', '),
       default_explanation: userAnswer.question.explanation,
       student_answer: userAnswer.chosen_option.option_text,
+      statement_text: userAnswer.statement_text,
+      image_file: userAnswer.image_file,
+      statement: userAnswer.statement,
     };
     const response = await this.aiAssistantService.correctUserAnswer(aiRequest);
     await this.aiAssistanceMessageService.create(
@@ -59,10 +63,14 @@ export class AiAssistanceController {
 
     const aiRequest = {
       institution: userAnswer.question.contest.institution,
-      subject: userAnswer.question.subject.skill_category?.name || '',
+      subject: userAnswer.question.subject?.name || '',
       question: userAnswer.question.affirmation,
-      options: userAnswer.all_options.map(option => option.option_text),
+      question_type: userAnswer.question_type,
+      options: userAnswer.all_options.map(option => `${option.option_letter}) ${option.option_text}`),
       default_explanation: userAnswer.question.explanation,
+      statement_text: userAnswer.statement_text,
+      image_file: userAnswer.image_file,
+      statement: userAnswer.statement,
     };
     const response = await this.aiAssistantService.getQuestionExplanation(aiRequest);
     await this.aiAssistanceMessageService.create(
