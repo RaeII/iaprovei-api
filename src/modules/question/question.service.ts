@@ -30,7 +30,7 @@ export class QuestionService {
     const queryBuilder = this.createBaseQueryBuilder(filters, include_inactive);
 
     // Select only basic fields for performance (including created_at for sorting)
-    queryBuilder.select(['question.id', 'question.affirmation', 'question.question_type', 'question.difficulty_level', 'question.exam_board', 'question.exam_year', 'question.created_at', 'question.statement', 'question.question_statement_text_id']);
+    queryBuilder.select(['question.id', 'question.affirmation', 'question.image_url', 'question.question_type', 'question.difficulty_level', 'question.exam_board', 'question.exam_year', 'question.created_at', 'question.statement', 'question.question_statement_text_id']);
 
     // Always include sub_skill_category relation to get the name
     queryBuilder.leftJoinAndSelect('question.sub_skill_category', 'subSkillCategory');
@@ -81,6 +81,7 @@ export class QuestionService {
           return {
             id: tq.id,
             affirmation: tq.affirmation,
+            image_url: tq.image_url,
             question_type: tq.question_type,
             difficulty_level: tq.difficulty_level,
             exam_board: tq.exam_board,

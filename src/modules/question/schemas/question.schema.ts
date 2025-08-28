@@ -15,6 +15,7 @@ export const QuestionSchema = z.object({
   id: z.number(),
   subject_id: z.number(),
   affirmation: z.string().min(1, 'Question affirmation is required'),
+  image_url: z.string().optional(),
   question_type: QuestionTypeSchema.default('multiple_choice'),
   exam_board: z.string().min(1, 'Exam board is required').max(100),
   exam_year: z
@@ -43,6 +44,7 @@ export const QuestionSchema = z.object({
 export const QuestionBasicSchema = QuestionSchema.pick({
   id: true,
   affirmation: true,
+  image_url: true,
   question_type: true,
   difficulty_level: true,
   exam_board: true,
@@ -89,6 +91,7 @@ export const QuestionContentSchema = QuestionSchema.pick({
   id: true,
   subject_id: true,
   affirmation: true,
+  image_url: true,
   question_type: true,
   difficulty_level: true,
   learning_tip: true,

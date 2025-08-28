@@ -28,6 +28,9 @@ export class Question implements QuestionType {
   @Column({ type: 'text' })
   affirmation: string;
 
+  @Column({ length: 255, nullable: true })
+  image_url: string;
+
   @Column({
     name: 'question_type',
     type: 'enum',
