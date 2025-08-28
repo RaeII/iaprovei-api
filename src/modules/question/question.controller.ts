@@ -4,7 +4,7 @@ import { ZodValidationPipe } from 'nestjs-zod';
 import { QuestionService } from './question.service';
 import { JwtAuthGuard } from '@/modules/auth/guard/jwt-auth.guard';
 import { BasicUserInfo } from '@/common/decorators/user-context.decorator';
-import { QuestionQuerySchema, QuestionQuery, QuestionListResponse, QuestionDetailedListResponse, QuestionStatsListResponse, QuestionDetailResponse, questionListResponseOpenapi, questionDetailedListResponseOpenapi, questionStatsListResponseOpenapi, questionDetailResponseOpenapi, questionExistsResponseOpenapi, QuestionExistsResponse, QuestionCountResponse, questionCountResponseOpenapi, QuestionFilter, QuestionTypeEnumOpenapi, DifficultyLevelEnumOpenapi, questionWithUserQuestionProgressionResponseOpenapi, QuestionWithUserQuestionProgressionResponse } from './schemas/question.schema';
+import { QuestionQuerySchema, QuestionQuery, QuestionListResponse, QuestionDetailedListResponse, QuestionStatsListResponse, QuestionDetailResponse, questionListResponseOpenapi, questionDetailedListResponseOpenapi, questionStatsListResponseOpenapi, questionDetailResponseOpenapi, questionExistsResponseOpenapi, questionCountResponseOpenapi, QuestionFilter, QuestionCountResponse, QuestionExistsResponse, QuestionWithLastAnsweredQuestionResponse, questionWithLastAnsweredQuestionResponseOpenapi, QuestionTypeEnumOpenapi, DifficultyLevelEnumOpenapi } from './schemas/question.schema';
 import { UserBasicInfo } from '@/modules/user/schemas/user.schema';
 
 @ApiTags('Question')
@@ -66,10 +66,10 @@ export class QuestionController {
   }
 
   @Get('subject/:subjectId/user-progression')
-  @ApiResponse({ schema: questionWithUserQuestionProgressionResponseOpenapi })
+  @ApiResponse({ schema: questionWithLastAnsweredQuestionResponseOpenapi })
   @ApiQuery({ name: 'is_active', required: false, type: Number, enum: [0, 1] })
   @ApiQuery({ name: 'include_options', required: false, type: Number, enum: [0, 1], description: 'Include question options in the response' })
-  async findBySubjectUserProgression(@Param('subjectId', ParseIntPipe) subjectId: number, @Query(new ZodValidationPipe(QuestionQuerySchema.omit({ subject_id: true }))) query: Omit<QuestionQuery, 'subject_id'>, @BasicUserInfo() userInfo: UserBasicInfo): Promise<QuestionWithUserQuestionProgressionResponse> {
+  async findBySubjectUserProgression(@Param('subjectId', ParseIntPipe) subjectId: number, @Query(new ZodValidationPipe(QuestionQuerySchema.omit({ subject_id: true }))) query: Omit<QuestionQuery, 'subject_id'>, @BasicUserInfo() userInfo: UserBasicInfo): Promise<QuestionWithLastAnsweredQuestionResponse> {
     return this.questionService.findBySubjectUserProgression(subjectId, query, userInfo.id);
   }
 

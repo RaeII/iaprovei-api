@@ -5,7 +5,7 @@ import { Question } from '@/entities/question.entity';
 import { UserAnswer } from '@/entities/user_answer.entity';
 import { QuestionStatementText } from '@/entities/question_statement_text.entity';
 import { DataNotFoundException } from '@/common/exceptions/data-not-found.exception';
-import { QuestionQuery, QuestionFilter, QuestionListResponse, QuestionDetailedListResponse, QuestionStatsListResponse, QuestionDetail, QuestionEagerDetail, QuestionWithUserQuestionProgressionResponse } from './schemas/question.schema';
+import { QuestionQuery, QuestionFilter, QuestionListResponse, QuestionDetailedListResponse, QuestionStatsListResponse, QuestionDetail, QuestionEagerDetail, QuestionWithLastAnsweredQuestionResponse } from './schemas/question.schema';
 import { createPaginationMeta, generateOffset } from '@/common/utils/query-utils';
 
 @Injectable()
@@ -53,46 +53,14 @@ export class QuestionService {
 
     const [questions, total] = await queryBuilder.getManyAndCount();
 
-    // Build user progression if applicable
-    let userQuestionProgression = [] as any[];
-    if (userId && questions.length > 0 && query?.subject_id) {
-      const lastAnsweredQuestionId = await this.getLastAnsweredQuestionIdForSubject(userId, query.subject_id);
-      if (lastAnsweredQuestionId) {
-        const filteredQuestions = questions[questions.length - 1].id === lastAnsweredQuestionId ? questions : questions.filter(q => q.id > lastAnsweredQuestionId);
-        userQuestionProgression = filteredQuestions.map(q => {
-          const tq = this.transformQuestionWithSubCategory(q);
-          return {
-            id: tq.id,
-            affirmation: tq.affirmation,
-            question_type: tq.question_type,
-            difficulty_level: tq.difficulty_level,
-            exam_board: tq.exam_board,
-            exam_year: tq.exam_year,
-            statement: tq.statement,
-            question_statement_text_id: tq.question_statement_text_id,
-            ...(tq.sub_skill_category_name && { sub_skill_category_name: tq.sub_skill_category_name }),
-          };
-        });
-      } else {
-        userQuestionProgression = questions.map(q => {
-          const tq = this.transformQuestionWithSubCategory(q);
-          return {
-            id: tq.id,
-            affirmation: tq.affirmation,
-            question_type: tq.question_type,
-            difficulty_level: tq.difficulty_level,
-            exam_board: tq.exam_board,
-            exam_year: tq.exam_year,
-            statement: tq.statement,
-            question_statement_text_id: tq.question_statement_text_id,
-            ...(tq.sub_skill_category_name && { sub_skill_category_name: tq.sub_skill_category_name }),
-          };
-        });
-      }
+    // Get last answered question ID if applicable
+    let lastAnsweredQuestionId: number | null = null;
+    if (userId && query?.subject_id) {
+      lastAnsweredQuestionId = await this.getLastAnsweredQuestionIdForSubject(userId, query.subject_id);
     }
 
-    // Collect unique statement text IDs from both questions and progression to avoid duplicates
-    const statementTextIds = Array.from(new Set([...questions.map(q => q.question_statement_text_id).filter((v): v is number => !!v), ...userQuestionProgression.map(q => q.question_statement_text_id).filter((v): v is number => !!v)]));
+    // Collect unique statement text IDs from questions
+    const statementTextIds = Array.from(new Set(questions.map(q => q.question_statement_text_id).filter((v): v is number => !!v)));
 
     // Load the statement texts for the collected IDs
     let statements_texts: Record<string, string> = {};
@@ -132,7 +100,7 @@ export class QuestionService {
             }),
           };
         }),
-        ...(userId && query?.subject_id && { user_question_progression: userQuestionProgression }),
+        ...(userId && query?.subject_id && { last_answered_question_id: lastAnsweredQuestionId }),
         statements_texts,
       },
       meta,
@@ -268,10 +236,10 @@ export class QuestionService {
   }
 
   // TODO: Create own select
-  async findBySubjectUserProgression(subjectId: number, query: Omit<QuestionQuery, 'subject_id'>, userId?: number): Promise<QuestionWithUserQuestionProgressionResponse> {
+  async findBySubjectUserProgression(subjectId: number, query: Omit<QuestionQuery, 'subject_id'>, userId?: number): Promise<QuestionWithLastAnsweredQuestionResponse> {
     const questions = await this.findAll({ ...query, subject_id: subjectId }, userId);
     return {
-      user_question_progression: questions.data.user_question_progression,
+      last_answered_question_id: questions.data.last_answered_question_id,
       // meta: questions.meta,
     };
   }
@@ -299,7 +267,7 @@ export class QuestionService {
    * This is more efficient than getting all answers and helps determine user progression
    */
   private async getLastAnsweredQuestionIdForSubject(userId: number, subjectId: number): Promise<number | null> {
-    const result = await this.userAnswersRepository.createQueryBuilder('ua').innerJoin('ua.question', 'q').select('ua.question_id').where('ua.users_id = :userId', { userId }).andWhere('q.subject_id = :subjectId', { subjectId }).orderBy('ua.answared_at', 'ASC').limit(1).getRawOne();
+    const result = await this.userAnswersRepository.createQueryBuilder('ua').innerJoin('ua.question', 'q').select('ua.question_id').where('ua.users_id = :userId', { userId }).andWhere('q.subject_id = :subjectId', { subjectId }).orderBy('ua.answared_at', 'DESC').limit(1).getRawOne();
 
     return result?.ua_question_id || null;
   }

@@ -15,9 +15,8 @@ export class QuestionOptionController {
 
   @Get()
   @ApiResponse({ schema: questionOptionListResponseOpenapi })
-  @UsePipes(new ZodValidationPipe(QuestionOptionQuerySchema))
-  async findAll(@Query() query: QuestionOptionQuery): Promise<QuestionOptionListResponse> {
-    return this.questionOptionService.findAll(query);
+  async findAll(@Param('questionId', ParseIntPipe) questionId: number, @Query(new ZodValidationPipe(QuestionOptionQuerySchema)) query: QuestionOptionQuery): Promise<QuestionOptionListResponse> {
+    return this.questionOptionService.findAll(questionId, query);
   }
 
   /**
@@ -29,8 +28,8 @@ export class QuestionOptionController {
   @UseGuards(AnsweredQuestionGuard)
   @ApiResponse({ schema: questionOptionDetailedListResponseOpenapi })
   @UsePipes(new ZodValidationPipe(QuestionOptionQuerySchema))
-  async findAllDetailed(@Query() query: QuestionOptionQuery): Promise<QuestionOptionDetailedListResponse> {
-    return this.questionOptionService.findAllDetailed(query);
+  async findAllDetailed(@Param('questionId', ParseIntPipe) questionId: number, @Query() query: QuestionOptionQuery): Promise<QuestionOptionDetailedListResponse> {
+    return this.questionOptionService.findAllDetailed(questionId, query);
   }
 
   /**

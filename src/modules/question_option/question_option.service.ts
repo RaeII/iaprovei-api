@@ -17,10 +17,10 @@ export class QuestionOptionService {
    * Retrieve all question options with pagination and filtering
    * Optimized for performance by selecting only necessary fields
    */
-  async findAll(query: QuestionOptionQuery): Promise<QuestionOptionListResponse> {
+  async findAll(questionId: number, query: QuestionOptionQuery): Promise<QuestionOptionListResponse> {
     const { page, limit, sort_by, sort_order, ...filters } = query;
 
-    const queryBuilder = this.createBaseQueryBuilder(filters);
+    const queryBuilder = this.createBaseQueryBuilder({ ...filters, question_id: questionId });
 
     // Select only basic fields for performance
     // queryBuilder.select(['question_option.id', 'question_option.question_id', 'question_option.option_text', 'question_option.option_letter', 'question_option.is_correct', 'question_option.display_order']);
@@ -58,10 +58,10 @@ export class QuestionOptionService {
    * Used when full option data is needed (AFTER user has answered)
    * Omits is_correct field for security - only available after answering
    */
-  async findAllDetailed(query: QuestionOptionQuery): Promise<QuestionOptionDetailedListResponse> {
+  async findAllDetailed(questionId: number, query: QuestionOptionQuery): Promise<QuestionOptionDetailedListResponse> {
     const { page, limit, sort_by, sort_order, ...filters } = query;
 
-    const queryBuilder = this.createBaseQueryBuilder(filters);
+    const queryBuilder = this.createBaseQueryBuilder({ ...filters, question_id: questionId });
 
     // Select detailed fields but explicitly exclude is_correct for security
     // queryBuilder.select(['question_option.id', 'question_option.question_id', 'question_option.option_text', 'question_option.option_letter', 'question_option.display_order', 'question_option.created_at']);
@@ -143,7 +143,7 @@ export class QuestionOptionService {
    */
   async findByQuestion(questionId: number, query?: Omit<QuestionOptionQuery, 'question_id'>): Promise<QuestionOptionListResponse> {
     const queryParams = query || { page: 1, limit: 100, sort_by: 'display_order', sort_order: 'ASC' as const };
-    return this.findAll({ ...queryParams, question_id: questionId });
+    return this.findAll(questionId, queryParams);
   }
 
   /**
@@ -153,7 +153,7 @@ export class QuestionOptionService {
    */
   async findByQuestionDetailed(questionId: number, query?: Omit<QuestionOptionQuery, 'question_id'>): Promise<QuestionOptionDetailedListResponse> {
     const queryParams = query || { page: 1, limit: 100, sort_by: 'display_order', sort_order: 'ASC' as const };
-    return this.findAllDetailed({ ...queryParams, question_id: questionId });
+    return this.findAllDetailed(questionId, queryParams);
   }
 
   /**
@@ -161,7 +161,7 @@ export class QuestionOptionService {
    * Useful for answer verification and result display
    */
   async findCorrectByQuestion(questionId: number): Promise<QuestionOptionListResponse> {
-    return this.findAll({ question_id: questionId, is_correct: true, page: 1, limit: 100, sort_by: 'display_order', sort_order: 'ASC' });
+    return this.findAll(questionId, { is_correct: true, page: 1, limit: 100, sort_by: 'display_order', sort_order: 'ASC' });
   }
 
   /**

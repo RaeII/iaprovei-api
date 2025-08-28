@@ -159,8 +159,8 @@ export const QuestionEagerDetailSchema = QuestionSchema.extend({
   contest: ContestIdentitySchema,
 });
 
-export const QuestionWithUserQuestionProgressionSchema = QuestionBasicSchema.extend({
-  user_question_progression: z.array(QuestionBasicSchema).optional(),
+export const QuestionWithLastAnsweredQuestionSchema = z.object({
+  last_answered_question_id: z.number().nullable().optional(),
 });
 
 // List response schemas for different question views
@@ -169,7 +169,7 @@ export const QuestionListResponseSchema = z.object({
     .object({
       questions: z.array(z.union([QuestionBasicSchema, QuestionWithOptionsSchema, QuestionWithOptionsAndLastAnswerSchema])),
     })
-    .extend(QuestionWithUserQuestionProgressionSchema.shape)
+    .extend(QuestionWithLastAnsweredQuestionSchema.shape)
     .extend({
       statements_texts: z.record(z.string(), z.string()),
     }),
@@ -177,7 +177,7 @@ export const QuestionListResponseSchema = z.object({
 });
 
 // List response schemas for different question views
-export const QuestionWithUserQuestionProgressionResponseSchema = QuestionWithUserQuestionProgressionSchema;
+export const QuestionWithLastAnsweredQuestionResponseSchema = QuestionWithLastAnsweredQuestionSchema;
 // .extend({
 //   meta: PaginationMetaSchema,
 // });
@@ -224,7 +224,7 @@ export const questionStatsListResponseOpenapi: any = zodToOpenAPI(QuestionStatsL
 export const questionDetailResponseOpenapi: any = zodToOpenAPI(QuestionDetailResponseSchema);
 export const questionExistsResponseOpenapi: any = zodToOpenAPI(QuestionExistsResponseSchema);
 export const questionCountResponseOpenapi: any = zodToOpenAPI(QuestionCountResponseSchema);
-export const questionWithUserQuestionProgressionResponseOpenapi: any = zodToOpenAPI(QuestionWithUserQuestionProgressionResponseSchema);
+export const questionWithLastAnsweredQuestionResponseOpenapi: any = zodToOpenAPI(QuestionWithLastAnsweredQuestionResponseSchema);
 
 // Type exports - inferred from Zod schemas
 export type Question = z.infer<typeof QuestionSchema>;
@@ -233,7 +233,7 @@ export type QuestionWithOptions = z.infer<typeof QuestionWithOptionsSchema>;
 export type LastUserAnswer = z.infer<typeof LastUserAnswerSchema>;
 // export type QuestionWithLastAnswer = z.infer<typeof QuestionWithLastAnswerSchema>;
 export type QuestionWithOptionsAndLastAnswer = z.infer<typeof QuestionWithOptionsAndLastAnswerSchema>;
-export type QuestionWithUserQuestionProgressionResponse = z.infer<typeof QuestionWithUserQuestionProgressionResponseSchema>;
+export type QuestionWithLastAnsweredQuestionResponse = z.infer<typeof QuestionWithLastAnsweredQuestionResponseSchema>;
 export type QuestionStats = z.infer<typeof QuestionStatsSchema>;
 export type QuestionContent = z.infer<typeof QuestionContentSchema>;
 export type QuestionMetadata = z.infer<typeof QuestionMetadataSchema>;
