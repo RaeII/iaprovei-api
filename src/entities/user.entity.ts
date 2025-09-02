@@ -131,9 +131,6 @@ export class User implements UserType {
   @Column({ name: 'referral_code', length: 45, nullable: true })
   referral_code: string;
 
-  @Column({ name: 'reffered_by_user_id', nullable: true })
-  reffered_by_user_id: number;
-
   @Column({ name: 'is_active', type: 'tinyint', default: 1 })
   is_active: boolean;
 
