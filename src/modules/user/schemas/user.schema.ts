@@ -31,7 +31,7 @@ export const UserSchema = z.object({
   subscription_plan: SubscriptionPlanSchema.default('free'),
   subscription_expires_at: z.date().optional(),
   referral_code: z.string().max(45).optional(),
-  reffered_by_user_id: z.number().optional(),
+  where_find_us: z.string().max(100).optional(),
   is_active: z.boolean().default(true),
   email_verified: z.boolean().default(false),
   created_at: z.date(),
@@ -46,9 +46,9 @@ export const UserListDataSchema = UserSchema.omit({
 export const UserMeSchema = UserSchema.omit({
   password_hash: true,
   referral_code: true,
-  reffered_by_user_id: true,
   is_active: true,
   email_verified: true,
+  where_find_us: true,
 });
 
 // User identity schema - for user identification
