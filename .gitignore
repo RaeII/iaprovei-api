@@ -60,3 +60,5 @@ test
 pnpm-lock.yaml
 
 src/migrations/*
+
+.cursor

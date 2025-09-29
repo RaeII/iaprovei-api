@@ -4,6 +4,7 @@ import { In, Repository, SelectQueryBuilder } from 'typeorm';
 import { Question } from '@/entities/question.entity';
 import { UserAnswer } from '@/entities/user_answer.entity';
 import { QuestionStatementText } from '@/entities/question_statement_text.entity';
+import { SubjectQuestionStudyPlan } from '@/entities/subject_question_study_plan.entity';
 import { DataNotFoundException } from '@/common/exceptions/data-not-found.exception';
 import { QuestionQuery, QuestionFilter, QuestionListResponse, QuestionDetailedListResponse, QuestionStatsListResponse, QuestionDetail, QuestionEagerDetail, QuestionWithLastAnsweredQuestionResponse } from './schemas/question.schema';
 import { createPaginationMeta, generateOffset } from '@/common/utils/query-utils';
@@ -16,7 +17,9 @@ export class QuestionService {
     @InjectRepository(UserAnswer)
     private userAnswersRepository: Repository<UserAnswer>,
     @InjectRepository(QuestionStatementText)
-    private questionStatementTextRepository: Repository<QuestionStatementText>
+    private questionStatementTextRepository: Repository<QuestionStatementText>,
+    @InjectRepository(SubjectQuestionStudyPlan)
+    private subjectQuestionStudyPlanRepository: Repository<SubjectQuestionStudyPlan>
   ) {}
 
   /**
@@ -184,7 +187,7 @@ export class QuestionService {
   async findOne(id: number): Promise<QuestionDetail> {
     const question = await this.questionsRepository.findOne({
       where: { id },
-      relations: ['subject', 'subject.skill_category', 'sub_skill_category'],
+      relations: ['origin_subject', 'origin_subject.skill_category', 'sub_skill_category'],
     });
 
     if (!question) {
@@ -193,10 +196,10 @@ export class QuestionService {
 
     return this.transformQuestionWithSubCategory({
       ...question,
-      subject: question.subject
+      subject: question.origin_subject
         ? {
-            id: question.subject.id,
-            name: question.subject.skill_category?.name || '',
+            id: question.origin_subject.id,
+            name: question.origin_subject.skill_category?.name || '',
           }
         : undefined,
     });
@@ -209,7 +212,7 @@ export class QuestionService {
   async findOneEager(id: number): Promise<QuestionEagerDetail> {
     const question = await this.questionsRepository.findOne({
       where: { id },
-      relations: ['subject', 'subject.contest', 'subject.skill_category', 'sub_skill_category', 'question_statement_text'],
+      relations: ['origin_subject', 'origin_subject.contest', 'origin_subject.skill_category', 'sub_skill_category', 'question_statement_text'],
     });
 
     if (!question) {
@@ -218,13 +221,13 @@ export class QuestionService {
 
     return this.transformQuestionWithSubCategory({
       ...question,
-      subject: question.subject
+      subject: question.origin_subject
         ? {
-            id: question.subject.id,
-            name: question.subject.skill_category?.name || '',
+            id: question.origin_subject.id,
+            name: question.origin_subject.skill_category?.name || '',
           }
         : undefined,
-      contest: question.subject?.contest ? question.subject?.contest : undefined,
+      contest: question.origin_subject?.contest ? question.origin_subject?.contest : undefined,
     });
   }
 
@@ -268,7 +271,7 @@ export class QuestionService {
    * This is more efficient than getting all answers and helps determine user progression
    */
   private async getLastAnsweredQuestionIdForSubject(userId: number, subjectId: number): Promise<number | null> {
-    const result = await this.userAnswersRepository.createQueryBuilder('ua').innerJoin('ua.question', 'q').select('ua.question_id').where('ua.users_id = :userId', { userId }).andWhere('q.subject_id = :subjectId', { subjectId }).orderBy('ua.answared_at', 'DESC').limit(1).getRawOne();
+    const result = await this.userAnswersRepository.createQueryBuilder('ua').innerJoin('ua.question', 'q').innerJoin('subject_question_study_plan', 'sqsp', 'sqsp.questions_id = q.id').select('ua.question_id').where('ua.users_id = :userId', { userId }).andWhere('sqsp.subjects_id = :subjectId', { subjectId }).orderBy('ua.answared_at', 'DESC').limit(1).getRawOne();
 
     return result?.ua_question_id || null;
   }
@@ -286,7 +289,7 @@ export class QuestionService {
     }
 
     if (filters.subject_id) {
-      queryBuilder.andWhere('question.subject_id = :subjectId', { subjectId: filters.subject_id });
+      queryBuilder.innerJoin('subject_question_study_plan', 'sqsp', 'sqsp.questions_id = question.id').andWhere('sqsp.subjects_id = :subjectId', { subjectId: filters.subject_id });
     }
 
     if (filters.question_type) {

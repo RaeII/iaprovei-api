@@ -22,8 +22,8 @@ export class Question implements QuestionType {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ name: 'subject_id' })
-  subject_id: number;
+  @Column({ name: 'origin_subject_id' })
+  origin_subject_id: number;
 
   @Column({ type: 'text' })
   affirmation: string;
@@ -93,8 +93,8 @@ export class Question implements QuestionType {
 
   // Relations
   @ManyToOne(() => Subject)
-  @JoinColumn({ name: 'subject_id' })
-  subject: Subject;
+  @JoinColumn({ name: 'origin_subject_id' })
+  origin_subject: Subject;
 
   @ManyToOne(() => SkillCategory, { nullable: true })
   @JoinColumn({ name: 'sub_skill_category_id' })

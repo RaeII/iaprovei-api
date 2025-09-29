@@ -4,11 +4,12 @@ import { Question } from '@/entities/question.entity';
 import { UserAnswer } from '@/entities/user_answer.entity';
 import { SkillCategory } from '@/entities/skill_category.entity';
 import { QuestionStatementText } from '@/entities/question_statement_text.entity';
+import { SubjectQuestionStudyPlan } from '@/entities/subject_question_study_plan.entity';
 import { QuestionController } from './question.controller';
 import { QuestionService } from './question.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Question, UserAnswer, SkillCategory, QuestionStatementText])],
+  imports: [TypeOrmModule.forFeature([Question, UserAnswer, SkillCategory, QuestionStatementText, SubjectQuestionStudyPlan])],
   controllers: [QuestionController],
   providers: [QuestionService],
   exports: [QuestionService],

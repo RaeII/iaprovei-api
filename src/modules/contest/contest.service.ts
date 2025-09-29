@@ -57,7 +57,7 @@ export class ContestService {
 
     // Add subquery to count unique questions answered by user per subject and get total questions if userId is provided
     if (options?.userId) {
-      queryBuilder.leftJoin('(SELECT q.subject_id, COUNT(DISTINCT q.id) as answer_count FROM questions q INNER JOIN user_answers ua ON q.id = ua.question_id AND ua.users_id = :userId GROUP BY q.subject_id)', 'user_answer_counts', 'user_answer_counts.subject_id = subjects.id').leftJoin('(SELECT subject_id, COUNT(DISTINCT id) as total_questions FROM questions WHERE is_active = 1 GROUP BY subject_id)', 'question_counts', 'question_counts.subject_id = subjects.id').setParameter('userId', options.userId);
+      queryBuilder.leftJoin('(SELECT sqsp.subjects_id, COUNT(DISTINCT q.id) as answer_count FROM questions q INNER JOIN user_answers ua ON q.id = ua.question_id AND ua.users_id = :userId INNER JOIN subject_question_study_plan sqsp ON q.id = sqsp.questions_id GROUP BY sqsp.subjects_id)', 'user_answer_counts', 'user_answer_counts.subjects_id = subjects.id').leftJoin('(SELECT sqsp.subjects_id, COUNT(DISTINCT q.id) as total_questions FROM questions q INNER JOIN subject_question_study_plan sqsp ON q.id = sqsp.questions_id WHERE q.is_active = 1 GROUP BY sqsp.subjects_id)', 'question_counts', 'question_counts.subjects_id = subjects.id').setParameter('userId', options.userId);
     }
 
     // Filter by status if provided
