@@ -20,6 +20,7 @@ import { SharedModule } from './shared/shared.module';
 import openaiConfig from './config/openai.config';
 import { GlobalOptionsController } from './global-options.controller';
 import { SkillCategoryModule } from './modules/skill_category/skill_category.module';
+import { StatisticsModule } from './modules/statistics/statistics.module';
 
 @Module({
   controllers: [GlobalOptionsController],
@@ -46,6 +47,7 @@ import { SkillCategoryModule } from './modules/skill_category/skill_category.mod
     AiAssistanceModule,
     SharedModule,
     SkillCategoryModule,
+    StatisticsModule,
   ],
   providers: [
     OverallFilterProvider,

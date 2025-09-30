@@ -200,6 +200,7 @@ export class QuestionService {
         ? {
             id: question.origin_subject.id,
             name: question.origin_subject.skill_category?.name || '',
+            skill_category_id: question.origin_subject.skill_category?.id || 0,
           }
         : undefined,
     });

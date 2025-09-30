@@ -147,6 +147,7 @@ const QuestionDetailSchema = QuestionSchema.extend({
     .object({
       id: z.number(),
       name: z.string(),
+      skill_category_id: z.number(),
     })
     .optional(),
 });

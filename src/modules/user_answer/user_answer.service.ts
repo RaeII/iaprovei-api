@@ -9,6 +9,7 @@ import { UserAnswerCreate, UserAnswerQuery, UserAnswerFilter, UserAnswerInternal
 import { createPaginationMeta, generateOffset } from '@/common/utils/query-utils';
 import { QuestionOptionService } from '@/modules/question_option/question_option.service';
 import { QuestionService } from '@/modules/question/question.service';
+import { StatisticsService } from '@/modules/statistics/statistics.service';
 
 @Injectable()
 export class UserAnswerService {
@@ -16,7 +17,8 @@ export class UserAnswerService {
     @InjectRepository(UserAnswer)
     private userAnswersRepository: Repository<UserAnswer>,
     private questionOptionService: QuestionOptionService,
-    private questionService: QuestionService
+    private questionService: QuestionService,
+    private statisticsService: StatisticsService
   ) {}
 
   /**
@@ -28,6 +30,9 @@ export class UserAnswerService {
   async create(createUserAnswerDto: UserAnswerCreate, sessionId: string): Promise<UserAnswerCreateResponse> {
     // Get the chosen option to validate it exists and check correctness
     const chosenOption = await this.questionOptionService.findOneInternal(createUserAnswerDto.option_id);
+
+    // Get question details to obtain sub_skill_category_id for statistics
+    const question = await this.questionService.findOne(chosenOption.question_id);
 
     // Get all correct options for this question to return in response
     const correctOptionsResponse = await this.questionOptionService.findCorrectByQuestion(chosenOption.question_id);
@@ -41,6 +46,9 @@ export class UserAnswerService {
     });
 
     const savedUserAnswer = await this.userAnswersRepository.save(newUserAnswer);
+
+    // Update statistics asynchronously to avoid impacting response time
+    this.updateStatisticsAsync(createUserAnswerDto.users_id, question.subject?.skill_category_id || null);
 
     // Remove session_id from the response
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -275,15 +283,7 @@ export class UserAnswerService {
     queryBuilder.where('userAnswer.users_id = :userId', { userId });
 
     // eslint-disable-next-line prettier/prettier
-    const result = await queryBuilder
-      .select([
-        'COUNT(*) as total_answers',
-        'SUM(CASE WHEN userAnswer.is_correct = 1 THEN 1 ELSE 0 END) as correct_answers',
-        'SUM(CASE WHEN userAnswer.is_correct = 0 THEN 1 ELSE 0 END) as incorrect_answers',
-        'AVG(userAnswer.response_time) as avg_response_time',
-        'AVG(userAnswer.confidence_level) as avg_confidence_level',
-      ])
-      .getRawOne();
+    const result = await queryBuilder.select(['COUNT(*) as total_answers', 'SUM(CASE WHEN userAnswer.is_correct = 1 THEN 1 ELSE 0 END) as correct_answers', 'SUM(CASE WHEN userAnswer.is_correct = 0 THEN 1 ELSE 0 END) as incorrect_answers', 'AVG(userAnswer.response_time) as avg_response_time', 'AVG(userAnswer.confidence_level) as avg_confidence_level']).getRawOne();
 
     const totalAnswers = parseInt(result.total_answers) || 0;
     const correctAnswers = parseInt(result.correct_answers) || 0;
@@ -322,12 +322,7 @@ export class UserAnswerService {
   }> {
     // Run independent API calls in parallel for better performance
     // eslint-disable-next-line prettier/prettier
-    const [question, allOptionsResponse, chosenOption, correctOptionsResponse] = await Promise.all([
-      this.questionService.findOneEager(questionId),
-      this.questionOptionService.findByQuestion(questionId),
-      chosenOptionId ? this.questionOptionService.findOneInternal(chosenOptionId) : null,
-      this.questionOptionService.findCorrectByQuestion(questionId),
-    ]);
+    const [question, allOptionsResponse, chosenOption, correctOptionsResponse] = await Promise.all([this.questionService.findOneEager(questionId), this.questionOptionService.findByQuestion(questionId), chosenOptionId ? this.questionOptionService.findOneInternal(chosenOptionId) : null, this.questionOptionService.findCorrectByQuestion(questionId)]);
 
     // Download image file if URL exists
     let imageFile: Buffer | undefined;
@@ -453,5 +448,27 @@ export class UserAnswerService {
     }
 
     return queryBuilder;
+  }
+
+  /**
+   * Update statistics asynchronously after user answers a question
+   * Handles cases where sub_skill_category_id might be null
+   */
+  private updateStatisticsAsync(userId: number, subSkillCategoryId: number | null): void {
+    // Fire and forget - don't wait for completion to avoid impacting response time
+    setImmediate(async () => {
+      try {
+        if (subSkillCategoryId) {
+          await this.statisticsService.updateAllStatistics(userId, subSkillCategoryId);
+        } else {
+          // If no sub_skill_category_id, only update general user statistics
+          await this.statisticsService.updateUserStatistics(userId);
+          await this.statisticsService.updateDailyStatistics(userId);
+        }
+      } catch (error) {
+        // Log error but don't throw to avoid affecting the main flow
+        console.error('Error updating statistics for user', userId, ':', error);
+      }
+    });
   }
 }

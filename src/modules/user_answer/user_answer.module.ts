@@ -6,9 +6,10 @@ import { UserAnswerController } from './user_answer.controller';
 import { QuestionOptionModule } from '@/modules/question_option/question_option.module';
 import { QuestionModule } from '@/modules/question/question.module';
 import { ContestModule } from '@/modules/contest/contest.module';
+import { StatisticsModule } from '@/modules/statistics/statistics.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([UserAnswer]), QuestionOptionModule, QuestionModule, ContestModule],
+  imports: [TypeOrmModule.forFeature([UserAnswer]), QuestionOptionModule, QuestionModule, ContestModule, StatisticsModule],
   controllers: [UserAnswerController],
   providers: [UserAnswerService],
   exports: [UserAnswerService],
