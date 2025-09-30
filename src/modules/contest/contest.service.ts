@@ -18,7 +18,7 @@ export class ContestService {
    * Returns summary data by default for faster queries
    * Includes Portuguese translations for enum values
    */
-  async findAll(options?: { status?: ContestStatus; includeInactive?: boolean; fullDetails?: boolean }) {
+  async findAll(options?: { status?: ContestStatus; include_inactive?: boolean; full_details?: boolean }) {
     const queryOptions: FindManyOptions<Contest> = {
       order: {
         created_at: 'DESC',
@@ -26,7 +26,7 @@ export class ContestService {
     };
 
     // Performance optimization: select only needed fields if not requesting full details
-    if (!options?.fullDetails) {
+    if (!options?.full_details) {
       queryOptions.select = ['id', 'name', 'slug', 'description', 'institution', 'status', 'difficulty_level', 'total_questions', 'estimated_study_hours'];
     }
 
@@ -36,7 +36,7 @@ export class ContestService {
     }
 
     // Filter by active status (default: only active contests)
-    if (!options?.includeInactive) {
+    if (!options?.include_inactive) {
       queryOptions.where = { ...queryOptions.where, is_active: true };
     }
 
@@ -60,17 +60,29 @@ export class ContestService {
       queryBuilder.leftJoin('(SELECT sqsp.subjects_id, COUNT(DISTINCT q.id) as answer_count FROM questions q INNER JOIN user_answers ua ON q.id = ua.question_id AND ua.users_id = :userId INNER JOIN subject_question_study_plan sqsp ON q.id = sqsp.questions_id GROUP BY sqsp.subjects_id)', 'user_answer_counts', 'user_answer_counts.subjects_id = subjects.id').leftJoin('(SELECT sqsp.subjects_id, COUNT(DISTINCT q.id) as total_questions FROM questions q INNER JOIN subject_question_study_plan sqsp ON q.id = sqsp.questions_id WHERE q.is_active = 1 GROUP BY sqsp.subjects_id)', 'question_counts', 'question_counts.subjects_id = subjects.id').setParameter('userId', options.userId);
     }
 
+    // Add subquery to get last answer date per contest for ordering by last usage
+    if (options?.order_by_last_usage && options?.userId) {
+      queryBuilder.leftJoin('(SELECT c.id as contest_id, MAX(ua.answared_at) as last_answer_date FROM contests c INNER JOIN subjects s ON c.id = s.contest_id INNER JOIN subject_question_study_plan sqsp ON s.id = sqsp.subjects_id INNER JOIN questions q ON sqsp.questions_id = q.id INNER JOIN user_answers ua ON q.id = ua.question_id WHERE ua.users_id = :userId AND s.is_active = 1 AND q.is_active = 1 GROUP BY c.id)', 'last_usage', 'last_usage.contest_id = contest.id');
+    }
+
     // Filter by status if provided
     if (options?.status) {
       queryBuilder.andWhere('contest.status = :status', { status: options.status });
     }
 
     // Filter by active status (default: only active contests)
-    if (!options?.includeInactive) {
+    if (!options?.include_inactive) {
       queryBuilder.andWhere('contest.is_active = 1');
     }
 
-    queryBuilder.select(['contest.id', 'contest.name', 'contest.institution', 'contest.status', 'subjects.id', 'skill_category.name']).orderBy('contest.created_at', 'DESC');
+    queryBuilder.select(['contest.id', 'contest.name', 'contest.institution', 'contest.status', 'subjects.id', 'skill_category.name']);
+
+    // Order by last usage if flag is enabled, otherwise by creation date
+    if (options?.order_by_last_usage && options?.userId) {
+      queryBuilder.addSelect('last_usage.last_answer_date', 'contest_last_answer_date').orderBy('COALESCE(last_usage.last_answer_date, "1970-01-01")', 'DESC').addOrderBy('contest.created_at', 'DESC');
+    } else {
+      queryBuilder.orderBy('contest.created_at', 'DESC');
+    }
 
     // Add answer count and total questions to selection if userId provided, calculate percentage
     if (options?.userId) {

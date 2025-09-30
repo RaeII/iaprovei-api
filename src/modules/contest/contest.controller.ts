@@ -1,5 +1,5 @@
 import { Controller, Get, Param, Query, ParseIntPipe, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { ContestService } from './contest.service';
 import { JwtAuthGuard } from '@/modules/auth/guard/jwt-auth.guard';
 import { BasicUserInfo } from '@/common/decorators/user-context.decorator';
@@ -15,6 +15,9 @@ export class ContestController {
   @Get()
   @UseGuards(JwtAuthGuard)
   @ApiResponse({ schema: contestListResponseOpenapi })
+  @ApiQuery({ name: 'status', required: false, type: String, enum: ['available', 'coming_soon', 'draft'] })
+  @ApiQuery({ name: 'include_inactive', required: false, type: Boolean })
+  @ApiQuery({ name: 'full_details', required: false, type: Boolean })
   async findAll(@Query() query: ContestQuery): Promise<ContestListResponse> {
     if (query.status) {
       ContestStatusSchema.parse(query.status);
@@ -22,8 +25,8 @@ export class ContestController {
 
     const contests = await this.contestService.findAll({
       status: query.status as ContestStatus,
-      includeInactive: query.includeInactive,
-      fullDetails: query.fullDetails,
+      include_inactive: query.include_inactive,
+      full_details: query.full_details,
     });
     return { contests };
   }
@@ -31,6 +34,10 @@ export class ContestController {
   @Get('with-subjects')
   @UseGuards(JwtAuthGuard)
   @ApiResponse({ schema: contestWithSubjectsOpenapi })
+  @ApiQuery({ name: 'status', required: false, type: String, enum: ['available', 'coming_soon', 'draft'] })
+  @ApiQuery({ name: 'include_inactive', required: false, type: Boolean })
+  @ApiQuery({ name: 'full_details', required: false, type: Boolean })
+  @ApiQuery({ name: 'order_by_last_usage', required: false, type: Boolean, description: 'Order contests by last question answered date' })
   async findAllWithSubjects(@Query() query: ContestQuery, @BasicUserInfo() userInfo: UserBasicInfo): Promise<ContestWithSubjectsResponse> {
     const contests = await this.contestService.findAllWithSubjects({
       ...query,

@@ -80,8 +80,9 @@ export const ContestWithSubjectsSchema = ContestSchema.pick({
 // Query parameters for listing contests
 export const ContestQuerySchema = z.object({
   status: ContestStatusSchema.optional(),
-  includeInactive: z.boolean().optional(),
-  fullDetails: z.boolean().optional(),
+  include_inactive: z.boolean().optional(),
+  full_details: z.boolean().optional(),
+  order_by_last_usage: z.boolean().optional(),
 });
 
 // Count response schema
