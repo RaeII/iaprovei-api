@@ -8,6 +8,8 @@ export const StudyObjectiveSchema = z.enum(['concurso_publico', 'vestibular', 'e
 export const WeeklyStudyHoursSchema = z.enum(['ate_5h', '5_10h', '10_20h', 'mais_20h']);
 export const LeagueLevelSchema = z.enum(['iniciante', 'avançado', 'expert']);
 export const SubscriptionPlanSchema = z.enum(['free', 'plus', 'super']);
+export const MaritalStatusSchema = z.enum(['solteiro', 'casado', 'divorciado', 'viuvo', 'uniao_estavel']);
+export const EmploymentStatusSchema = z.enum(['empregado', 'desempregado', 'autonomo', 'aposentado', 'estudante']);
 
 // Base user schema - complete user entity
 export const UserSchema = z.object({
@@ -32,6 +34,9 @@ export const UserSchema = z.object({
   subscription_expires_at: z.date().optional(),
   referral_code: z.string().max(45).optional(),
   where_find_us: z.string().max(100).optional(),
+  marital_status: MaritalStatusSchema.optional(),
+  employment_status: EmploymentStatusSchema.optional(),
+  desired_course: z.string().max(255).optional(),
   is_active: z.boolean().default(true),
   email_verified: z.boolean().default(false),
   created_at: z.date(),
@@ -84,6 +89,9 @@ export const UserStudyPreferencesSchema = UserSchema.pick({
   study_preference: true,
   study_objective: true,
   weekly_study_hours: true,
+  marital_status: true,
+  employment_status: true,
+  desired_course: true,
 });
 
 // User game data schema - for XP, streaks, and lives
@@ -129,6 +137,24 @@ export const UserUpdateSchema = UserSchema.partial()
     id: true,
     created_at: true,
     password_hash: true,
+    username: true,
+    email: true,
+    full_name: true,
+    phone: true,
+    where_find_us: true,
+    is_active: true,
+    referral_code: true,
+    updated_at: true,
+    email_verified: true,
+    last_login_at: true,
+    total_xp: true,
+    current_lives: true,
+    max_lives: true,
+    current_streak: true,
+    best_streak: true,
+    leage_level: true,
+    subscription_plan: true,
+    subscription_expires_at: true,
   })
   .extend({
     password: z.string().min(6, 'Password must be at least 6 characters').optional(),
@@ -146,6 +172,24 @@ export const UserMeResponseSchema = z.object({
   data: UserMeSchema,
 });
 
+// Validation schemas for frontend
+export const ValidateEmailSchema = z.object({
+  email: z.string().email('Invalid email format'),
+});
+
+export const ValidatePhoneSchema = z.object({
+  phone: z.string().min(1, 'Phone is required').max(20, 'Phone must be at most 20 characters'),
+});
+
+export const ValidateUsernameSchema = z.object({
+  username: z.string().min(1, 'Username is required').max(50, 'Username must be at most 50 characters'),
+});
+
+export const ValidationResponseSchema = z.object({
+  is_available: z.boolean(),
+  message: z.string(),
+});
+
 // OpenAPI schemas
 export const userMeOpenapi: any = zodToOpenAPI(UserMeResponseSchema);
 export const userListResponseOpenapi: any = zodToOpenAPI(UserListResponseSchema);
@@ -153,6 +197,10 @@ export const userCreateOpenapi: any = zodToOpenAPI(UserCreateSchema);
 export const userUpdateOpenapi: any = zodToOpenAPI(UserUpdateSchema);
 export const userResponseOpenapi: any = zodToOpenAPI(UserDetailResponseSchema);
 export const userDetailResponseOpenapi: any = zodToOpenAPI(UserDetailResponseSchema);
+export const validateEmailOpenapi: any = zodToOpenAPI(ValidateEmailSchema);
+export const validatePhoneOpenapi: any = zodToOpenAPI(ValidatePhoneSchema);
+export const validateUsernameOpenapi: any = zodToOpenAPI(ValidateUsernameSchema);
+export const validationResponseOpenapi: any = zodToOpenAPI(ValidationResponseSchema);
 
 // Type exports - inferred from Zod schemas
 export type User = z.infer<typeof UserSchema>;
@@ -170,3 +218,7 @@ export type UserCreate = z.infer<typeof UserCreateSchema>;
 export type UserUpdate = z.infer<typeof UserUpdateSchema>;
 export type UserListResponse = z.infer<typeof UserListResponseSchema>;
 export type UserDetailResponse = z.infer<typeof UserDetailResponseSchema>;
+export type ValidateEmail = z.infer<typeof ValidateEmailSchema>;
+export type ValidatePhone = z.infer<typeof ValidatePhoneSchema>;
+export type ValidateUsername = z.infer<typeof ValidateUsernameSchema>;
+export type ValidationResponse = z.infer<typeof ValidationResponseSchema>;

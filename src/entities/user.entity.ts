@@ -43,6 +43,22 @@ export enum SubscriptionPlan {
   SUPER = 'super',
 }
 
+export enum MaritalStatus {
+  SOLTEIRO = 'solteiro',
+  CASADO = 'casado',
+  DIVORCIADO = 'divorciado',
+  VIUVO = 'viuvo',
+  UNIAO_ESTAVEL = 'uniao_estavel',
+}
+
+export enum EmploymentStatus {
+  EMPREGADO = 'empregado',
+  DESEMPREGADO = 'desempregado',
+  AUTONOMO = 'autonomo',
+  APOSENTADO = 'aposentado',
+  ESTUDANTE = 'estudante',
+}
+
 @Entity('users')
 export class User implements UserType {
   @PrimaryGeneratedColumn()
@@ -133,6 +149,25 @@ export class User implements UserType {
 
   @Column({ name: 'where_find_us', length: 100, nullable: true })
   where_find_us: string;
+
+  @Column({
+    name: 'marital_status',
+    type: 'enum',
+    enum: MaritalStatus,
+    nullable: true,
+  })
+  marital_status: MaritalStatus;
+
+  @Column({
+    name: 'employment_status',
+    type: 'enum',
+    enum: EmploymentStatus,
+    nullable: true,
+  })
+  employment_status: EmploymentStatus;
+
+  @Column({ name: 'desired_course', length: 255, nullable: true })
+  desired_course: string;
 
   @Column({ name: 'is_active', type: 'tinyint', default: 1 })
   is_active: boolean;

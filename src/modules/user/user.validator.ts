@@ -28,6 +28,16 @@ export class UserValidator {
     return;
   }
 
+  async assertPhoneIsNotAlreadyInUse(phone: string): Promise<void> {
+    if (!phone) return; // Phone is optional
+
+    const existingUser = await this.repository.findOne({ where: { phone } });
+    if (existingUser) {
+      throw new UniqueDataException(`Phone ${phone}`, 'Phone', UserValidator.name);
+    }
+    return;
+  }
+
   async assertIsOwner(id: number, user: UserBasicInfo): Promise<void> {
     const userData = await this.repository.findOne({ select: { id: true }, where: { id } });
 

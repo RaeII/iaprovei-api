@@ -5,7 +5,7 @@ import * as bcrypt from 'bcryptjs';
 import { User as UserEntity } from '@/entities/user.entity';
 import { UserValidator } from '@/modules/user/user.validator';
 import { DataNotFoundException } from '@/common/exceptions/data-not-found.exception';
-import { UserCreate, UserListData, UserMe, UserUpdate, User, UserMeSchema, UserListDataSchema } from './schemas/user.schema';
+import { UserCreate, UserListData, UserMe, UserUpdate, User, UserMeSchema, UserListDataSchema, ValidationResponse } from './schemas/user.schema';
 
 @Injectable()
 export class UserService {
@@ -108,6 +108,51 @@ export class UserService {
     const result = await this.usersRepository.delete(id);
     if (result.affected === 0) {
       throw new DataNotFoundException(`User with id "${id}"`, 'Usuário', UserService.name);
+    }
+  }
+
+  async validateEmail(email: string): Promise<ValidationResponse> {
+    try {
+      await this.userValidator.assertEmailIsNotAlreadyInUse(email);
+      return {
+        is_available: true,
+        message: 'Email disponível',
+      };
+    } catch (error) {
+      return {
+        is_available: false,
+        message: 'Email já está em uso',
+      };
+    }
+  }
+
+  async validatePhone(phone: string): Promise<ValidationResponse> {
+    try {
+      await this.userValidator.assertPhoneIsNotAlreadyInUse(phone);
+      return {
+        is_available: true,
+        message: 'Phone está disponível',
+      };
+    } catch (error) {
+      return {
+        is_available: false,
+        message: 'Phone já está em uso',
+      };
+    }
+  }
+
+  async validateUsername(username: string): Promise<ValidationResponse> {
+    try {
+      await this.userValidator.assertUsernameIsNotAlreadyInUse(username);
+      return {
+        is_available: true,
+        message: 'Username está disponível',
+      };
+    } catch (error) {
+      return {
+        is_available: false,
+        message: 'Username já está em uso',
+      };
     }
   }
 }
