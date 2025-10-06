@@ -21,6 +21,7 @@ import openaiConfig from './config/openai.config';
 import { GlobalOptionsController } from './global-options.controller';
 import { SkillCategoryModule } from './modules/skill_category/skill_category.module';
 import { StatisticsModule } from './modules/statistics/statistics.module';
+import { StudyTrailModule } from './modules/study_trail/study_trail.module';
 
 @Module({
   controllers: [GlobalOptionsController],
@@ -48,6 +49,7 @@ import { StatisticsModule } from './modules/statistics/statistics.module';
     SharedModule,
     SkillCategoryModule,
     StatisticsModule,
+    StudyTrailModule,
   ],
   providers: [
     OverallFilterProvider,
