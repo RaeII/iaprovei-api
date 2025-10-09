@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { DifficultyLevel } from '@/entities/question.entity';
 import { StudyTrailPerformance } from '@/entities/study_trail_performance.entity';
 

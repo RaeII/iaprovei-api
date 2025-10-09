@@ -89,6 +89,69 @@ Authorization: Bearer {token}
 }
 ```
 
+**Resposta (última questão da parada):**
+```json
+{
+  "is_correct": true,
+  "xp_earned": 15,
+  "correct_option_id": 2,
+  "explanation": "A resposta correta é...",
+  "is_last_question": true,
+  "performance": {
+    "stop_id": 1,
+    "stop_name": "Parada 1 - Álgebra Básica",
+    "total_questions": 10,
+    "questions_answered": 10,
+    "correct_answers": 8,
+    "incorrect_answers": 2,
+    "success_rate": 80.0,
+    "average_response_time": 25.5,
+    "total_xp_earned": 120,
+    "performance_grade": "B",
+    "is_completed": true,
+    "can_retry": false,
+    "next_stop_unlocked": true,
+    "streak_bonus": 12,
+    "speed_bonus": 8,
+    "accuracy_bonus": 0
+  }
+}
+```
+
+### Reiniciar Parada (Retry)
+```http
+POST /study-trails/stops/{stopId}/retry
+Authorization: Bearer {token}
+```
+
+### Obter Performance da Parada
+```http
+GET /study-trails/stops/{stopId}/performance
+Authorization: Bearer {token}
+```
+
+**Resposta:**
+```json
+{
+  "stop_id": 1,
+  "stop_name": "Parada 1 - Álgebra Básica",
+  "total_questions": 10,
+  "questions_answered": 10,
+  "correct_answers": 8,
+  "incorrect_answers": 2,
+  "success_rate": 80.0,
+  "average_response_time": 25.5,
+  "total_xp_earned": 120,
+  "performance_grade": "B",
+  "is_completed": true,
+  "can_retry": false,
+  "next_stop_unlocked": true,
+  "streak_bonus": 12,
+  "speed_bonus": 8,
+  "accuracy_bonus": 0
+}
+```
+
 ## Estratégias de Dificuldade
 
 O sistema suporta múltiplas estratégias para seleção de dificuldade:
@@ -136,7 +199,28 @@ const strategies = studyTrailService.getAvailableStrategies();
 ### Desbloqueio de Paradas
 - Primeira parada sempre desbloqueada
 - Paradas seguintes desbloqueadas ao atingir taxa mínima de sucesso (70% padrão)
+- **Status FAILED**: Se não atingir 70%, parada fica como FAILED (preserva performance)
+- **Retry inteligente**: Questões só são resetadas no próximo start
 - Última parada completa a trilha
+
+### Sistema de Retry Inteligente
+- **Problema**: Usuário não pode refazer questões já respondidas
+- **Solução**: Sistema de status FAILED que preserva histórico de performance
+- **Funcionamento**: 
+  - **Performance < 70%**: Parada marcada como `FAILED` (mantém histórico)
+  - **Próximo start**: Questões são resetadas automaticamente
+  - **Vantagem**: Permite análise de performance mesmo após falha
+  - **Flexibilidade**: Usuário pode tentar novamente quando quiser
+
+### Sistema de Performance
+- **Métricas calculadas**: Taxa de acerto, tempo médio, XP total
+- **Nota de performance**: S a F baseada em acurácia e velocidade
+- **Bônus especiais**:
+  - **Streak Bonus**: Sequência de acertos consecutivos (até 20 pontos)
+  - **Speed Bonus**: Respostas rápidas < 20s (até 15 pontos)
+  - **Accuracy Bonus**: Alta taxa de acerto > 90% (10 pontos)
+- **Feedback imediato**: Performance retornada na última questão
+- **Análise detalhada**: Endpoint dedicado para métricas completas
 
 ### Sistema de XP
 - XP base por questão: 10 pontos

@@ -8,6 +8,7 @@ export enum StudyTrailStopStatus {
   AVAILABLE = 'available',
   IN_PROGRESS = 'in_progress',
   COMPLETED = 'completed',
+  FAILED = 'failed',
 }
 
 export enum StudyTrailStopType {

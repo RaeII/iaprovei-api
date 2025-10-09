@@ -8,7 +8,7 @@ import { StudyTrailPerformance } from '@/entities/study_trail_performance.entity
 import { Question, DifficultyLevel } from '@/entities/question.entity';
 import { Subject } from '@/entities/subject.entity';
 import { SkillCategory } from '@/entities/skill_category.entity';
-import { StudyTrailCreate, StudyTrailStopStart, StudyTrailStopAnswer, StudyTrailSummary, StudyTrailDetails } from './schemas/study_trail.schema';
+import { StudyTrailCreate, StudyTrailStopStart, StudyTrailStopAnswer, StudyTrailSummary, StudyTrailDetails, StudyTrailStopPerformance } from './schemas/study_trail.schema';
 
 import { DifficultySelectionStrategy, AdaptiveDifficultyStrategy, DifficultyStrategyFactory } from './strategies/difficulty-selection.strategies';
 
@@ -116,6 +116,31 @@ export class StudyTrailService {
       order: { position_order: 'ASC' },
     });
 
+    // Buscar performance de cada parada
+    const stopsWithPerformance = await Promise.all(
+      stops.map(async stop => {
+        const performance = await this.calculateStopPerformance(stop.id);
+        return {
+          id: stop.id,
+          position_order: stop.position_order,
+          name: stop.name,
+          description: stop.description,
+          stop_type: stop.stop_type,
+          difficulty_level: stop.difficulty_level,
+          status: stop.status,
+          total_questions: stop.total_questions,
+          questions_answered: stop.questions_answered,
+          correct_answers: stop.correct_answers,
+          success_rate: stop.success_rate,
+          xp_reward: stop.xp_reward,
+          xp_earned: stop.xp_earned,
+          estimated_duration_minutes: stop.estimated_duration_minutes,
+          minimum_success_rate: stop.minimum_success_rate,
+          performance: performance,
+        };
+      })
+    );
+
     return {
       id: trail.id,
       skill_category_id: trail.skill_category_id,
@@ -130,23 +155,7 @@ export class StudyTrailService {
       average_performance: trail.average_performance,
       created_at: trail.created_at,
       updated_at: trail.updated_at,
-      stops: stops.map(stop => ({
-        id: stop.id,
-        position_order: stop.position_order,
-        name: stop.name,
-        description: stop.description,
-        stop_type: stop.stop_type,
-        difficulty_level: stop.difficulty_level,
-        status: stop.status,
-        total_questions: stop.total_questions,
-        questions_answered: stop.questions_answered,
-        correct_answers: stop.correct_answers,
-        success_rate: stop.success_rate,
-        xp_reward: stop.xp_reward,
-        xp_earned: stop.xp_earned,
-        estimated_duration_minutes: stop.estimated_duration_minutes,
-        minimum_success_rate: stop.minimum_success_rate,
-      })),
+      stops: stopsWithPerformance,
     };
   }
 
@@ -196,8 +205,22 @@ export class StudyTrailService {
       throw new NotFoundException('Questão não encontrada ou não pertence ao usuário');
     }
 
+    // Verificar se a parada permite refazer (se não atingiu 70% de acerto)
     if (stopQuestion.answer_status !== QuestionAnswerStatus.NOT_ANSWERED) {
-      throw new BadRequestException('Esta questão já foi respondida');
+      // Verificar se a parada pode ser refeita
+      const canRetry = await this.canRetryStop(answerData.study_trail_stop_id);
+      if (!canRetry) {
+        throw new BadRequestException('Esta questão já foi respondida e a parada não pode ser refeita');
+      }
+
+      // Resetar a questão para permitir nova tentativa
+      stopQuestion.selected_option_id = null;
+      stopQuestion.answer_status = QuestionAnswerStatus.NOT_ANSWERED;
+      stopQuestion.response_time_seconds = 0;
+      stopQuestion.used_hint = false;
+      stopQuestion.confidence_level = null;
+      stopQuestion.answered_at = null;
+      stopQuestion.xp_earned = 0;
     }
 
     // Verificar se a resposta está correta
@@ -236,12 +259,27 @@ export class StudyTrailService {
     // Atualizar performance do usuário
     await this.updateUserPerformance(userId, stopQuestion.study_trail_stop.study_trail.skill_category_id, isCorrect, answerData.response_time_seconds || 0);
 
-    return {
+    // Verificar se é a última questão da parada
+    const isLastQuestion = await this.isLastQuestionOfStop(stopQuestion.study_trail_stop_id);
+
+    const response = {
       is_correct: isCorrect,
       xp_earned: stopQuestion.xp_earned,
       correct_option_id: correctOption?.id,
       explanation: stopQuestion.question.explanation,
     };
+
+    // Se é a última questão, incluir performance completa
+    if (isLastQuestion) {
+      const performance = await this.calculateStopPerformance(stopQuestion.study_trail_stop_id);
+      return {
+        ...response,
+        is_last_question: true,
+        performance: performance,
+      };
+    }
+
+    return response;
   }
 
   private async createFirstStop(trailId: number, userId: number, skillCategoryId: number): Promise<StudyTrailStop> {
@@ -320,6 +358,16 @@ export class StudyTrailService {
   }
 
   private async startStop(stop: StudyTrailStop): Promise<any> {
+    // Se a parada estava FAILED, resetar questões antes de iniciar
+    if (stop.status === StudyTrailStopStatus.FAILED || stop.status === StudyTrailStopStatus.COMPLETED) {
+      await this.resetStopQuestions(stop.id);
+      // Resetar estatísticas da parada
+      stop.questions_answered = 0;
+      stop.correct_answers = 0;
+      stop.success_rate = 0;
+      stop.xp_earned = 0;
+    }
+
     // Marcar parada como em progresso
     stop.status = StudyTrailStopStatus.IN_PROGRESS;
     stop.started_at = new Date();
@@ -355,6 +403,149 @@ export class StudyTrailService {
     };
   }
 
+  private async canRetryStop(stopId: number): Promise<boolean> {
+    const stop = await this.studyTrailStopRepository.findOne({
+      where: { id: stopId },
+    });
+
+    if (!stop) return false;
+
+    // Pode refazer se:
+    // 1. A parada está FAILED (não atingiu 70%)
+    // 2. A parada está AVAILABLE (primeira tentativa)
+    return stop.status === StudyTrailStopStatus.FAILED || stop.status === StudyTrailStopStatus.AVAILABLE;
+  }
+
+  private async resetStopQuestions(stopId: number): Promise<void> {
+    await this.studyTrailStopQuestionRepository.update(
+      { study_trail_stop_id: stopId },
+      {
+        selected_option_id: null,
+        answer_status: QuestionAnswerStatus.NOT_ANSWERED,
+        response_time_seconds: 0,
+        used_hint: false,
+        confidence_level: null,
+        answered_at: null,
+        xp_earned: 0,
+      }
+    );
+  }
+
+  private async isLastQuestionOfStop(stopId: number): Promise<boolean> {
+    const stop = await this.studyTrailStopRepository.findOne({
+      where: { id: stopId },
+    });
+
+    if (!stop) return false;
+
+    const answeredQuestions = await this.studyTrailStopQuestionRepository.count({
+      where: {
+        study_trail_stop_id: stopId,
+        answer_status: QuestionAnswerStatus.NOT_ANSWERED,
+      },
+    });
+
+    return answeredQuestions === 0; // Se não há questões não respondidas, é a última
+  }
+
+  private async calculateStopPerformance(stopId: number): Promise<StudyTrailStopPerformance> {
+    const stop = await this.studyTrailStopRepository.findOne({
+      where: { id: stopId },
+      relations: ['study_trail'],
+    });
+
+    if (!stop) {
+      throw new NotFoundException('Parada não encontrada');
+    }
+
+    const questions = await this.studyTrailStopQuestionRepository.find({
+      where: { study_trail_stop_id: stopId },
+    });
+
+    const answeredQuestions = questions.filter(q => q.answer_status !== QuestionAnswerStatus.NOT_ANSWERED);
+    const correctAnswers = questions.filter(q => q.answer_status === QuestionAnswerStatus.CORRECT);
+    const incorrectAnswers = questions.filter(q => q.answer_status === QuestionAnswerStatus.INCORRECT);
+
+    const averageResponseTime = answeredQuestions.length > 0 ? answeredQuestions.reduce((sum, q) => sum + q.response_time_seconds, 0) / answeredQuestions.length : 0;
+
+    const totalXP = questions.reduce((sum, q) => sum + q.xp_earned, 0);
+    const successRate = answeredQuestions.length > 0 ? (correctAnswers.length / answeredQuestions.length) * 100 : 0;
+
+    // Calcular nota baseada na performance
+    const performanceGrade = this.calculatePerformanceGrade(successRate, averageResponseTime);
+
+    // Calcular bônus
+    const bonuses = this.calculateBonuses(questions, correctAnswers, averageResponseTime);
+
+    // Verificar se pode fazer retry
+    const canRetry = await this.canRetryStop(stopId);
+
+    // Verificar se próxima parada foi desbloqueada
+    const nextStopUnlocked = stop.status === StudyTrailStopStatus.COMPLETED;
+
+    return {
+      stop_id: stop.id,
+      stop_name: stop.name,
+      total_questions: stop.total_questions,
+      questions_answered: answeredQuestions.length,
+      correct_answers: correctAnswers.length,
+      incorrect_answers: incorrectAnswers.length,
+      success_rate: Math.round(successRate * 100) / 100,
+      average_response_time: Math.round(averageResponseTime * 100) / 100,
+      total_xp_earned: totalXP,
+      is_completed: stop.status === StudyTrailStopStatus.COMPLETED,
+      can_retry: canRetry,
+      performance_grade: performanceGrade,
+      next_stop_unlocked: nextStopUnlocked,
+      streak_bonus: bonuses.streak,
+      speed_bonus: bonuses.speed,
+      accuracy_bonus: bonuses.accuracy,
+    };
+  }
+
+  private calculatePerformanceGrade(successRate: number, averageResponseTime: number): 'A+' | 'A' | 'B+' | 'B' | 'C+' | 'C' | 'D' | 'F' | 'S' | null {
+    if (successRate === 100 && averageResponseTime <= 10) return 'S';
+    if (successRate >= 95 && averageResponseTime <= 20) return 'A+';
+    if (successRate >= 90 && averageResponseTime <= 30) return 'A';
+    if (successRate >= 85 && averageResponseTime <= 40) return 'B+';
+    if (successRate >= 80 && averageResponseTime <= 50) return 'B';
+    if (successRate >= 75 && averageResponseTime <= 60) return 'C+';
+    if (successRate >= 70 && averageResponseTime <= 70) return 'C';
+    if (successRate >= 60) return 'D';
+    if (successRate) return 'F';
+    return null;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private calculateBonuses(questions: any[], correctAnswers: any[], averageResponseTime: number): { streak: number; speed: number; accuracy: number } {
+    // Bônus por sequência de acertos
+    let maxStreak = 0;
+    let currentStreak = 0;
+    for (const q of questions) {
+      if (q.answer_status === QuestionAnswerStatus.CORRECT) {
+        currentStreak++;
+        maxStreak = Math.max(maxStreak, currentStreak);
+      } else {
+        currentStreak = 0;
+      }
+    }
+    const streakBonus = Math.min(maxStreak * 2, 20); // Máximo 20 pontos
+
+    // Bônus por velocidade (respostas rápidas)
+    const fastAnswers = questions.filter(q => q.response_time_seconds <= 20).length;
+    const speedBonus = Math.min(fastAnswers * 1, 15); // Máximo 15 pontos
+
+    // Bônus por precisão (alta taxa de acerto)
+    const accuracyRate = correctAnswers.length / questions.length;
+    const accuracyBonus = accuracyRate >= 0.9 ? 10 : accuracyRate >= 0.8 ? 5 : 0;
+
+    return {
+      streak: streakBonus,
+      speed: speedBonus,
+      accuracy: accuracyBonus,
+    };
+  }
+
   private async updateStopStatistics(stopId: number): Promise<void> {
     const questions = await this.studyTrailStopQuestionRepository.find({
       where: { study_trail_stop_id: stopId },
@@ -375,19 +566,27 @@ export class StudyTrailService {
     stop.success_rate = answeredQuestions.length > 0 ? (correctAnswers.length / answeredQuestions.length) * 100 : 0;
     stop.xp_earned = questions.reduce((sum, q) => sum + q.xp_earned, 0);
 
-    // Se todas as questões foram respondidas, marcar como completa
+    // Se todas as questões foram respondidas, verificar se pode ser concluída
     if (answeredQuestions.length === stop.total_questions) {
-      stop.status = StudyTrailStopStatus.COMPLETED;
-      stop.completed_at = new Date();
+      // Se atingiu a performance mínima, marcar como completa
+      if (stop.success_rate >= stop.minimum_success_rate) {
+        stop.status = StudyTrailStopStatus.COMPLETED;
+        stop.completed_at = new Date();
 
-      // Desbloquear próxima parada se performance for suficiente
-      if (stop.success_rate >= stop.minimum_success_rate && stop.position_order < stop.study_trail.total_stops) {
-        await this.unlockNextStop(stop.study_trail_id, stop.position_order + 1, stop.study_trail.user_id, stop.study_trail.skill_category_id);
-      }
+        // Desbloquear próxima parada
+        if (stop.position_order < stop.study_trail.total_stops) {
+          await this.unlockNextStop(stop.study_trail_id, stop.position_order + 1, stop.study_trail.user_id, stop.study_trail.skill_category_id);
+        }
 
-      // Atualizar trilha se for a última parada
-      if (stop.position_order === stop.study_trail.total_stops) {
-        await this.completeStudyTrail(stop.study_trail_id);
+        // Atualizar trilha se for a última parada
+        if (stop.position_order === stop.study_trail.total_stops) {
+          await this.completeStudyTrail(stop.study_trail_id);
+        }
+      } else {
+        // Se não atingiu 70%, marcar como FAILED (mantém histórico de performance)
+        stop.status = StudyTrailStopStatus.FAILED;
+        stop.completed_at = new Date();
+        // NÃO resetar questões aqui - só quando usuário iniciar novamente
       }
     }
 
@@ -521,5 +720,52 @@ export class StudyTrailService {
   // Método para obter estratégias disponíveis
   getAvailableStrategies(): string[] {
     return DifficultyStrategyFactory.getAvailableStrategies();
+  }
+
+  async retryStop(stopId: number, userId: number): Promise<any> {
+    // Verificar se a parada existe e pertence ao usuário
+    const stop = await this.studyTrailStopRepository.findOne({
+      where: { id: stopId },
+      relations: ['study_trail'],
+    });
+
+    if (!stop || stop.study_trail.user_id !== userId) {
+      throw new NotFoundException('Parada não encontrada ou não pertence ao usuário');
+    }
+
+    // Verificar se a parada pode ser reiniciada
+    const canRetry = await this.canRetryStop(stopId);
+    if (!canRetry) {
+      throw new BadRequestException('Esta parada não pode ser reiniciada');
+    }
+
+    // Resetar a parada para AVAILABLE (questões serão resetadas no próximo start)
+    stop.status = StudyTrailStopStatus.AVAILABLE;
+    stop.started_at = null;
+    stop.completed_at = null;
+
+    await this.studyTrailStopRepository.save(stop);
+
+    // NÃO resetar questões aqui - serão resetadas quando iniciar novamente
+
+    return {
+      message: 'Parada reiniciada com sucesso',
+      stop_id: stopId,
+      status: stop.status,
+    };
+  }
+
+  async getStopPerformance(stopId: number, userId: number): Promise<StudyTrailStopPerformance> {
+    // Verificar se a parada existe e pertence ao usuário
+    const stop = await this.studyTrailStopRepository.findOne({
+      where: { id: stopId },
+      relations: ['study_trail'],
+    });
+
+    if (!stop || stop.study_trail.user_id !== userId) {
+      throw new NotFoundException('Parada não encontrada ou não pertence ao usuário');
+    }
+
+    return this.calculateStopPerformance(stopId);
   }
 }

@@ -28,6 +28,25 @@ export const StudyTrailStopAnswerSchema = z.object({
   confidence_level: z.number().min(0).max(100).optional(),
 });
 
+export const StudyTrailStopPerformanceSchema = z.object({
+  stop_id: z.number(),
+  stop_name: z.string(),
+  total_questions: z.number(),
+  questions_answered: z.number(),
+  correct_answers: z.number(),
+  incorrect_answers: z.number(),
+  success_rate: z.number(),
+  average_response_time: z.number(),
+  total_xp_earned: z.number(),
+  performance_grade: z.enum(['A+', 'A', 'B+', 'B', 'C+', 'C', 'D', 'F', 'S']).optional(),
+  is_completed: z.boolean(),
+  can_retry: z.boolean(),
+  next_stop_unlocked: z.boolean(),
+  streak_bonus: z.number().optional(),
+  speed_bonus: z.number().optional(),
+  accuracy_bonus: z.number().optional(),
+});
+
 // Response schemas
 export const StudyTrailSummarySchema = z.object({
   id: z.number(),
@@ -51,7 +70,7 @@ export const StudyTrailStopSummarySchema = z.object({
   description: z.string().nullable(),
   stop_type: z.enum(['lesson', 'practice', 'challenge', 'review']),
   difficulty_level: z.enum(['easy', 'medium', 'hard']),
-  status: z.enum(['locked', 'available', 'in_progress', 'completed']),
+  status: z.enum(['locked', 'available', 'in_progress', 'completed', 'failed']),
   total_questions: z.number(),
   questions_answered: z.number(),
   correct_answers: z.number(),
@@ -60,6 +79,7 @@ export const StudyTrailStopSummarySchema = z.object({
   xp_earned: z.number(),
   estimated_duration_minutes: z.number(),
   minimum_success_rate: z.number(),
+  performance: StudyTrailStopPerformanceSchema.optional(),
 });
 
 export const StudyTrailDetailsSchema = StudyTrailSummarySchema.extend({
@@ -126,6 +146,7 @@ export type StudyTrailDetails = z.infer<typeof StudyTrailDetailsSchema>;
 export type StudyTrailStopSummary = z.infer<typeof StudyTrailStopSummarySchema>;
 export type StudyTrailStopDetails = z.infer<typeof StudyTrailStopDetailsSchema>;
 export type StudyTrailStopQuestion = z.infer<typeof StudyTrailStopQuestionSchema>;
+export type StudyTrailStopPerformance = z.infer<typeof StudyTrailStopPerformanceSchema>;
 export type StudyTrailProgress = z.infer<typeof StudyTrailProgressSchema>;
 
 // OpenAPI schemas (usando os schemas diretamente)

@@ -95,6 +95,17 @@ export class StudyTrailController {
     throw new Error('Método não implementado ainda');
   }
 
+  @Get('stops/:stopId/performance')
+  @ApiOperation({ summary: 'Obter performance detalhada de uma parada' })
+  @ApiResponse({
+    status: 200,
+    description: 'Performance da parada obtida com sucesso',
+  })
+  @ApiResponse({ status: 404, description: 'Parada não encontrada' })
+  async getStopPerformance(@Param('stopId', ParseIntPipe) stopId: number, @BasicUserInfo() userInfo: any) {
+    return this.studyTrailService.getStopPerformance(stopId, userInfo.id);
+  }
+
   @Delete(':id')
   @ApiOperation({ summary: 'Excluir trilha de estudos' })
   @ApiResponse({
