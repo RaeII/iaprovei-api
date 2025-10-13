@@ -8,11 +8,12 @@ import { Question } from '@/entities/question.entity';
 import { Subject } from '@/entities/subject.entity';
 import { SkillCategory } from '@/entities/skill_category.entity';
 import { User } from '@/entities/user.entity';
+import { AiAssistanceModule } from '@/modules/ai_assistance/ai_assistance.module';
 import { StudyTrailController } from './study_trail.controller';
 import { StudyTrailService } from './study_trail.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([StudyTrail, StudyTrailStop, StudyTrailStopQuestion, StudyTrailPerformance, Question, Subject, SkillCategory, User])],
+  imports: [TypeOrmModule.forFeature([StudyTrail, StudyTrailStop, StudyTrailStopQuestion, StudyTrailPerformance, Question, Subject, SkillCategory, User]), AiAssistanceModule],
   controllers: [StudyTrailController],
   providers: [StudyTrailService],
   exports: [StudyTrailService],

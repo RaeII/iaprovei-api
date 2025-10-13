@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { IAiProvider } from '../interfaces/ai-provider.interface';
-import { AiAssistanceQuestionExplanationRequest, AiAssistanceQuestionExplanationResponse, AiAssistanceRequest, AiAssistanceResponse } from '../schemas/ai_assistance.schema';
+import { AiAssistanceQuestionExplanationRequest, AiAssistanceQuestionExplanationResponse, AiAssistanceRequest, AiAssistanceResponse, AiCourseMaterialSuggestionRequest, AiCourseMaterialSuggestionResponse, AiCourseMaterialSuggestionResponseSchema } from '../schemas/ai_assistance.schema';
 import { MisconfiguredServiceException } from '@/common/exceptions/misconfigured-service.exception';
 
 @Injectable()
@@ -84,12 +84,59 @@ export class OpenAiProvider implements IAiProvider {
     }
   }
 
+  async suggestSkillCategoriesForCourse(request: AiCourseMaterialSuggestionRequest): Promise<AiCourseMaterialSuggestionResponse> {
+    try {
+      this.logger.log('Requesting skill category suggestions from OpenAI');
+
+      const systemPrompt = this.buildCourseMaterialSystemPrompt();
+      const messages = [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: this.buildCourseMaterialUserMessage(request) },
+      ] as any[];
+
+      const completion = await this.openai.chat.completions.create({
+        model: this.configService.get<string>('openai.model'),
+        messages,
+        temperature: this.configService.get<number>('openai.temperature'),
+        max_tokens: this.configService.get<number>('openai.maxTokens'),
+      });
+
+      const responseContent = completion.choices[0]?.message?.content;
+
+      if (!responseContent) {
+        throw new Error('No response received from OpenAI');
+      }
+
+      const parsedResponse = this.parseCourseMaterialResponse(responseContent);
+
+      this.logger.log('Successfully received skill category suggestions from OpenAI');
+
+      return parsedResponse;
+    } catch (error) {
+      this.logger.error('Failed to get skill category suggestions from OpenAI', error.stack);
+      throw new Error(`OpenAI service error: ${error.message}`);
+    }
+  }
+
   private buildSystemPrompt(): string {
     return this.configService.get('openai.systemPrompt');
   }
 
   private buildQuestionExplanationSystemPrompt(): string {
     return this.configService.get('openai.questionExplanationSystemPrompt');
+  }
+
+  private buildCourseMaterialSystemPrompt(): string {
+    // eslint-disable-next-line prettier/prettier
+    return [
+      'You are an academic planning assistant that maps a desired course to the most relevant study skill categories.',
+      'You must ONLY choose from the provided list of skill categories and return your answer as JSON with the format:',
+      '{"matched_skill_categories":[{"name":"<skill name>","reason":"<short reason>"}]}',
+      'If nothing matches, return {"matched_skill_categories":[]}.',
+      'Only select categories that clearly belong in the desired course. If unsure, leave them out.',
+      'Prefer categories with the highest available question counts when there are multiple valid options.',
+      'Use the skill category name exactly as it appears in the provided list.',
+    ].join(' ');
   }
 
   private buildMessages(systemPrompt: string, imageFile: Buffer | undefined, userMessage: string): any[] {
@@ -159,5 +206,62 @@ ${request.options.join('\n')}`;
     }
 
     return message;
+  }
+
+  private buildCourseMaterialUserMessage(request: AiCourseMaterialSuggestionRequest): string {
+    const header = `The student wants to prepare for the course "${request.desired_course}". `;
+    const instructions = 'Select which of the following skill categories are essential for this course syllabus. Do not pick categories that the course would not normally cover. Only use names from the list.\n';
+
+    const categoriesList = request.available_skill_categories
+      .map(category => {
+        const description = category.description ? ` - ${category.description}` : '';
+        const questionInfo = typeof category.question_count === 'number' ? ` (available questions: ${category.question_count})` : '';
+        return `- ${category.name}${description}${questionInfo}`;
+      })
+      .join('\n');
+
+    const outputReminder = '\nRespond using JSON only in the exact format described in the system prompt. Do not include extra commentary.';
+
+    return header + instructions + categoriesList + outputReminder;
+  }
+
+  private parseCourseMaterialResponse(content: string): AiCourseMaterialSuggestionResponse {
+    const trimmed = content.trim();
+
+    const jsonCandidate = this.extractJsonString(trimmed);
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(jsonCandidate);
+    } catch (error) {
+      throw new Error(`Invalid JSON returned by OpenAI: ${error instanceof Error ? error.message : 'unknown error'}`);
+    }
+
+    const validationResult = AiCourseMaterialSuggestionResponseSchema.safeParse(parsed);
+
+    if (!validationResult.success) {
+      const issues = validationResult.error.issues.map(issue => issue.message).join('; ');
+      throw new Error(`Invalid response schema from OpenAI: ${issues}`);
+    }
+
+    return validationResult.data;
+  }
+
+  private extractJsonString(content: string): string {
+    if (content.startsWith('```')) {
+      const match = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+      if (match && match[1]) {
+        return match[1].trim();
+      }
+    }
+
+    const firstBrace = content.indexOf('{');
+    const lastBrace = content.lastIndexOf('}');
+
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace >= firstBrace) {
+      return content.substring(firstBrace, lastBrace + 1);
+    }
+
+    return content;
   }
 }

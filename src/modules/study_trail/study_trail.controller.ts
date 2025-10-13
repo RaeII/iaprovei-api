@@ -26,6 +26,18 @@ export class StudyTrailController {
     return this.studyTrailService.createStudyTrail(userInfo.id, createData);
   }
 
+  @Post('auto-generate')
+  @ApiOperation({ summary: 'Gerar trilhas automaticamente pelo curso desejado' })
+  @ApiResponse({
+    status: 201,
+    description: 'Trilhas criadas automaticamente com base no curso desejado',
+  })
+  @ApiResponse({ status: 400, description: 'Curso desejado não configurado para o usuário' })
+  @ApiResponse({ status: 404, description: 'Usuário ou categorias de habilidade não encontradas' })
+  async autoGenerateStudyTrails(@BasicUserInfo() userInfo: any) {
+    return this.studyTrailService.generateStudyTrailsForDesiredCourse(userInfo.id);
+  }
+
   @Get()
   @ApiOperation({ summary: 'Listar trilhas de estudos do usuário' })
   @ApiResponse({

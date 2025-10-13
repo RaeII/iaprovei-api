@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { StudyTrail, StudyTrailStatus } from '@/entities/study_trail.entity';
 import { StudyTrailStop, StudyTrailStopStatus, StudyTrailStopType } from '@/entities/study_trail_stop.entity';
 import { StudyTrailStopQuestion, QuestionAnswerStatus } from '@/entities/study_trail_stop_question.entity';
@@ -8,9 +8,12 @@ import { StudyTrailPerformance } from '@/entities/study_trail_performance.entity
 import { Question, DifficultyLevel } from '@/entities/question.entity';
 import { Subject } from '@/entities/subject.entity';
 import { SkillCategory } from '@/entities/skill_category.entity';
+import { User } from '@/entities/user.entity';
 import { StudyTrailCreate, StudyTrailStopStart, StudyTrailStopAnswer, StudyTrailSummary, StudyTrailDetails, StudyTrailStopPerformance } from './schemas/study_trail.schema';
 
 import { DifficultySelectionStrategy, AdaptiveDifficultyStrategy, DifficultyStrategyFactory } from './strategies/difficulty-selection.strategies';
+import { AiAssistanceService } from '@/modules/ai_assistance/ai_assistance.service';
+import { AiCourseMaterialSuggestionRequest } from '@/modules/ai_assistance/schemas/ai_assistance.schema';
 
 @Injectable()
 export class StudyTrailService {
@@ -31,7 +34,10 @@ export class StudyTrailService {
     @InjectRepository(Subject)
     private subjectRepository: Repository<Subject>,
     @InjectRepository(SkillCategory)
-    private skillCategoryRepository: Repository<SkillCategory>
+    private skillCategoryRepository: Repository<SkillCategory>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+    private readonly aiAssistanceService: AiAssistanceService
   ) {
     this.difficultyStrategy = new AdaptiveDifficultyStrategy();
   }
@@ -104,6 +110,108 @@ export class StudyTrailService {
     await this.createFirstStop(savedTrail.id, userId, createData.skill_category_id);
 
     return this.getStudyTrailSummary(savedTrail.id, userId);
+  }
+
+  async generateStudyTrailsForDesiredCourse(userId: number): Promise<StudyTrailSummary[]> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+
+    if (!user) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+
+    if (!user.desired_course) {
+      throw new BadRequestException('Usuário não possui curso desejado configurado');
+    }
+
+    const rootSkillCategories = await this.skillCategoryRepository.find({
+      where: { father_skill_category_id: IsNull() },
+      order: { name: 'ASC' },
+    });
+
+    if (rootSkillCategories.length === 0) {
+      throw new NotFoundException('Nenhuma categoria de habilidade disponível para geração automática');
+    }
+
+    const questionCountMap = await this.getQuestionCountsForSkillCategories(rootSkillCategories.map(category => category.id));
+
+    const eligibleCategories = rootSkillCategories.filter(category => (questionCountMap.get(category.id) ?? 0) >= 10);
+
+    if (eligibleCategories.length === 0) {
+      throw new NotFoundException('Nenhuma categoria de habilidade possui questões suficientes para gerar trilhas automaticamente');
+    }
+
+    const availableSkillCategories = eligibleCategories.map(category => ({
+      id: category.id,
+      name: category.name,
+      description: category.description ?? undefined,
+      question_count: questionCountMap.get(category.id) ?? 0,
+    })) as AiCourseMaterialSuggestionRequest['available_skill_categories'];
+
+    const aiResponse = await this.aiAssistanceService.suggestSkillCategoriesForCourse({
+      desired_course: user.desired_course,
+      available_skill_categories: availableSkillCategories,
+    });
+
+    const matchedNames = new Set(aiResponse.matched_skill_categories.map(item => item.name.trim().toLowerCase()));
+
+    if (matchedNames.size === 0) {
+      return [];
+    }
+
+    const categoriesToCreate = eligibleCategories.filter(category => matchedNames.has(category.name.trim().toLowerCase()));
+
+    if (categoriesToCreate.length === 0) {
+      return [];
+    }
+
+    const createdTrails: StudyTrailSummary[] = [];
+
+    for (const category of categoriesToCreate) {
+      const existingTrail = await this.studyTrailRepository.findOne({
+        where: {
+          user_id: userId,
+          skill_category_id: category.id,
+          status: StudyTrailStatus.ACTIVE,
+          is_active: true,
+        },
+      });
+
+      if (existingTrail) {
+        continue;
+      }
+
+      const summary = await this.createStudyTrail(userId, {
+        skill_category_id: category.id,
+        name: `Trilha de ${category.name}`,
+      });
+
+      createdTrails.push(summary);
+    }
+
+    return createdTrails;
+  }
+
+  private async getQuestionCountsForSkillCategories(skillCategoryIds: number[]): Promise<Map<number, number>> {
+    if (skillCategoryIds.length === 0) {
+      return new Map();
+    }
+
+    // eslint-disable-next-line prettier/prettier
+    const rawCounts = await this.questionRepository
+      .createQueryBuilder('question')
+      .innerJoin('question.origin_subject', 'subject')
+      .select('subject.skill_category_id', 'skillCategoryId')
+      .addSelect('COUNT(question.id)', 'questionCount')
+      .where('subject.skill_category_id IN (:...skillCategoryIds)', { skillCategoryIds })
+      .andWhere('question.is_active = :isActive', { isActive: true })
+      .groupBy('subject.skill_category_id')
+      .getRawMany();
+
+    const countMap = new Map<number, number>();
+    for (const entry of rawCounts) {
+      countMap.set(Number(entry.skillCategoryId), Number(entry.questionCount));
+    }
+    return countMap;
   }
 
   async getUserStudyTrails(userId: number): Promise<StudyTrailSummary[]> {
