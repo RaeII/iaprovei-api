@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { StudyTrail, StudyTrailStatus } from '@/entities/study_trail.entity';
 import { StudyTrailStop, StudyTrailStopStatus, StudyTrailStopType } from '@/entities/study_trail_stop.entity';
 import { StudyTrailStopQuestion, QuestionAnswerStatus } from '@/entities/study_trail_stop_question.entity';
@@ -9,16 +9,21 @@ import { Question, DifficultyLevel } from '@/entities/question.entity';
 import { Subject } from '@/entities/subject.entity';
 import { SkillCategory } from '@/entities/skill_category.entity';
 import { User } from '@/entities/user.entity';
+import { Contest } from '@/entities/contest.entity';
 import { StudyTrailCreate, StudyTrailStopStart, StudyTrailStopAnswer, StudyTrailSummary, StudyTrailDetails, StudyTrailStopPerformance } from './schemas/study_trail.schema';
 
 import { DifficultySelectionStrategy, AdaptiveDifficultyStrategy, DifficultyStrategyFactory } from './strategies/difficulty-selection.strategies';
 import { AiAssistanceService } from '@/modules/ai_assistance/ai_assistance.service';
 import { AiCourseMaterialSuggestionRequest } from '@/modules/ai_assistance/schemas/ai_assistance.schema';
 
+type AvailableSkillCategory = AiCourseMaterialSuggestionRequest['available_skill_categories'][number];
+
 @Injectable()
 export class StudyTrailService {
   private performanceCache = new Map<string, { data: any; timestamp: number }>();
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+  private readonly MAX_STOPS = 5;
+  private readonly TARGET_QUESTIONS_PER_STOP = 10;
 
   constructor(
     @InjectRepository(StudyTrail)
@@ -35,6 +40,8 @@ export class StudyTrailService {
     private subjectRepository: Repository<Subject>,
     @InjectRepository(SkillCategory)
     private skillCategoryRepository: Repository<SkillCategory>,
+    @InjectRepository(Contest)
+    private contestRepository: Repository<Contest>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private readonly aiAssistanceService: AiAssistanceService
@@ -93,6 +100,14 @@ export class StudyTrailService {
       throw new BadRequestException('Já existe uma trilha ativa para esta categoria de habilidade');
     }
 
+    const questionAvailability = await this.getQuestionAvailability(skillCategory.id);
+
+    if (questionAvailability.total === 0) {
+      throw new BadRequestException('Ainda não há questões disponíveis para esta categoria de habilidade');
+    }
+
+    const totalStops = Math.max(1, Math.min(this.MAX_STOPS, Math.ceil(questionAvailability.total / this.TARGET_QUESTIONS_PER_STOP)));
+
     // Criar a trilha
     const studyTrail = this.studyTrailRepository.create({
       user_id: userId,
@@ -101,7 +116,7 @@ export class StudyTrailService {
       description: createData.description,
       status: StudyTrailStatus.ACTIVE,
       current_stop_position: 1,
-      total_stops: 5,
+      total_stops: totalStops,
     });
 
     const savedTrail = await this.studyTrailRepository.save(studyTrail);
@@ -119,54 +134,97 @@ export class StudyTrailService {
       throw new NotFoundException('Usuário não encontrado');
     }
 
-    if (!user.desired_course) {
+    if (!user.desired_course || !user.desired_course.trim()) {
       throw new BadRequestException('Usuário não possui curso desejado configurado');
     }
 
-    const rootSkillCategories = await this.skillCategoryRepository.find({
-      where: { father_skill_category_id: IsNull() },
+    const contests = await this.contestRepository.find({
+      where: { is_active: true },
+      relations: ['subjects', 'subjects.skill_category'],
       order: { name: 'ASC' },
     });
 
-    if (rootSkillCategories.length === 0) {
-      throw new NotFoundException('Nenhuma categoria de habilidade disponível para geração automática');
+    if (contests.length === 0) {
+      throw new NotFoundException('Nenhum concurso cadastrado para geração automática');
     }
 
-    const questionCountMap = await this.getQuestionCountsForSkillCategories(rootSkillCategories.map(category => category.id));
+    const contestIds = contests.map(contest => contest.id);
+    const questionCountMap = await this.getQuestionCountsByContestAndSkillCategory(contestIds);
 
-    const eligibleCategories = rootSkillCategories.filter(category => (questionCountMap.get(category.id) ?? 0) >= 10);
+    const allSkillCategoryIds = new Set<number>();
+    contests.forEach(contest => {
+      contest.subjects?.forEach(subject => {
+        if (subject.skill_category) {
+          allSkillCategoryIds.add(subject.skill_category.id);
+        }
+      });
+    });
+    const globalQuestionCountMap = await this.getQuestionCountsForSkillCategories([...allSkillCategoryIds]);
 
-    if (eligibleCategories.length === 0) {
+    const availableSkillCategories: AvailableSkillCategory[] = [];
+
+    for (const contest of contests) {
+      const seenSkillCategories = new Set<number>();
+
+      for (const subject of contest.subjects ?? []) {
+        const skillCategory = subject.skill_category;
+        if (!skillCategory || seenSkillCategories.has(skillCategory.id)) {
+          continue;
+        }
+
+        const contestQuestionCount = questionCountMap.get(this.getContestSkillCacheKey(contest.id, skillCategory.id)) ?? 0;
+        const globalQuestionCount = globalQuestionCountMap.get(skillCategory.id) ?? 0;
+        const questionCount = Math.max(contestQuestionCount, globalQuestionCount);
+
+        if (questionCount === 0) {
+          continue;
+        }
+
+        seenSkillCategories.add(skillCategory.id);
+        availableSkillCategories.push({
+          id: skillCategory.id,
+          name: skillCategory.name,
+          description: skillCategory.description ?? undefined,
+          question_count: questionCount,
+          contest: {
+            id: contest.id,
+            name: contest.name,
+            slug: contest.slug,
+          },
+        });
+      }
+    }
+
+    if (availableSkillCategories.length === 0) {
       throw new NotFoundException('Nenhuma categoria de habilidade possui questões suficientes para gerar trilhas automaticamente');
     }
 
-    const availableSkillCategories = eligibleCategories.map(category => ({
-      id: category.id,
-      name: category.name,
-      description: category.description ?? undefined,
-      question_count: questionCountMap.get(category.id) ?? 0,
-    })) as AiCourseMaterialSuggestionRequest['available_skill_categories'];
-
     const aiResponse = await this.aiAssistanceService.suggestSkillCategoriesForCourse({
-      desired_course: user.desired_course,
-      available_skill_categories: availableSkillCategories,
+      desired_course: user.desired_course.trim(),
+      available_skill_categories: availableSkillCategories as AiCourseMaterialSuggestionRequest['available_skill_categories'],
     });
 
     const matchedNames = new Set(aiResponse.matched_skill_categories.map(item => item.name.trim().toLowerCase()));
-
     if (matchedNames.size === 0) {
       return [];
     }
 
-    const categoriesToCreate = eligibleCategories.filter(category => matchedNames.has(category.name.trim().toLowerCase()));
+    const matchedCategories = availableSkillCategories.filter(category => matchedNames.has(category.name.trim().toLowerCase()));
 
-    if (categoriesToCreate.length === 0) {
+    if (matchedCategories.length === 0) {
       return [];
     }
 
+    const uniqueCategories = new Map<number, (typeof matchedCategories)[number]>();
+    matchedCategories.forEach(category => {
+      if (!uniqueCategories.has(category.id)) {
+        uniqueCategories.set(category.id, category);
+      }
+    });
+
     const createdTrails: StudyTrailSummary[] = [];
 
-    for (const category of categoriesToCreate) {
+    for (const category of uniqueCategories.values()) {
       const existingTrail = await this.studyTrailRepository.findOne({
         where: {
           user_id: userId,
@@ -191,21 +249,32 @@ export class StudyTrailService {
     return createdTrails;
   }
 
+  private getContestSkillCacheKey(contestId: number, skillCategoryId: number): string {
+    return `${contestId}:${skillCategoryId}`;
+  }
+
+  private async getQuestionCountsByContestAndSkillCategory(contestIds: number[]): Promise<Map<string, number>> {
+    if (contestIds.length === 0) {
+      return new Map();
+    }
+
+    const rawCounts = await this.questionRepository.createQueryBuilder('question').innerJoin('question.origin_subject', 'subject').select('subject.contest_id', 'contestId').addSelect('subject.skill_category_id', 'skillCategoryId').addSelect('COUNT(question.id)', 'questionCount').where('question.is_active = :isActive', { isActive: true }).andWhere('subject.contest_id IN (:...contestIds)', { contestIds }).groupBy('subject.contest_id').addGroupBy('subject.skill_category_id').getRawMany();
+
+    const countMap = new Map<string, number>();
+    for (const entry of rawCounts) {
+      const key = this.getContestSkillCacheKey(Number(entry.contestId), Number(entry.skillCategoryId));
+      countMap.set(key, Number(entry.questionCount));
+    }
+
+    return countMap;
+  }
+
   private async getQuestionCountsForSkillCategories(skillCategoryIds: number[]): Promise<Map<number, number>> {
     if (skillCategoryIds.length === 0) {
       return new Map();
     }
 
-    // eslint-disable-next-line prettier/prettier
-    const rawCounts = await this.questionRepository
-      .createQueryBuilder('question')
-      .innerJoin('question.origin_subject', 'subject')
-      .select('subject.skill_category_id', 'skillCategoryId')
-      .addSelect('COUNT(question.id)', 'questionCount')
-      .where('subject.skill_category_id IN (:...skillCategoryIds)', { skillCategoryIds })
-      .andWhere('question.is_active = :isActive', { isActive: true })
-      .groupBy('subject.skill_category_id')
-      .getRawMany();
+    const rawCounts = await this.questionRepository.createQueryBuilder('question').innerJoin('question.origin_subject', 'subject').select('subject.skill_category_id', 'skillCategoryId').addSelect('COUNT(question.id)', 'questionCount').where('question.is_active = :isActive', { isActive: true }).andWhere('subject.skill_category_id IN (:...skillCategoryIds)', { skillCategoryIds }).groupBy('subject.skill_category_id').getRawMany();
 
     const countMap = new Map<number, number>();
     for (const entry of rawCounts) {
@@ -445,6 +514,20 @@ export class StudyTrailService {
 
     const difficulty = this.difficultyStrategy.selectDifficulty(performance, lastStopPerformance);
 
+    const questionAvailability = await this.getQuestionAvailability(skillCategoryId);
+    if (questionAvailability.total === 0) {
+      throw new BadRequestException('Não há questões disponíveis para esta categoria de habilidade');
+    }
+
+    const usedQuestionIds = await this.getUsedQuestionIdsForTrail(trailId);
+    const remainingQuestions = questionAvailability.total - usedQuestionIds.length;
+
+    if (remainingQuestions <= 0) {
+      throw new BadRequestException('Não há mais questões disponíveis para gerar novas paradas nesta trilha');
+    }
+
+    const targetQuestions = Math.min(this.TARGET_QUESTIONS_PER_STOP, remainingQuestions);
+
     // Criar a parada
     const stop = this.studyTrailStopRepository.create({
       study_trail_id: trailId,
@@ -454,41 +537,87 @@ export class StudyTrailService {
       stop_type: StudyTrailStopType.PRACTICE,
       difficulty_level: difficulty,
       status: position === 1 ? StudyTrailStopStatus.AVAILABLE : StudyTrailStopStatus.LOCKED,
-      total_questions: 10,
+      total_questions: targetQuestions,
       xp_reward: this.calculateXPReward(difficulty),
-      estimated_duration_minutes: 15,
+      estimated_duration_minutes: Math.max(5, targetQuestions * 2),
       minimum_success_rate: 70,
     });
 
     const savedStop = await this.studyTrailStopRepository.save(stop);
 
     // Gerar questões para a parada
-    await this.generateQuestionsForStop(savedStop.id, skillCategoryId, difficulty, 10);
+    const generationResult = await this.generateQuestionsForStop(savedStop.id, skillCategoryId, difficulty, targetQuestions, usedQuestionIds);
+
+    if (generationResult.count === 0) {
+      await this.studyTrailStopRepository.remove(savedStop);
+      throw new BadRequestException('Não há questões suficientes para gerar esta parada');
+    }
+
+    let requiresUpdate = false;
+
+    if (generationResult.count !== targetQuestions) {
+      savedStop.total_questions = generationResult.count;
+      requiresUpdate = true;
+    }
+
+    const actualDifficulty = generationResult.primaryDifficulty;
+    if (actualDifficulty && actualDifficulty !== savedStop.difficulty_level) {
+      savedStop.difficulty_level = actualDifficulty;
+      savedStop.xp_reward = this.calculateXPReward(actualDifficulty);
+      requiresUpdate = true;
+    }
+
+    if (requiresUpdate) {
+      savedStop.estimated_duration_minutes = Math.max(5, savedStop.total_questions * 2);
+      await this.studyTrailStopRepository.save(savedStop);
+    }
 
     return savedStop;
   }
 
-  private async generateQuestionsForStop(stopId: number, skillCategoryId: number, difficulty: DifficultyLevel, totalQuestions: number): Promise<void> {
-    // Buscar questões da skill_category com a dificuldade especificada
-    // Fazendo JOIN com subjects para filtrar por skill_category_id
-    const questions = await this.questionRepository
-      .createQueryBuilder('question')
-      .innerJoin('question.origin_subject', 'subject')
-      .where('subject.skill_category_id = :skillCategoryId', { skillCategoryId })
-      .andWhere('question.difficulty_level = :difficulty', { difficulty })
-      .andWhere('question.is_active = :isActive', { isActive: true })
-      .orderBy('question.id', 'DESC')
-      .take(totalQuestions * 2) // Pegar mais questões para ter variedade
-      .getMany();
+  private async generateQuestionsForStop(stopId: number, skillCategoryId: number, requestedDifficulty: DifficultyLevel, targetQuestions: number, initiallyExcludedQuestionIds: number[]): Promise<{ count: number; primaryDifficulty: DifficultyLevel | null }> {
+    const difficultyOrder = this.getDifficultySearchOrder(requestedDifficulty);
+    const excludedIds = new Set<number>(initiallyExcludedQuestionIds);
+    const selectedQuestions: Question[] = [];
 
-    if (questions.length === 0) {
-      throw new BadRequestException(`Não há questões disponíveis para a dificuldade ${difficulty} nesta categoria de habilidade`);
+    for (const difficulty of difficultyOrder) {
+      if (selectedQuestions.length >= targetQuestions) {
+        break;
+      }
+
+      const remaining = targetQuestions - selectedQuestions.length;
+      const qb = this.questionRepository.createQueryBuilder('question').innerJoin('question.origin_subject', 'subject').where('subject.skill_category_id = :skillCategoryId', { skillCategoryId }).andWhere('question.difficulty_level = :difficulty', { difficulty }).andWhere('question.is_active = :isActive', { isActive: true });
+
+      if (excludedIds.size > 0) {
+        qb.andWhere('question.id NOT IN (:...excludedIds)', { excludedIds: Array.from(excludedIds) });
+      }
+
+      const candidates = await qb
+        .orderBy('question.id', 'DESC')
+        .take(remaining * 3)
+        .getMany();
+
+      if (candidates.length === 0) {
+        continue;
+      }
+
+      const newQuestions = this.shuffleArray(candidates)
+        .filter(question => !excludedIds.has(question.id))
+        .slice(0, remaining);
+
+      newQuestions.forEach(question => {
+        selectedQuestions.push(question);
+        excludedIds.add(question.id);
+      });
     }
 
-    // Selecionar questões aleatoriamente
-    const selectedQuestions = this.shuffleArray(questions).slice(0, Math.min(totalQuestions, questions.length));
+    const count = selectedQuestions.length;
+    const primaryDifficulty = count > 0 ? (selectedQuestions[0].difficulty_level as DifficultyLevel) : null;
 
-    // Criar registros de questões da parada
+    if (count === 0) {
+      return { count: 0, primaryDifficulty };
+    }
+
     const stopQuestions = selectedQuestions.map((question, index) =>
       this.studyTrailStopQuestionRepository.create({
         study_trail_stop_id: stopId,
@@ -499,6 +628,48 @@ export class StudyTrailService {
     );
 
     await this.studyTrailStopQuestionRepository.save(stopQuestions);
+
+    return { count, primaryDifficulty };
+  }
+
+  private getDifficultySearchOrder(requested: DifficultyLevel): DifficultyLevel[] {
+    const baseOrder = [DifficultyLevel.EASY, DifficultyLevel.MEDIUM, DifficultyLevel.HARD];
+
+    return [requested, ...baseOrder.filter(level => level !== requested)];
+  }
+
+  private async getQuestionAvailability(skillCategoryId: number): Promise<{
+    total: number;
+    byDifficulty: Record<DifficultyLevel, number>;
+  }> {
+    const baseCounts: Record<DifficultyLevel, number> = {
+      [DifficultyLevel.EASY]: 0,
+      [DifficultyLevel.MEDIUM]: 0,
+      [DifficultyLevel.HARD]: 0,
+    };
+
+    const rows = await this.questionRepository.createQueryBuilder('question').innerJoin('question.origin_subject', 'subject').select('question.difficulty_level', 'difficulty').addSelect('COUNT(question.id)', 'count').where('subject.skill_category_id = :skillCategoryId', { skillCategoryId }).andWhere('question.is_active = :isActive', { isActive: true }).groupBy('question.difficulty_level').getRawMany();
+
+    let total = 0;
+    for (const row of rows) {
+      const difficulty = row.difficulty as DifficultyLevel;
+      const count = Number(row.count);
+      if (difficulty in baseCounts) {
+        baseCounts[difficulty] = count;
+        total += count;
+      }
+    }
+
+    return {
+      total,
+      byDifficulty: baseCounts,
+    };
+  }
+
+  private async getUsedQuestionIdsForTrail(trailId: number): Promise<number[]> {
+    const rows = await this.studyTrailStopQuestionRepository.createQueryBuilder('stopQuestion').innerJoin('stopQuestion.study_trail_stop', 'stop').select('stopQuestion.question_id', 'questionId').where('stop.study_trail_id = :trailId', { trailId }).getRawMany();
+
+    return rows.map(row => Number(row.questionId));
   }
 
   private async startStop(stop: StudyTrailStop): Promise<any> {

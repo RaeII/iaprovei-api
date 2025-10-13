@@ -58,6 +58,13 @@ export const AiCourseMaterialSuggestionRequestSchema = z.object({
         name: z.string().min(1),
         description: z.string().optional(),
         question_count: z.number().int().nonnegative().optional(),
+        contest: z
+          .object({
+            id: z.number().int().positive(),
+            name: z.string().min(1),
+            slug: z.string().optional(),
+          })
+          .optional(),
       })
     )
     .nonempty(),

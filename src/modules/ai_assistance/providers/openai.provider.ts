@@ -210,18 +210,43 @@ ${request.options.join('\n')}`;
 
   private buildCourseMaterialUserMessage(request: AiCourseMaterialSuggestionRequest): string {
     const header = `The student wants to prepare for the course "${request.desired_course}". `;
-    const instructions = 'Select which of the following skill categories are essential for this course syllabus. Do not pick categories that the course would not normally cover. Only use names from the list.\n';
+    const instructions = 'Select which of the following skill categories are essential for this course syllabus. Do not pick categories that the course would not normally cover. Only use names from the list.\n\n';
 
-    const categoriesList = request.available_skill_categories
-      .map(category => {
-        const description = category.description ? ` - ${category.description}` : '';
-        const questionInfo = typeof category.question_count === 'number' ? ` (available questions: ${category.question_count})` : '';
-        return `- ${category.name}${description}${questionInfo}`;
+    const categoriesByContest = request.available_skill_categories.reduce<Map<string, typeof request.available_skill_categories>>((acc, category) => {
+      const contestKey = category.contest ? `${category.contest.id}` : 'general';
+      const existing = acc.get(contestKey);
+      if (existing) {
+        existing.push(category);
+      } else {
+        acc.set(contestKey, [category]);
+      }
+      return acc;
+    }, new Map());
+
+    const categoriesList = Array.from(categoriesByContest.values())
+      .map(categories => {
+        const contestInfo = categories[0]?.contest;
+        const contestHeader = contestInfo ? `Contest: ${contestInfo.name}${contestInfo.slug ? ` (slug: ${contestInfo.slug})` : ''} [id: ${contestInfo.id}]\n` : 'General Skill Categories\n';
+
+        const categoryLines = categories
+          .map(category => {
+            const parts: string[] = [`- ${category.name}`];
+            if (category.description) {
+              parts.push(`description: ${category.description}`);
+            }
+            if (typeof category.question_count === 'number') {
+              parts.push(`questions: ${category.question_count}`);
+            }
+            return parts.join(' | ');
+          })
+          .join('\n');
+
+        return `${contestHeader}${categoryLines}`;
       })
-      .join('\n');
+      .join('\n\n');
 
-    const outputReminder = '\nRespond using JSON only in the exact format described in the system prompt. Do not include extra commentary.';
-
+    const outputReminder = '\n\nRespond using JSON only in the exact format described in the system prompt. Do not include extra commentary.';
+    console.log(header + instructions + categoriesList + outputReminder);
     return header + instructions + categoriesList + outputReminder;
   }
 
