@@ -418,20 +418,25 @@ export class StudyTrailService {
       difficulty_level: stop.difficulty_level,
       total_questions: stop.total_questions,
       xp_reward: stop.xp_reward,
-      questions: questions.map(sq => ({
-        id: sq.id,
-        question_id: sq.question.id,
-        question_order: sq.question_order,
-        affirmation: sq.question.affirmation,
-        image_url: sq.question.image_url,
-        question_type: sq.question.question_type,
-        learning_tip: sq.question.learning_tip,
-        options:
-          sq.question.question_options?.map(opt => ({
-            id: opt.id,
-            option_text: opt.option_text,
-          })) || [],
-      })),
+      questions: questions.map(sq => {
+        const correctOption = sq.question.question_options?.find(opt => opt.is_correct);
+        return {
+          id: sq.id,
+          question_id: sq.question.id,
+          question_order: sq.question_order,
+          affirmation: sq.question.affirmation,
+          image_url: sq.question.image_url,
+          question_type: sq.question.question_type,
+          learning_tip: sq.question.learning_tip,
+          correct_option_id: correctOption?.id,
+          correct_option_text: correctOption?.option_text,
+          options:
+            sq.question.question_options?.map(opt => ({
+              id: opt.id,
+              option_text: opt.option_text,
+            })) || [],
+        };
+      }),
     };
   }
 
