@@ -16,31 +16,37 @@ export class AdaptiveDifficultyStrategy implements DifficultySelectionStrategy {
       return DifficultyLevel.EASY;
     }
 
-    // Se teve boa performance na última parada (>= 80%), aumentar dificuldade
-    if (lastStopPerformance && lastStopPerformance >= 80) {
-      if (performance.success_rate >= 75) {
-        return DifficultyLevel.HARD;
-      } else if (performance.success_rate >= 60) {
+    const overallSuccess = Number(performance.success_rate) || 0;
+    const consecutiveCorrect = performance.consecutive_correct_answers || 0;
+    const consecutiveIncorrect = performance.consecutive_incorrect_answers || 0;
+    const lastStop = typeof lastStopPerformance === 'number' ? lastStopPerformance : undefined;
+    const fewAnswers = performance.total_questions_answered < 15;
+
+    // Estratégia de recuperação: se o usuário ficou abaixo dos 70% ou errou várias seguidas,
+    // reduzimos a pressão para que ele reconstrua confiança rapidamente.
+    if ((lastStop !== undefined && lastStop < 70) || consecutiveIncorrect >= 4) {
+      if (overallSuccess >= 75 && consecutiveCorrect >= 3) {
         return DifficultyLevel.MEDIUM;
       }
       return DifficultyLevel.EASY;
     }
 
-    // Se teve performance ruim na última parada (< 60%), manter mesma dificuldade
-    if (lastStopPerformance && lastStopPerformance < 60) {
-      // Manter a dificuldade baseada na performance geral
-      if (performance.success_rate >= 70) {
-        return DifficultyLevel.MEDIUM;
-      }
-      return DifficultyLevel.EASY;
-    }
+    // Usuários com tendência consistente de acertos recebem desafios maiores, mas apenas
+    // depois de demonstrarem estabilidade por algumas interações.
+    const consistentHighPerformance = overallSuccess >= 85 && consecutiveCorrect >= 6;
+    const excellentLastStop = lastStop !== undefined && lastStop >= 90;
+    const strongMomentum = lastStop !== undefined && lastStop >= 80 && consecutiveCorrect >= 5;
 
-    // Performance média na última parada, ajustar baseado na performance geral
-    if (performance.success_rate >= 80) {
+    if (!fewAnswers && (excellentLastStop || consistentHighPerformance || strongMomentum)) {
       return DifficultyLevel.HARD;
-    } else if (performance.success_rate >= 65) {
+    }
+
+    // Para manter o ritmo: qualquer desempenho a partir do patamar de desbloqueio (70%)
+    // resulta em dificuldade média, garantindo progressão sem gerar frustração.
+    if ((lastStop !== undefined && lastStop >= 70) || overallSuccess >= 70) {
       return DifficultyLevel.MEDIUM;
     }
+
     return DifficultyLevel.EASY;
   }
 }

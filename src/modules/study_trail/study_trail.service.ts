@@ -14,6 +14,9 @@ import { DifficultySelectionStrategy, AdaptiveDifficultyStrategy, DifficultyStra
 
 @Injectable()
 export class StudyTrailService {
+  private performanceCache = new Map<string, { data: any; timestamp: number }>();
+  private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+
   constructor(
     @InjectRepository(StudyTrail)
     private studyTrailRepository: Repository<StudyTrail>,
@@ -34,6 +37,31 @@ export class StudyTrailService {
   }
 
   private difficultyStrategy: DifficultySelectionStrategy;
+
+  private getCacheKey(prefix: string, ...params: any[]): string {
+    return `${prefix}:${params.join(':')}`;
+  }
+
+  private getFromCache<T>(key: string): T | null {
+    const cached = this.performanceCache.get(key);
+    if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
+      return cached.data;
+    }
+    this.performanceCache.delete(key);
+    return null;
+  }
+
+  private setCache<T>(key: string, data: T): void {
+    this.performanceCache.set(key, { data, timestamp: Date.now() });
+  }
+
+  private invalidateCache(pattern: string): void {
+    for (const key of this.performanceCache.keys()) {
+      if (key.startsWith(pattern)) {
+        this.performanceCache.delete(key);
+      }
+    }
+  }
 
   async createStudyTrail(userId: number, createData: StudyTrailCreate): Promise<StudyTrailSummary> {
     // Verificar se a skill_category existe
@@ -251,35 +279,43 @@ export class StudyTrailService {
 
     stopQuestion.xp_earned = Math.round(baseXP * xpMultiplier);
 
+    // Salvar a questão primeiro para resposta rápida
     await this.studyTrailStopQuestionRepository.save(stopQuestion);
-
-    // Atualizar estatísticas da parada
-    await this.updateStopStatistics(stopQuestion.study_trail_stop_id);
-
-    // Atualizar performance do usuário
-    await this.updateUserPerformance(userId, stopQuestion.study_trail_stop.study_trail.skill_category_id, isCorrect, answerData.response_time_seconds || 0);
-
-    // Verificar se é a última questão da parada
     const isLastQuestion = await this.isLastQuestionOfStop(stopQuestion.study_trail_stop_id);
+    let performance = null;
 
+    if (isLastQuestion) {
+      // Processar operações pesadas de forma assíncrona (não bloquear resposta)
+      await this.processAnswerAsync(stopQuestion.study_trail_stop_id, userId, stopQuestion.study_trail_stop.study_trail.skill_category_id, isCorrect, answerData.response_time_seconds || 0);
+      performance = await this.calculateStopPerformance(stopQuestion.study_trail_stop_id);
+    } else {
+      this.processAnswerAsync(stopQuestion.study_trail_stop_id, userId, stopQuestion.study_trail_stop.study_trail.skill_category_id, isCorrect, answerData.response_time_seconds || 0);
+    }
+    // Preparar resposta básica imediatamente
     const response = {
       is_correct: isCorrect,
       xp_earned: stopQuestion.xp_earned,
       correct_option_id: correctOption?.id,
       explanation: stopQuestion.question.explanation,
+      is_last_question: isLastQuestion,
+      performance: performance,
     };
 
-    // Se é a última questão, incluir performance completa
-    if (isLastQuestion) {
-      const performance = await this.calculateStopPerformance(stopQuestion.study_trail_stop_id);
-      return {
-        ...response,
-        is_last_question: true,
-        performance: performance,
-      };
-    }
-
     return response;
+  }
+
+  private async processAnswerAsync(stopId: number, userId: number, skillCategoryId: number, isCorrect: boolean, responseTime: number): Promise<void> {
+    // Processar operações pesadas de forma assíncrona sem bloquear a resposta
+    try {
+      // Atualizar estatísticas da parada
+      await this.updateStopStatistics(stopId);
+
+      // Atualizar performance do usuário
+      await this.updateUserPerformance(userId, skillCategoryId, isCorrect, responseTime);
+    } catch (error) {
+      // Log do erro mas não falha a resposta principal
+      console.error('Erro no processamento assíncrono da resposta:', error);
+    }
   }
 
   private async createFirstStop(trailId: number, userId: number, skillCategoryId: number): Promise<StudyTrailStop> {
@@ -373,12 +409,8 @@ export class StudyTrailService {
     stop.started_at = new Date();
     await this.studyTrailStopRepository.save(stop);
 
-    // Buscar questões da parada
-    const questions = await this.studyTrailStopQuestionRepository.find({
-      where: { study_trail_stop_id: stop.id },
-      relations: ['question', 'question.question_options'],
-      order: { question_order: 'ASC' },
-    });
+    // Buscar questões da parada com query otimizada
+    const questions = await this.studyTrailStopQuestionRepository.createQueryBuilder('sq').leftJoinAndSelect('sq.question', 'q').leftJoinAndSelect('q.question_options', 'qo').where('sq.study_trail_stop_id = :stopId', { stopId: stop.id }).orderBy('sq.question_order', 'ASC').getMany();
 
     return {
       stop_id: stop.id,
@@ -547,12 +579,8 @@ export class StudyTrailService {
   }
 
   private async updateStopStatistics(stopId: number): Promise<void> {
-    const questions = await this.studyTrailStopQuestionRepository.find({
-      where: { study_trail_stop_id: stopId },
-    });
-
-    const answeredQuestions = questions.filter(q => q.answer_status !== QuestionAnswerStatus.NOT_ANSWERED);
-    const correctAnswers = questions.filter(q => q.answer_status === QuestionAnswerStatus.CORRECT);
+    // Usar query mais eficiente para calcular estatísticas
+    const stats = await this.studyTrailStopQuestionRepository.createQueryBuilder('sq').select(['COUNT(CASE WHEN sq.answer_status != :notAnswered THEN 1 END) as answered_count', 'COUNT(CASE WHEN sq.answer_status = :correct THEN 1 END) as correct_count', 'SUM(sq.xp_earned) as total_xp']).where('sq.study_trail_stop_id = :stopId', { stopId }).setParameters({ notAnswered: QuestionAnswerStatus.NOT_ANSWERED, correct: QuestionAnswerStatus.CORRECT }).getRawOne();
 
     const stop = await this.studyTrailStopRepository.findOne({
       where: { id: stopId },
@@ -561,36 +589,48 @@ export class StudyTrailService {
 
     if (!stop) return;
 
-    stop.questions_answered = answeredQuestions.length;
-    stop.correct_answers = correctAnswers.length;
-    stop.success_rate = answeredQuestions.length > 0 ? (correctAnswers.length / answeredQuestions.length) * 100 : 0;
-    stop.xp_earned = questions.reduce((sum, q) => sum + q.xp_earned, 0);
+    const answeredCount = parseInt(stats.answered_count) || 0;
+    const correctCount = parseInt(stats.correct_count) || 0;
+    const totalXP = parseFloat(stats.total_xp) || 0;
+
+    stop.questions_answered = answeredCount;
+    stop.correct_answers = correctCount;
+    stop.success_rate = answeredCount > 0 ? (correctCount / answeredCount) * 100 : 0;
+    stop.xp_earned = totalXP;
 
     // Se todas as questões foram respondidas, verificar se pode ser concluída
-    if (answeredQuestions.length === stop.total_questions) {
+    if (answeredCount === stop.total_questions) {
       // Se atingiu a performance mínima, marcar como completa
       if (stop.success_rate >= stop.minimum_success_rate) {
         stop.status = StudyTrailStopStatus.COMPLETED;
         stop.completed_at = new Date();
 
-        // Desbloquear próxima parada
-        if (stop.position_order < stop.study_trail.total_stops) {
-          await this.unlockNextStop(stop.study_trail_id, stop.position_order + 1, stop.study_trail.user_id, stop.study_trail.skill_category_id);
-        }
-
-        // Atualizar trilha se for a última parada
-        if (stop.position_order === stop.study_trail.total_stops) {
-          await this.completeStudyTrail(stop.study_trail_id);
-        }
+        // Desbloquear próxima parada de forma assíncrona
+        this.unlockNextStopAsync(stop.study_trail_id, stop.position_order + 1, stop.study_trail.user_id, stop.study_trail.skill_category_id, stop.study_trail.total_stops);
       } else {
         // Se não atingiu 70%, marcar como FAILED (mantém histórico de performance)
         stop.status = StudyTrailStopStatus.FAILED;
         stop.completed_at = new Date();
-        // NÃO resetar questões aqui - só quando usuário iniciar novamente
       }
     }
 
     await this.studyTrailStopRepository.save(stop);
+  }
+
+  private async unlockNextStopAsync(trailId: number, nextPosition: number, userId: number, skillCategoryId: number, totalStops: number): Promise<void> {
+    try {
+      // Desbloquear próxima parada
+      if (nextPosition <= totalStops) {
+        await this.unlockNextStop(trailId, nextPosition, userId, skillCategoryId);
+      }
+
+      // Atualizar trilha se for a última parada
+      if (nextPosition > totalStops) {
+        await this.completeStudyTrail(trailId);
+      }
+    } catch (error) {
+      console.error('Erro ao desbloquear próxima parada:', error);
+    }
   }
 
   private async unlockNextStop(trailId: number, nextPosition: number, userId: number, skillCategoryId: number): Promise<void> {
@@ -621,6 +661,13 @@ export class StudyTrailService {
   }
 
   private async getUserPerformance(userId: number, skillCategoryId: number): Promise<StudyTrailPerformance> {
+    const cacheKey = this.getCacheKey('user_performance', userId.toString(), skillCategoryId.toString());
+    const cached = this.getFromCache<StudyTrailPerformance>(cacheKey);
+
+    if (cached) {
+      return cached;
+    }
+
     let performance = await this.studyTrailPerformanceRepository.findOne({
       where: { user_id: userId, skill_category_id: skillCategoryId },
     });
@@ -634,33 +681,45 @@ export class StudyTrailService {
       performance = await this.studyTrailPerformanceRepository.save(performance);
     }
 
+    this.setCache(cacheKey, performance);
     return performance;
   }
 
   private async updateUserPerformance(userId: number, skillCategoryId: number, isCorrect: boolean, responseTime: number): Promise<void> {
-    const performance = await this.getUserPerformance(userId, skillCategoryId);
+    // Usar query mais eficiente para atualizar performance
+    const updateData: any = {
+      total_questions_answered: () => 'total_questions_answered + 1',
+      last_activity_date: new Date(),
+      updated_at: new Date(),
+    };
 
-    performance.total_questions_answered += 1;
     if (isCorrect) {
-      performance.correct_answers += 1;
-      performance.consecutive_correct_answers += 1;
-      performance.consecutive_incorrect_answers = 0;
+      updateData.correct_answers = () => 'correct_answers + 1';
+      updateData.consecutive_correct_answers = () => 'consecutive_correct_answers + 1';
+      updateData.consecutive_incorrect_answers = 0;
     } else {
-      performance.incorrect_answers += 1;
-      performance.consecutive_incorrect_answers += 1;
-      performance.consecutive_correct_answers = 0;
+      updateData.incorrect_answers = () => 'incorrect_answers + 1';
+      updateData.consecutive_incorrect_answers = () => 'consecutive_incorrect_answers + 1';
+      updateData.consecutive_correct_answers = 0;
     }
 
-    performance.success_rate = (performance.correct_answers / performance.total_questions_answered) * 100;
+    // Atualizar performance usando query builder para operações atômicas
+    await this.studyTrailPerformanceRepository.createQueryBuilder().update().set(updateData).where('user_id = :userId AND skill_category_id = :skillCategoryId', { userId, skillCategoryId }).execute();
 
-    // Atualizar tempo médio de resposta
-    const totalResponseTime = performance.average_response_time * (performance.total_questions_answered - 1) + responseTime;
-    performance.average_response_time = totalResponseTime / performance.total_questions_answered;
+    // Atualizar campos calculados separadamente
+    await this.studyTrailPerformanceRepository
+      .createQueryBuilder()
+      .update()
+      .set({
+        success_rate: () => '(correct_answers / total_questions_answered) * 100',
+        average_response_time: () => '((average_response_time * (total_questions_answered - 1)) + :responseTime) / total_questions_answered',
+      })
+      .where('user_id = :userId AND skill_category_id = :skillCategoryId', { userId, skillCategoryId })
+      .setParameter('responseTime', responseTime)
+      .execute();
 
-    performance.last_activity_date = new Date();
-    performance.updated_at = new Date();
-
-    await this.studyTrailPerformanceRepository.save(performance);
+    // Invalidar cache de performance do usuário
+    this.invalidateCache(`user_performance:${userId}:${skillCategoryId}`);
   }
 
   private calculateXPReward(difficulty: DifficultyLevel): number {
