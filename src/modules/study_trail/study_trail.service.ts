@@ -674,14 +674,14 @@ export class StudyTrailService {
 
   private async startStop(stop: StudyTrailStop): Promise<any> {
     // Se a parada estava FAILED, resetar questões antes de iniciar
-    if (stop.status === StudyTrailStopStatus.FAILED || stop.status === StudyTrailStopStatus.COMPLETED) {
-      await this.resetStopQuestions(stop.id);
-      // Resetar estatísticas da parada
-      stop.questions_answered = 0;
-      stop.correct_answers = 0;
-      stop.success_rate = 0;
-      stop.xp_earned = 0;
-    }
+    // if (stop.status === StudyTrailStopStatus.FAILED || stop.status === StudyTrailStopStatus.COMPLETED) {
+    // }
+    await this.resetStopQuestions(stop.id);
+    // Resetar estatísticas da parada
+    stop.questions_answered = 0;
+    stop.correct_answers = 0;
+    stop.success_rate = 0;
+    stop.xp_earned = 0;
 
     // Marcar parada como em progresso
     stop.status = StudyTrailStopStatus.IN_PROGRESS;
@@ -925,7 +925,9 @@ export class StudyTrailService {
     if (!nextStop) {
       // Criar próxima parada dinamicamente
       nextStop = await this.createStudyTrailStop(trailId, nextPosition, userId, skillCategoryId);
-    } else {
+    }
+
+    if (nextStop.status !== StudyTrailStopStatus.AVAILABLE) {
       nextStop.status = StudyTrailStopStatus.AVAILABLE;
       await this.studyTrailStopRepository.save(nextStop);
     }
