@@ -290,20 +290,28 @@ export class StudyTrailService {
       order: { created_at: 'DESC' },
     });
 
-    return trails.map(trail => ({
-      id: trail.id,
-      skill_category_id: trail.skill_category_id,
-      skill_category_name: trail.skill_category?.name || 'Categoria',
-      name: trail.name,
-      status: trail.status,
-      current_stop_position: trail.current_stop_position,
-      total_stops: trail.total_stops,
-      completion_percentage: trail.completion_percentage,
-      total_xp_earned: trail.total_xp_earned,
-      average_performance: trail.average_performance,
-      created_at: trail.created_at,
-      updated_at: trail.updated_at,
-    }));
+    // Calculate completion percentage for each trail
+    const trailsWithCompletion = await Promise.all(
+      trails.map(async trail => {
+        const completionPercentage = await this.calculateTrailCompletionPercentage(trail.id);
+        return {
+          id: trail.id,
+          skill_category_id: trail.skill_category_id,
+          skill_category_name: trail.skill_category?.name || 'Categoria',
+          name: trail.name,
+          status: trail.status,
+          current_stop_position: trail.current_stop_position,
+          total_stops: trail.total_stops,
+          completion_percentage: completionPercentage,
+          total_xp_earned: trail.total_xp_earned,
+          average_performance: trail.average_performance,
+          created_at: trail.created_at,
+          updated_at: trail.updated_at,
+        };
+      })
+    );
+
+    return trailsWithCompletion;
   }
 
   async getStudyTrailDetails(trailId: number, userId: number): Promise<StudyTrailDetails> {
@@ -346,6 +354,8 @@ export class StudyTrailService {
       })
     );
 
+    const completionPercentage = await this.calculateTrailCompletionPercentage(trailId);
+
     return {
       id: trail.id,
       skill_category_id: trail.skill_category_id,
@@ -355,7 +365,7 @@ export class StudyTrailService {
       status: trail.status,
       current_stop_position: trail.current_stop_position,
       total_stops: trail.total_stops,
-      completion_percentage: trail.completion_percentage,
+      completion_percentage: completionPercentage,
       total_xp_earned: trail.total_xp_earned,
       average_performance: trail.average_performance,
       created_at: trail.created_at,
@@ -911,6 +921,9 @@ export class StudyTrailService {
       // Atualizar trilha se for a última parada
       if (nextPosition > totalStops) {
         await this.completeStudyTrail(trailId);
+      } else {
+        // Update completion percentage when a stop is completed
+        await this.updateTrailCompletionPercentage(trailId);
       }
     } catch (error) {
       console.error('Erro ao desbloquear próxima parada:', error);
@@ -943,6 +956,14 @@ export class StudyTrailService {
       status: StudyTrailStatus.COMPLETED,
       completion_percentage: 100,
       completed_at: new Date(),
+    });
+  }
+
+  private async updateTrailCompletionPercentage(trailId: number): Promise<void> {
+    const completionPercentage = await this.calculateTrailCompletionPercentage(trailId);
+
+    await this.studyTrailRepository.update(trailId, {
+      completion_percentage: completionPercentage,
     });
   }
 
@@ -1036,6 +1057,8 @@ export class StudyTrailService {
       throw new NotFoundException('Trilha de estudos não encontrada');
     }
 
+    const completionPercentage = await this.calculateTrailCompletionPercentage(trailId);
+
     return {
       id: trail.id,
       skill_category_id: trail.skill_category_id,
@@ -1044,12 +1067,44 @@ export class StudyTrailService {
       status: trail.status,
       current_stop_position: trail.current_stop_position,
       total_stops: trail.total_stops,
-      completion_percentage: trail.completion_percentage,
+      completion_percentage: completionPercentage,
       total_xp_earned: trail.total_xp_earned,
       average_performance: trail.average_performance,
       created_at: trail.created_at,
       updated_at: trail.updated_at,
     };
+  }
+
+  private async calculateTrailCompletionPercentage(trailId: number): Promise<number> {
+    const trail = await this.studyTrailRepository.findOne({
+      where: { id: trailId },
+    });
+
+    if (!trail) {
+      return 0;
+    }
+
+    // If trail is completed, return 100%
+    if (trail.status === StudyTrailStatus.COMPLETED) {
+      return 100;
+    }
+
+    // Count completed stops
+    const completedStops = await this.studyTrailStopRepository.count({
+      where: {
+        study_trail_id: trailId,
+        status: StudyTrailStopStatus.COMPLETED,
+        is_active: true,
+      },
+    });
+
+    // Calculate percentage based on completed stops vs total stops
+    const completionPercentage =
+      trail.total_stops > 0
+        ? Math.round((completedStops / trail.total_stops) * 100 * 100) / 100 // Round to 2 decimal places
+        : 0;
+
+    return Math.min(completionPercentage, 100); // Cap at 100%
   }
 
   // Método para trocar estratégia de seleção de dificuldade (modular)
