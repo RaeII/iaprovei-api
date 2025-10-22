@@ -9,6 +9,11 @@ export enum StudyTrailStatus {
   PAUSED = 'paused',
 }
 
+export enum StudyTrailGenerationModel {
+  ADAPTIVE = 'adaptive', // Original model - generates stops dynamically based on performance
+  ALL_QUESTIONS_BY_DIFFICULTY = 'all_questions_by_difficulty', // New model - uses all questions ordered by difficulty
+}
+
 @Entity('study_trails')
 export class StudyTrail {
   @PrimaryGeneratedColumn()
@@ -32,6 +37,14 @@ export class StudyTrail {
     default: StudyTrailStatus.ACTIVE,
   })
   status: StudyTrailStatus;
+
+  @Column({
+    type: 'enum',
+    enum: StudyTrailGenerationModel,
+    default: StudyTrailGenerationModel.ADAPTIVE,
+    name: 'generation_model',
+  })
+  generation_model: StudyTrailGenerationModel;
 
   @Column({ name: 'current_stop_position', default: 1 })
   current_stop_position: number;
