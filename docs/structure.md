@@ -2,9 +2,9 @@ entities -> Ficam as estruturas das tabelas
 eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IlJhZWwiLCJzdWIiOjEsImlhdCI6MTc2MTg0NTQwMywiZXhwIjoxNzYxOTMxODAzfQ.W80-LDUBBm8wMTLe7TwAxua6BQXEFR4ZnyqLZyUoB78
 
 # INICIAR UM MODULO
-nest g m modules/user_plans
-nest g co modules/user_plans
-nest g s modules/user_plans
+nest g m modules/pagbank
+nest g co modules/pagbank
+nest g s modules/pagbank
 
 CREATE TABLE plans (
   id INT AUTO_INCREMENT PRIMARY KEY,

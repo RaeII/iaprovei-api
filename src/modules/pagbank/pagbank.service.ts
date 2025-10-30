@@ -1,0 +1,71 @@
+import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
+import { PublicKeysResponse } from './schemas/pagbank.schema';
+
+@Injectable()
+export class PagbankService {
+  private readonly logger = new Logger(PagbankService.name);
+  private readonly axiosInstance: AxiosInstance;
+
+  constructor() {
+    const baseUrl = process.env.URL_API_PAGBANK;
+    const token = process.env.TOKEN_TEST_PAGBANK;
+
+    if (!token) {
+      this.logger.warn('TOKEN_TEST_PAGBANK não foi configurado nas variáveis de ambiente');
+    }
+
+    this.axiosInstance = axios.create({
+      baseURL: baseUrl,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        accept: 'application/json',
+        'content-type': 'application/json',
+      },
+      timeout: 60000,
+    });
+  }
+
+  /**
+   * Método padrão para realizar requisições à API do PagBank
+   * @param endpoint - Endpoint da API (ex: 'oauth2/application')
+   * @param method - Método HTTP (GET, POST, PUT, DELETE)
+   * @param body - Corpo da requisição (opcional)
+   * @param additionalHeaders - Headers adicionais (opcional)
+   * @returns Promise com a resposta da API
+   */
+  private async request<T = any>(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET', body?: any, additionalHeaders?: Record<string, string>): Promise<T> {
+    const config: AxiosRequestConfig = {
+      method,
+      url: endpoint,
+      data: body,
+      headers: additionalHeaders,
+    };
+
+    try {
+      const response = await this.axiosInstance.request<T>(config);
+
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError;
+        const status = axiosError.response?.status;
+        const errorData = axiosError.response?.data;
+
+        this.logger.error(`\n\n Erro na requisição PagBank: ${status} - \n\n ${JSON.stringify(errorData)} \n\n`, axiosError.stack, '\n\n');
+
+        throw new InternalServerErrorException(`Erro ao comunicar com PagBank: ${status} - ${axiosError.message}`);
+      }
+
+      throw new InternalServerErrorException('Erro ao comunicar com o PagBank');
+    }
+  }
+
+  /**
+   * Obtém as chaves públicas do PagBank
+   * @returns Promise com os dados da aplicação criada
+   */
+  async GetPublicKeys(): Promise<PublicKeysResponse> {
+    return this.request<PublicKeysResponse>('public-keys', 'GET');
+  }
+}

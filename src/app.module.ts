@@ -24,6 +24,7 @@ import { StatisticsModule } from './modules/statistics/statistics.module';
 import { StudyTrailModule } from './modules/study_trail/study_trail.module';
 import { PlansModule } from './modules/plans/plans.module';
 import { UserPlansModule } from './modules/user_plans/user_plans.module';
+import { PagbankModule } from './modules/pagbank/pagbank.module';
 
 @Module({
   controllers: [GlobalOptionsController],
@@ -54,6 +55,7 @@ import { UserPlansModule } from './modules/user_plans/user_plans.module';
     StudyTrailModule,
     PlansModule,
     UserPlansModule,
+    PagbankModule,
   ],
   providers: [
     OverallFilterProvider,

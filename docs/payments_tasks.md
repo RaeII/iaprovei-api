@@ -1,0 +1,1 @@
+-[ ] Remover rota 'oauth2/application' do controller pagbank
