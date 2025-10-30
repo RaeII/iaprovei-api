@@ -23,6 +23,7 @@ import { SkillCategoryModule } from './modules/skill_category/skill_category.mod
 import { StatisticsModule } from './modules/statistics/statistics.module';
 import { StudyTrailModule } from './modules/study_trail/study_trail.module';
 import { PlansModule } from './modules/plans/plans.module';
+import { UserPlansModule } from './modules/user_plans/user_plans.module';
 
 @Module({
   controllers: [GlobalOptionsController],
@@ -52,6 +53,7 @@ import { PlansModule } from './modules/plans/plans.module';
     StatisticsModule,
     StudyTrailModule,
     PlansModule,
+    UserPlansModule,
   ],
   providers: [
     OverallFilterProvider,

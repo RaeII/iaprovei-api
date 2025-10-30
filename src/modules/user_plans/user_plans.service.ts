@@ -1,0 +1,180 @@
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, FindOptionsWhere } from 'typeorm';
+import { UserPlan as UserPlanEntity, UserPlanStatus } from '@/entities/user_plan.entity';
+import { UserPlansValidator } from '@/modules/user_plans/user_plans.validator';
+import { DataNotFoundException } from '@/common/exceptions/data-not-found.exception';
+import { UserPlanCreate, UserPlanUpdate, UserPlanListData, UserPlanDetail, UserPlanQuery, UserPlanListDataSchema, UserPlanDetailSchema } from './schemas/user_plan.schema';
+import { Pagination, PaginationMeta } from '@/common/schemas/pagination.schema';
+import { createPaginationMeta, generateOffset } from '@/common/utils/query-utils';
+
+@Injectable()
+export class UserPlansService {
+  constructor(
+    @InjectRepository(UserPlanEntity)
+    private userPlansRepository: Repository<UserPlanEntity>,
+    private userPlansValidator: UserPlansValidator
+  ) {}
+
+  // Helper method to get UserPlanListData select fields automatically from schema
+  private getUserPlanListSelectFields(): (keyof UserPlanEntity)[] {
+    const userPlanListKeys = Object.keys(UserPlanListDataSchema.shape) as (keyof UserPlanEntity)[];
+    return userPlanListKeys;
+  }
+
+  // Helper method to get UserPlanDetail select fields automatically from schema
+  private getUserPlanDetailSelectFields(): (keyof UserPlanEntity)[] {
+    const userPlanDetailKeys = Object.keys(UserPlanDetailSchema.shape) as (keyof UserPlanEntity)[];
+    return userPlanDetailKeys;
+  }
+
+  async create(createUserPlanDto: UserPlanCreate): Promise<UserPlanDetail> {
+    await this.userPlansValidator.assertUserExists(createUserPlanDto.user_id);
+    await this.userPlansValidator.assertPlanExists(createUserPlanDto.plan_id);
+    await this.userPlansValidator.assertUserPlanDoesNotExist(createUserPlanDto.user_id, createUserPlanDto.plan_id);
+
+    const newUserPlan = this.userPlansRepository.create({
+      ...createUserPlanDto,
+      status: createUserPlanDto.status || UserPlanStatus.ACTIVE,
+    } as Partial<UserPlanEntity>);
+
+    const savedUserPlan = await this.userPlansRepository.save(newUserPlan);
+
+    // Fetch the saved user plan with only UserPlanDetail fields
+    return this.findOne(savedUserPlan.id);
+  }
+
+  async findAll(pagination: Pagination, query?: UserPlanQuery): Promise<{ data: UserPlanListData[]; meta: PaginationMeta }> {
+    const { page, limit } = pagination;
+    const offset = generateOffset(page, limit);
+
+    // Build where conditions based on query
+    const where: FindOptionsWhere<UserPlanEntity> = {};
+
+    if (query?.user_id) {
+      where.user_id = query.user_id;
+    }
+
+    if (query?.plan_id) {
+      where.plan_id = query.plan_id;
+    }
+
+    if (query?.status) {
+      where.status = query.status as UserPlanStatus;
+    }
+
+    // For date range queries, we'll need to use QueryBuilder for more complex conditions
+    const queryBuilder = this.userPlansRepository
+      .createQueryBuilder('user_plan')
+      .select(this.getUserPlanListSelectFields().map(field => `user_plan.${String(field)}`))
+      .where(where);
+
+    // Get total count and paginated results
+    const [data, total] = await Promise.all([queryBuilder.orderBy('user_plan.created_at', 'DESC').skip(offset).take(limit).getRawMany(), queryBuilder.getCount()]);
+
+    const meta = createPaginationMeta(total, page, limit);
+
+    return { data, meta };
+  }
+
+  async findOne(id: number): Promise<UserPlanDetail> {
+    const userPlan = await this.userPlansRepository.findOne({
+      where: { id },
+      select: this.getUserPlanDetailSelectFields(),
+    });
+
+    if (!userPlan) {
+      throw new DataNotFoundException(`UserPlan with id "${id}"`, 'Plano do usuário', UserPlansService.name);
+    }
+
+    return userPlan;
+  }
+
+  async findOneEager(id: number): Promise<UserPlanEntity> {
+    const userPlan = await this.userPlansRepository.findOne({ where: { id } });
+
+    if (!userPlan) {
+      throw new DataNotFoundException(`UserPlan with id "${id}"`, 'Plano do usuário', UserPlansService.name);
+    }
+
+    return userPlan;
+  }
+
+  async findByUserId(userId: number, pagination: Pagination): Promise<{ data: UserPlanListData[]; meta: PaginationMeta }> {
+    const { page, limit } = pagination;
+    const offset = generateOffset(page, limit);
+
+    const [data, total] = await this.userPlansRepository.findAndCount({
+      where: { user_id: userId },
+      select: this.getUserPlanListSelectFields(),
+      order: { created_at: 'DESC' },
+      skip: offset,
+      take: limit,
+    });
+
+    const meta = createPaginationMeta(total, page, limit);
+
+    return { data, meta };
+  }
+
+  async findActiveByUserId(userId: number): Promise<UserPlanListData[]> {
+    return this.userPlansRepository.find({
+      where: { user_id: userId, status: UserPlanStatus.ACTIVE },
+      select: this.getUserPlanListSelectFields(),
+      order: { created_at: 'DESC' },
+    });
+  }
+
+  async findByPlanId(planId: number, pagination: Pagination): Promise<{ data: UserPlanListData[]; meta: PaginationMeta }> {
+    const { page, limit } = pagination;
+    const offset = generateOffset(page, limit);
+
+    const [data, total] = await this.userPlansRepository.findAndCount({
+      where: { plan_id: planId },
+      select: this.getUserPlanListSelectFields(),
+      order: { created_at: 'DESC' },
+      skip: offset,
+      take: limit,
+    });
+
+    const meta = createPaginationMeta(total, page, limit);
+
+    return { data, meta };
+  }
+
+  async update(id: number, updateUserPlanDto: UserPlanUpdate): Promise<UserPlanDetail> {
+    const userPlan = await this.findOneEager(id);
+
+    // Validate plan_id if it's being updated
+    if (updateUserPlanDto.plan_id && updateUserPlanDto.plan_id !== userPlan.plan_id) {
+      await this.userPlansValidator.assertPlanExists(updateUserPlanDto.plan_id);
+      await this.userPlansValidator.assertUserPlanDoesNotExist(userPlan.user_id, updateUserPlanDto.plan_id);
+    }
+
+    Object.assign(userPlan, updateUserPlanDto);
+
+    await this.userPlansRepository.save(userPlan as UserPlanEntity);
+
+    // Return the updated user plan with only UserPlanDetail fields
+    return this.findOne(id);
+  }
+
+  async remove(id: number): Promise<void> {
+    const result = await this.userPlansRepository.delete(id);
+    if (result.affected === 0) {
+      throw new DataNotFoundException(`UserPlan with id "${id}"`, 'Plano do usuário', UserPlansService.name);
+    }
+  }
+
+  async cancelUserPlan(id: number): Promise<UserPlanDetail> {
+    return this.update(id, { status: UserPlanStatus.CANCELLED });
+  }
+
+  async activateUserPlan(id: number): Promise<UserPlanDetail> {
+    return this.update(id, { status: UserPlanStatus.ACTIVE });
+  }
+
+  async deactivateUserPlan(id: number): Promise<UserPlanDetail> {
+    return this.update(id, { status: UserPlanStatus.INACTIVE });
+  }
+}
