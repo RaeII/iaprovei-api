@@ -1,6 +1,6 @@
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
-import { PublicKeysResponse } from './schemas/pagbank.schema';
+import { PublicKeys, CreatePlan, PlanResponse } from './schemas/pagbank.schema';
 
 @Injectable()
 export class PagbankService {
@@ -65,7 +65,16 @@ export class PagbankService {
    * Obtém as chaves públicas do PagBank
    * @returns Promise com os dados da aplicação criada
    */
-  async GetPublicKeys(): Promise<PublicKeysResponse> {
-    return this.request<PublicKeysResponse>('public-keys', 'GET');
+  async GetPublicKeys(): Promise<PublicKeys> {
+    return await this.request('public-keys', 'GET');
+  }
+
+  /**
+   * Cria um novo plano de assinatura no PagBank
+   * @param planData - Dados do plano a ser criado
+   * @returns Promise com os dados do plano criado
+   */
+  async createPlan(planData: CreatePlan): Promise<PlanResponse> {
+    return await this.request('plans', 'POST', planData);
   }
 }
