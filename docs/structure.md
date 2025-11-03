@@ -1,5 +1,5 @@
 entities -> Ficam as estruturas das tabelas
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IlJhZWwiLCJzdWIiOjEsImlhdCI6MTc2MTg0NTQwMywiZXhwIjoxNzYxOTMxODAzfQ.W80-LDUBBm8wMTLe7TwAxua6BQXEFR4ZnyqLZyUoB78
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IlJhZWwiLCJzdWIiOjEsImlhdCI6MTc2MjE4MTE4MywiZXhwIjoxNzYyMjY3NTgzfQ.btNycl5CXNTK5nAI0Q8H8uxnwenPwdqiRvWpnujN-pc
 
 # INICIAR UM MODULO
 nest g m modules/pagbank
@@ -63,3 +63,8 @@ se for necessário usar ou criar algum novo tipo relacionado à paginação.
 Validações compartilhadas, como verificação de existência (assert existence),
 devem ser colocadas em:
 @shared 
+
+# CRIAR ROTA DO PAGBANK
+Crie uma nova rota para atualizar o plano em @pagbank.controller.ts o bory da requisição serão os mesmo de @Post('plans') mas agora terá o parametro "plan_id" na url na requisição: put "/plans/$plan_id".
+Faça a função de requisição em @pagbank.service.ts e se precisar ajuste os tipos em @pagbank.schema.ts .
+Mantenha o mesmo padão de código do projeto!

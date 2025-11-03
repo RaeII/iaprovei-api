@@ -4,6 +4,7 @@ import { z } from 'zod';
 // Enums para os schemas
 export const IntervalUnitSchema = z.enum(['DAY', 'MONTH', 'YEAR']);
 export const PaymentMethodSchema = z.enum(['CREDIT_CARD', 'DEBIT_CARD', 'PIX', 'BOLETO']);
+export const PlanStatusSchema = z.enum(['ACTIVE', 'INACTIVE']);
 
 // Schema para a resposta de criação de aplicação OAuth2
 export const PublicKeysSchema = z.object({
@@ -30,6 +31,21 @@ export const PlanTrialSchema = z.object({
   hold_setup_fee: z.boolean().default(false),
 });
 
+// Schema para os links da resposta do PagBank
+export const PlanLinkSchema = z.object({
+  rel: z.string(),
+  href: z.string().url(),
+  media: z.string(),
+  type: z.string(),
+});
+
+// Schema para o result_set de paginação
+export const ResultSetSchema = z.object({
+  total: z.number().int(),
+  offset: z.number().int(),
+  limit: z.number().int(),
+});
+
 // Schema para criar um plano
 export const CreatePlanSchema = z.object({
   reference_id: z.string().min(1, 'Reference ID é obrigatório').max(65, 'Reference ID deve ter no máximo 65 caracteres'),
@@ -49,6 +65,7 @@ export const CreatePlanSchema = z.object({
 export const PlanResponseSchema = z.object({
   id: z.string(),
   reference_id: z.string(),
+  status: PlanStatusSchema,
   name: z.string(),
   description: z.string().optional(),
   amount: PlanAmountSchema,
@@ -57,11 +74,21 @@ export const PlanResponseSchema = z.object({
   billing_cycles: z.number().optional(),
   trial: PlanTrialSchema.optional(),
   limit_subscriptions: z.number().optional(),
-  payment_method: z.array(z.string()).optional(),
-  editable: z.boolean(),
-  status: z.string(),
+  payment_method: z.array(PaymentMethodSchema).optional(),
   created_at: z.string(),
   updated_at: z.string(),
+  editable: z.boolean(),
+  links: z.array(PlanLinkSchema),
+});
+
+// Schema para a resposta da listagem de planos
+export const GetPlansDataSchema = z.object({
+  result_set: ResultSetSchema,
+  plans: z.array(PlanResponseSchema),
+});
+
+export const GetPlansResponseSchema = z.object({
+  data: GetPlansDataSchema,
 });
 
 // OpenAPI schemas
@@ -76,6 +103,7 @@ export const createPlanResponseSchema = z.object({
 export const publicKeysResponseOpenapi: any = zodToOpenAPI(publicKeysResponseSchema);
 export const createPlanOpenapi: any = zodToOpenAPI(CreatePlanSchema);
 export const createPlanResponseOpenapi: any = zodToOpenAPI(createPlanResponseSchema);
+export const getPlansResponseOpenapi: any = zodToOpenAPI(GetPlansResponseSchema);
 
 // Type exports
 export type PublicKeys = z.infer<typeof PublicKeysSchema>;
@@ -83,3 +111,8 @@ export type PublicKeysResponse = z.infer<typeof publicKeysResponseSchema>;
 export type CreatePlan = z.infer<typeof CreatePlanSchema>;
 export type PlanResponse = z.infer<typeof PlanResponseSchema>;
 export type CreatePlanResponse = z.infer<typeof createPlanResponseSchema>;
+export type ResultSet = z.infer<typeof ResultSetSchema>;
+export type GetPlansData = z.infer<typeof GetPlansDataSchema>;
+export type GetPlansResponse = z.infer<typeof GetPlansResponseSchema>;
+export type PlanLink = z.infer<typeof PlanLinkSchema>;
+export type PlanStatus = z.infer<typeof PlanStatusSchema>;

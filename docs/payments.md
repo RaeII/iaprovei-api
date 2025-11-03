@@ -34,7 +34,7 @@ Doc webhook -> https://developer.pagbank.com.br/reference/webhooks-assinaturas
 # Criar plano
 
 {
-  "reference_id": "Pro_29.99",
+  "reference_id": "Pro2990",
   "name": "iaProvei Pro",
   "description": "Plano Pro, acesso à todos módulos de estudo e vida infinitas",
   "amount": {
@@ -43,7 +43,7 @@ Doc webhook -> https://developer.pagbank.com.br/reference/webhooks-assinaturas
   },
   "interval": {
     "unit": "MONTH",
-    "length": 12
+    "length": 1
   },
   "trial": {
     "days": 3,

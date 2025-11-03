@@ -1,6 +1,6 @@
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
-import { PublicKeys, CreatePlan, PlanResponse } from './schemas/pagbank.schema';
+import { PublicKeys, CreatePlan, PlanResponse, GetPlansData } from './schemas/pagbank.schema';
 
 @Injectable()
 export class PagbankService {
@@ -45,6 +45,8 @@ export class PagbankService {
     try {
       const response = await this.axiosInstance.request<T>(config);
 
+      console.log('response', response.data);
+
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -76,5 +78,23 @@ export class PagbankService {
    */
   async createPlan(planData: CreatePlan): Promise<PlanResponse> {
     return await this.request('plans', 'POST', planData);
+  }
+
+  /**
+   * Busca todos os planos de assinatura do PagBank
+   * @returns Promise com a lista de planos
+   */
+  async getPlans(): Promise<GetPlansData> {
+    return await this.request('plans', 'GET');
+  }
+
+  /**
+   * Atualiza um plano de assinatura existente no PagBank
+   * @param planId - ID do plano a ser atualizado
+   * @param planData - Dados do plano a serem atualizados
+   * @returns Promise com os dados do plano atualizado
+   */
+  async updatePlan(planId: string, planData: CreatePlan): Promise<PlanResponse> {
+    return await this.request(`plans/${planId}`, 'PUT', planData);
   }
 }
