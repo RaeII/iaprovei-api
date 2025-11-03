@@ -117,3 +117,38 @@ Resposta:
     ]
   }
 }
+
+# Eviar dados do cartão
+
+{
+  "phones": [
+    {
+      "country": "55",
+      "area": "48",
+      "number": "998574630"
+    }
+  ],
+  "address": {
+    "street": "av osvaldo reis",
+    "number": "161",
+    "complement": "esquina",
+    "locality": "Praia Brava",
+    "city": "Itajai",
+    "region_code": "SC",
+    "postal_code": "8896000",
+    "country": "BRA"
+  },
+  "billing_info": [
+    {
+      "card": {
+        "encrypted": "44444478965444545"
+      },
+      "type": "CREDIT_CARD"
+    }
+  ],
+  "reference_id": "2",
+  "name": "israel",
+  "email": "israel.zeferino@hotmail.com",
+  "tax_id": "09940307977",
+  "birth_date": "1997-01-06"
+}
