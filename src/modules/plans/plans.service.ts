@@ -29,7 +29,7 @@ export class PlansService {
   async findAllActive(): Promise<PlanActive[]> {
     return this.plansRepository.find({
       where: { is_active: true },
-      select: ['id', 'name', 'description', 'price', 'duration_in_days'],
+      select: ['id', 'id_pagbank', 'title', 'description', 'description_topics', 'is_active'],
     });
   }
 
@@ -61,7 +61,7 @@ export class PlansService {
   async findOneActive(id: number): Promise<PlanActive> {
     const plan = await this.plansRepository.findOne({
       where: { id, is_active: true },
-      select: ['id', 'name', 'description', 'price', 'duration_in_days'],
+      select: ['id', 'id_pagbank', 'title', 'description', 'description_topics', 'is_active'],
     });
 
     if (!plan) {
@@ -76,9 +76,9 @@ export class PlansService {
    * @param name Nome do plano
    * @returns Plano encontrado ou null
    */
-  async findByName(name: string): Promise<PlanDetail | null> {
+  async findByIdPagbank(idPagbank: string): Promise<PlanDetail | null> {
     return this.plansRepository.findOne({
-      where: { name },
+      where: { id_pagbank: idPagbank },
       select: Object.keys(PlanListDataSchema.shape) as (keyof PlanEntity)[],
     });
   }
@@ -101,8 +101,13 @@ export class PlansService {
    * @param maxPrice Preço máximo
    * @returns Lista de planos na faixa de preço
    */
-  async findByPriceRange(minPrice: number, maxPrice: number): Promise<PlanActive[]> {
-    return this.plansRepository.createQueryBuilder('plan').where('plan.price >= :minPrice', { minPrice }).andWhere('plan.price <= :maxPrice', { maxPrice }).andWhere('plan.is_active = :isActive', { isActive: true }).select(['plan.id', 'plan.name', 'plan.description', 'plan.price', 'plan.duration_in_days']).getMany();
+  async findByDescriptionTopics(searchTerm: string): Promise<PlanActive[]> {
+    return this.plansRepository
+      .createQueryBuilder('plan')
+      .where('plan.description_topics LIKE :searchTerm', { searchTerm: `%${searchTerm}%` })
+      .andWhere('plan.is_active = :isActive', { isActive: true })
+      .select(['plan.id', 'plan.id_pagbank', 'plan.title', 'plan.description', 'plan.description_topics', 'plan.is_active'])
+      .getMany();
   }
 
   /**
@@ -110,10 +115,10 @@ export class PlansService {
    * @param durationInDays Duração em dias
    * @returns Lista de planos com a duração especificada
    */
-  async findByDuration(durationInDays: number): Promise<PlanActive[]> {
+  async findByIdPagbankPattern(pattern: string): Promise<PlanActive[]> {
     return this.plansRepository.find({
-      where: { duration_in_days: durationInDays, is_active: true },
-      select: ['id', 'name', 'description', 'price', 'duration_in_days'],
+      where: { id_pagbank: pattern, is_active: true },
+      select: ['id', 'id_pagbank', 'title', 'description', 'description_topics', 'is_active'],
     });
   }
 

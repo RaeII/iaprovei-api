@@ -4,10 +4,10 @@ import { zodToOpenAPI } from 'nestjs-zod';
 // Base plan schema - entidade completa
 export const PlanSchema = z.object({
   id: z.number(),
-  name: z.string().min(1, 'Nome do plano é obrigatório').max(100, 'Nome deve ter no máximo 100 caracteres'),
-  description: z.string().optional(),
-  price: z.number().positive('Preço deve ser um valor positivo'),
-  duration_in_days: z.number().int().positive('Duração deve ser um número inteiro positivo'),
+  id_pagbank: z.string(),
+  title: z.string(),
+  description: z.string(),
+  description_topics: z.string().optional(),
   is_active: z.boolean().default(true),
   created_at: z.date(),
   updated_at: z.date(),
@@ -22,10 +22,11 @@ export const PlanDetailSchema = PlanSchema;
 // Schema para planos ativos (apenas campos essenciais)
 export const PlanActiveSchema = PlanSchema.pick({
   id: true,
-  name: true,
+  id_pagbank: true,
+  title: true,
   description: true,
-  price: true,
-  duration_in_days: true,
+  description_topics: true,
+  is_active: true,
 });
 
 // Schema para criar planos - exclui campos auto-gerados

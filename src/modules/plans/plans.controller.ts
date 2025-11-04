@@ -49,9 +49,7 @@ export class PlansController {
   @ApiResponse({ status: 201, description: 'Plano criado com sucesso' })
   async create(@Body(new ZodValidationPipe(PlanCreateSchema)) createPlanDto: PlanCreate): Promise<PlanDetailResponse> {
     // Validações antes da criação
-    await this.planValidator.assertNameIsNotAlreadyInUse(createPlanDto.name);
-    this.planValidator.assertPriceIsValid(createPlanDto.price);
-    this.planValidator.assertDurationIsValid(createPlanDto.duration_in_days);
+    await this.planValidator.assertIdPagbankIsNotAlreadyInUse(createPlanDto.id_pagbank);
 
     const plan = await this.plansService.create(createPlanDto);
     return { data: plan };
@@ -67,14 +65,8 @@ export class PlansController {
     await this.planValidator.assertPlanExists(id);
 
     // Validações condicionais
-    if (updatePlanDto.name) {
-      await this.planValidator.assertNameIsNotAlreadyInUse(updatePlanDto.name, id);
-    }
-    if (updatePlanDto.price !== undefined) {
-      this.planValidator.assertPriceIsValid(updatePlanDto.price);
-    }
-    if (updatePlanDto.duration_in_days !== undefined) {
-      this.planValidator.assertDurationIsValid(updatePlanDto.duration_in_days);
+    if (updatePlanDto.id_pagbank) {
+      await this.planValidator.assertIdPagbankIsNotAlreadyInUse(updatePlanDto.id_pagbank, id);
     }
 
     const plan = await this.plansService.update(id, updatePlanDto);

@@ -9,7 +9,7 @@ export interface IPlanLookupService {
    * @param planId ID do plano
    * @returns Objeto com is_active ou null se não existir
    */
-  findActivePlanById(planId: number): Promise<{ id: number; is_active: boolean; price: number; duration_in_days: number } | null>;
+  findActivePlanById(planId: number): Promise<{ id: number; is_active: boolean; id_pagbank: string; description_topics?: string } | null>;
 
   /**
    * Verifica se um plano existe e está ativo

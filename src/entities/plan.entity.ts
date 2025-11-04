@@ -6,17 +6,17 @@ export class Plan implements PlanType {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ length: 100 })
-  name: string;
+  @Column({ name: 'id_pagbank' })
+  id_pagbank: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ name: 'title' })
+  title: string;
+
+  @Column({ name: 'description', type: 'text' })
   description: string;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
-  price: number;
-
-  @Column({ name: 'duration_in_days' })
-  duration_in_days: number;
+  @Column({ name: 'description_topics', type: 'text', nullable: true })
+  description_topics: string;
 
   @Column({ name: 'is_active', type: 'tinyint', default: 1 })
   is_active: boolean;

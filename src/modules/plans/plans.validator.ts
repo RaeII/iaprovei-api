@@ -17,13 +17,13 @@ export class PlanValidator {
   ) {}
 
   /**
-   * Verifica se um plano com o nome especificado já existe
-   * @param name Nome do plano
+   * Verifica se um plano com o id_pagbank especificado já existe
+   * @param idPagbank ID do PagBank
    * @param excludeId ID do plano a ser excluído da verificação (para updates)
    * @throws ConflictException se o plano já existir
    */
-  async assertNameIsNotAlreadyInUse(name: string, excludeId?: number): Promise<void> {
-    const queryBuilder = this.planRepository.createQueryBuilder('plan').where('plan.name = :name', { name }).select('plan.id');
+  async assertIdPagbankIsNotAlreadyInUse(idPagbank: string, excludeId?: number): Promise<void> {
+    const queryBuilder = this.planRepository.createQueryBuilder('plan').where('plan.id_pagbank = :idPagbank', { idPagbank }).select('plan.id');
 
     if (excludeId) {
       queryBuilder.andWhere('plan.id != :excludeId', { excludeId });
@@ -32,7 +32,7 @@ export class PlanValidator {
     const existingPlan = await queryBuilder.getOne();
 
     if (existingPlan) {
-      throw new ConflictException(`Plano com o nome "${name}" já existe`);
+      throw new ConflictException(`Plano com o ID PagBank "${idPagbank}" já existe`);
     }
   }
 
@@ -66,25 +66,4 @@ export class PlanValidator {
     }
   }
 
-  /**
-   * Valida se o preço é positivo
-   * @param price Preço
-   * @throws ConflictException se o preço for inválido
-   */
-  assertPriceIsValid(price: number): void {
-    if (price <= 0) {
-      throw new ConflictException('O preço do plano deve ser maior que zero');
-    }
-  }
-
-  /**
-   * Valida se a duração é válida
-   * @param durationInDays Duração em dias
-   * @throws ConflictException se a duração for inválida
-   */
-  assertDurationIsValid(durationInDays: number): void {
-    if (durationInDays <= 0) {
-      throw new ConflictException('A duração do plano deve ser maior que zero');
-    }
-  }
 }
