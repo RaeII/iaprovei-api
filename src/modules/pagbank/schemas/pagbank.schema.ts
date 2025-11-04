@@ -134,6 +134,30 @@ export const CreateCustomerSchema = z.object({
   birth_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data de nascimento deve estar no formato YYYY-MM-DD'),
 });
 
+// Schema para o plano na subscription
+export const SubscriptionPlanSchema = z.object({
+  id: z.string().min(1, 'ID do plano é obrigatório'),
+});
+
+// Schema para o cartão de pagamento na subscription
+export const SubscriptionPaymentCardSchema = z.object({
+  security_code: z.number().int().min(100).max(9999, 'Código de segurança deve ter entre 3 e 4 dígitos'),
+});
+
+// Schema para o método de pagamento na subscription
+export const SubscriptionPaymentMethodSchema = z.object({
+  type: PaymentMethodSchema,
+  card: SubscriptionPaymentCardSchema,
+});
+
+// Schema para criar uma subscription
+export const CreateSubscriptionSchema = z.object({
+  plan: SubscriptionPlanSchema,
+  customer: CreateCustomerSchema,
+  payment_method: z.array(SubscriptionPaymentMethodSchema).min(1, 'Pelo menos um método de pagamento é obrigatório'),
+  reference_id: z.string().min(1, 'Reference ID é obrigatório').max(65, 'Reference ID deve ter no máximo 65 caracteres'),
+});
+
 // Schema para a resposta de criação de customer
 export const CustomerResponseSchema = z.object({
   id: z.string(),
@@ -163,12 +187,38 @@ export const createCustomerResponseSchema = z.object({
   data: CustomerResponseSchema,
 });
 
+// Schema para a resposta de criação de subscription
+export const SubscriptionResponseSchema = z.object({
+  id: z.string(),
+  reference_id: z.string(),
+  status: z.string(),
+  plan: z.object({
+    id: z.string(),
+    name: z.string(),
+    amount: PlanAmountSchema,
+  }),
+  customer: z.object({
+    id: z.string(),
+    name: z.string(),
+    email: z.string(),
+  }),
+  created_at: z.string(),
+  updated_at: z.string(),
+  links: z.array(PlanLinkSchema),
+});
+
+export const createSubscriptionResponseSchema = z.object({
+  data: SubscriptionResponseSchema,
+});
+
 export const publicKeysResponseOpenapi: any = zodToOpenAPI(publicKeysResponseSchema);
 export const createPlanOpenapi: any = zodToOpenAPI(CreatePlanSchema);
 export const createPlanResponseOpenapi: any = zodToOpenAPI(createPlanResponseSchema);
 export const getPlansResponseOpenapi: any = zodToOpenAPI(GetPlansResponseSchema);
 export const createCustomerOpenapi: any = zodToOpenAPI(CreateCustomerSchema);
 export const createCustomerResponseOpenapi: any = zodToOpenAPI(createCustomerResponseSchema);
+export const createSubscriptionOpenapi: any = zodToOpenAPI(CreateSubscriptionSchema);
+export const createSubscriptionResponseOpenapi: any = zodToOpenAPI(createSubscriptionResponseSchema);
 
 // Type exports
 export type PublicKeys = z.infer<typeof PublicKeysSchema>;
@@ -188,3 +238,9 @@ export type CustomerBillingInfo = z.infer<typeof CustomerBillingInfoSchema>;
 export type CreateCustomer = z.infer<typeof CreateCustomerSchema>;
 export type CustomerResponse = z.infer<typeof CustomerResponseSchema>;
 export type CreateCustomerResponse = z.infer<typeof createCustomerResponseSchema>;
+export type SubscriptionPlan = z.infer<typeof SubscriptionPlanSchema>;
+export type SubscriptionPaymentCard = z.infer<typeof SubscriptionPaymentCardSchema>;
+export type SubscriptionPaymentMethod = z.infer<typeof SubscriptionPaymentMethodSchema>;
+export type CreateSubscription = z.infer<typeof CreateSubscriptionSchema>;
+export type SubscriptionResponse = z.infer<typeof SubscriptionResponseSchema>;
+export type CreateSubscriptionResponse = z.infer<typeof createSubscriptionResponseSchema>;
