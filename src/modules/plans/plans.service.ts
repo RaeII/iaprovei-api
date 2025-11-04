@@ -29,7 +29,7 @@ export class PlansService {
   async findAllActive(): Promise<PlanActive[]> {
     return this.plansRepository.find({
       where: { is_active: true },
-      select: ['id', 'id_pagbank', 'title', 'description', 'description_topics', 'is_active'],
+      select: ['id', 'id_pagbank', 'title', 'description', 'description_topics', 'price', 'is_active'],
     });
   }
 
@@ -61,7 +61,7 @@ export class PlansService {
   async findOneActive(id: number): Promise<PlanActive> {
     const plan = await this.plansRepository.findOne({
       where: { id, is_active: true },
-      select: ['id', 'id_pagbank', 'title', 'description', 'description_topics', 'is_active'],
+      select: ['id', 'id_pagbank', 'title', 'description', 'description_topics', 'price', 'is_active'],
     });
 
     if (!plan) {
@@ -106,7 +106,7 @@ export class PlansService {
       .createQueryBuilder('plan')
       .where('plan.description_topics LIKE :searchTerm', { searchTerm: `%${searchTerm}%` })
       .andWhere('plan.is_active = :isActive', { isActive: true })
-      .select(['plan.id', 'plan.id_pagbank', 'plan.title', 'plan.description', 'plan.description_topics', 'plan.is_active'])
+      .select(['plan.id', 'plan.id_pagbank', 'plan.title', 'plan.description', 'plan.description_topics', 'plan.price', 'plan.is_active'])
       .getMany();
   }
 
@@ -118,7 +118,7 @@ export class PlansService {
   async findByIdPagbankPattern(pattern: string): Promise<PlanActive[]> {
     return this.plansRepository.find({
       where: { id_pagbank: pattern, is_active: true },
-      select: ['id', 'id_pagbank', 'title', 'description', 'description_topics', 'is_active'],
+      select: ['id', 'id_pagbank', 'title', 'description', 'description_topics', 'price', 'is_active'],
     });
   }
 

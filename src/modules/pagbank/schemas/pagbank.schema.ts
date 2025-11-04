@@ -5,6 +5,7 @@ import { z } from 'zod';
 export const IntervalUnitSchema = z.enum(['DAY', 'MONTH', 'YEAR']);
 export const PaymentMethodSchema = z.enum(['CREDIT_CARD', 'DEBIT_CARD', 'PIX', 'BOLETO']);
 export const PlanStatusSchema = z.enum(['ACTIVE', 'INACTIVE']);
+export const BillingTypeSchema = z.enum(['CREDIT_CARD', 'DEBIT_CARD']);
 
 // Schema para a resposta de criação de aplicação OAuth2
 export const PublicKeysSchema = z.object({
@@ -91,6 +92,64 @@ export const GetPlansResponseSchema = z.object({
   data: GetPlansDataSchema,
 });
 
+// Schema para telefone do customer
+export const CustomerPhoneSchema = z.object({
+  country: z.string().min(1, 'Código do país é obrigatório'),
+  area: z.string().min(1, 'Código de área é obrigatório'),
+  number: z.string().min(1, 'Número do telefone é obrigatório'),
+});
+
+// Schema para endereço do customer
+export const CustomerAddressSchema = z.object({
+  street: z.string().min(1, 'Rua é obrigatória'),
+  number: z.string().min(1, 'Número é obrigatório'),
+  complement: z.string().optional(),
+  locality: z.string().min(1, 'Bairro é obrigatório'),
+  city: z.string().min(1, 'Cidade é obrigatória'),
+  region_code: z.string().min(2, 'Código da região é obrigatório').max(2, 'Código da região deve ter 2 caracteres'),
+  postal_code: z.string().min(1, 'CEP é obrigatório'),
+  country: z.string().min(3, 'Código do país é obrigatório').max(3, 'Código do país deve ter 3 caracteres'),
+});
+
+// Schema para cartão criptografado
+export const CustomerCardSchema = z.object({
+  encrypted: z.string().min(1, 'Dados criptografados do cartão são obrigatórios'),
+});
+
+// Schema para informações de cobrança
+export const CustomerBillingInfoSchema = z.object({
+  card: CustomerCardSchema,
+  type: BillingTypeSchema,
+});
+
+// Schema para criar um customer
+export const CreateCustomerSchema = z.object({
+  phones: z.array(CustomerPhoneSchema).min(1, 'Pelo menos um telefone é obrigatório'),
+  address: CustomerAddressSchema,
+  billing_info: z.array(CustomerBillingInfoSchema).min(1, 'Pelo menos uma informação de cobrança é obrigatória'),
+  reference_id: z.string().min(1, 'Reference ID é obrigatório').max(65, 'Reference ID deve ter no máximo 65 caracteres'),
+  name: z.string().min(1, 'Nome é obrigatório').max(100, 'Nome deve ter no máximo 100 caracteres'),
+  email: z.string().email('Email deve ter um formato válido').max(100, 'Email deve ter no máximo 100 caracteres'),
+  tax_id: z.string().min(11, 'CPF deve ter pelo menos 11 caracteres').max(14, 'CPF deve ter no máximo 14 caracteres'),
+  birth_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data de nascimento deve estar no formato YYYY-MM-DD'),
+});
+
+// Schema para a resposta de criação de customer
+export const CustomerResponseSchema = z.object({
+  id: z.string(),
+  reference_id: z.string(),
+  name: z.string(),
+  email: z.string(),
+  tax_id: z.string(),
+  birth_date: z.string(),
+  phones: z.array(CustomerPhoneSchema),
+  address: CustomerAddressSchema,
+  billing_info: z.array(CustomerBillingInfoSchema),
+  created_at: z.string(),
+  updated_at: z.string(),
+  links: z.array(PlanLinkSchema),
+});
+
 // OpenAPI schemas
 export const publicKeysResponseSchema = z.object({
   data: PublicKeysSchema,
@@ -100,10 +159,16 @@ export const createPlanResponseSchema = z.object({
   data: PlanResponseSchema,
 });
 
+export const createCustomerResponseSchema = z.object({
+  data: CustomerResponseSchema,
+});
+
 export const publicKeysResponseOpenapi: any = zodToOpenAPI(publicKeysResponseSchema);
 export const createPlanOpenapi: any = zodToOpenAPI(CreatePlanSchema);
 export const createPlanResponseOpenapi: any = zodToOpenAPI(createPlanResponseSchema);
 export const getPlansResponseOpenapi: any = zodToOpenAPI(GetPlansResponseSchema);
+export const createCustomerOpenapi: any = zodToOpenAPI(CreateCustomerSchema);
+export const createCustomerResponseOpenapi: any = zodToOpenAPI(createCustomerResponseSchema);
 
 // Type exports
 export type PublicKeys = z.infer<typeof PublicKeysSchema>;
@@ -116,3 +181,10 @@ export type GetPlansData = z.infer<typeof GetPlansDataSchema>;
 export type GetPlansResponse = z.infer<typeof GetPlansResponseSchema>;
 export type PlanLink = z.infer<typeof PlanLinkSchema>;
 export type PlanStatus = z.infer<typeof PlanStatusSchema>;
+export type CustomerPhone = z.infer<typeof CustomerPhoneSchema>;
+export type CustomerAddress = z.infer<typeof CustomerAddressSchema>;
+export type CustomerCard = z.infer<typeof CustomerCardSchema>;
+export type CustomerBillingInfo = z.infer<typeof CustomerBillingInfoSchema>;
+export type CreateCustomer = z.infer<typeof CreateCustomerSchema>;
+export type CustomerResponse = z.infer<typeof CustomerResponseSchema>;
+export type CreateCustomerResponse = z.infer<typeof createCustomerResponseSchema>;

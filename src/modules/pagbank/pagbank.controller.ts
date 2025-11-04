@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Put, UseGuards, Body, Param } from '@nestjs/common';
 import { PagbankService } from './pagbank.service';
-import { PublicKeysResponse, publicKeysResponseOpenapi, CreatePlan, CreatePlanResponse, createPlanOpenapi, createPlanResponseOpenapi, CreatePlanSchema, GetPlansResponse, getPlansResponseOpenapi } from './schemas/pagbank.schema';
+import { PublicKeysResponse, publicKeysResponseOpenapi, CreatePlan, CreatePlanResponse, createPlanOpenapi, createPlanResponseOpenapi, CreatePlanSchema, GetPlansResponse, getPlansResponseOpenapi, CreateCustomer, CreateCustomerResponse, createCustomerOpenapi, createCustomerResponseOpenapi, CreateCustomerSchema } from './schemas/pagbank.schema';
 import { ApiBearerAuth, ApiResponse, ApiBody, ApiParam } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/modules/auth/guard/jwt-auth.guard';
 //import { RolesGuard } from '@/modules/auth/guard/roles.guard';
@@ -48,6 +48,15 @@ export class PagbankController {
   @ApiResponse({ schema: createPlanResponseOpenapi })
   async updatePlan(@Param('plan_id') planId: string, @Body(new ZodValidationPipe(CreatePlanSchema)) updatePlanDto: CreatePlan): Promise<CreatePlanResponse> {
     const data = await this.pagbankService.updatePlan(planId, updatePlanDto);
+    return { data };
+  }
+
+  @Post('customers')
+  @UseGuards(JwtAuthGuard)
+  @ApiBody({ schema: createCustomerOpenapi })
+  @ApiResponse({ schema: createCustomerResponseOpenapi })
+  async createCustomer(@Body(new ZodValidationPipe(CreateCustomerSchema)) createCustomerDto: CreateCustomer): Promise<CreateCustomerResponse> {
+    const data = await this.pagbankService.createCustomer(createCustomerDto);
     return { data };
   }
 }

@@ -1,6 +1,6 @@
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
-import { PublicKeys, CreatePlan, PlanResponse, GetPlansData } from './schemas/pagbank.schema';
+import { PublicKeys, CreatePlan, PlanResponse, GetPlansData, CreateCustomer, CustomerResponse } from './schemas/pagbank.schema';
 
 @Injectable()
 export class PagbankService {
@@ -96,5 +96,14 @@ export class PagbankService {
    */
   async updatePlan(planId: string, planData: CreatePlan): Promise<PlanResponse> {
     return await this.request(`plans/${planId}`, 'PUT', planData);
+  }
+
+  /**
+   * Cria um novo customer (assinante) no PagBank
+   * @param customerData - Dados do customer a ser criado
+   * @returns Promise com os dados do customer criado
+   */
+  async createCustomer(customerData: CreateCustomer): Promise<CustomerResponse> {
+    return await this.request('customers', 'POST', customerData);
   }
 }

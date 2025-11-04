@@ -8,6 +8,7 @@ export const PlanSchema = z.object({
   title: z.string(),
   description: z.string(),
   description_topics: z.string().optional(),
+  price: z.number(),
   is_active: z.boolean().default(true),
   created_at: z.date(),
   updated_at: z.date(),
@@ -26,6 +27,7 @@ export const PlanActiveSchema = PlanSchema.pick({
   title: true,
   description: true,
   description_topics: true,
+  price: true,
   is_active: true,
 });
 

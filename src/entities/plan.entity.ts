@@ -12,11 +12,14 @@ export class Plan implements PlanType {
   @Column({ name: 'title' })
   title: string;
 
-  @Column({ name: 'description', type: 'text' })
+  @Column({ name: 'description', type: 'text', nullable: true })
   description: string;
 
   @Column({ name: 'description_topics', type: 'text', nullable: true })
   description_topics: string;
+
+  @Column({ name: 'price', type: 'decimal', precision: 10, scale: 2 })
+  price: number;
 
   @Column({ name: 'is_active', type: 'tinyint', default: 1 })
   is_active: boolean;
