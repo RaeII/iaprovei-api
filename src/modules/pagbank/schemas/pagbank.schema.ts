@@ -7,6 +7,21 @@ export const PaymentMethodSchema = z.enum(['CREDIT_CARD', 'DEBIT_CARD', 'PIX', '
 export const PlanStatusSchema = z.enum(['ACTIVE', 'INACTIVE']);
 export const BillingTypeSchema = z.enum(['CREDIT_CARD', 'DEBIT_CARD']);
 
+// Schema para configuração de notificações
+export const NotificationToggleSchema = z.object({
+  enabled: z.boolean().optional(),
+});
+
+export const NotificationEmailSchema = z.object({
+  merchant: NotificationToggleSchema.optional(),
+  customer: NotificationToggleSchema.optional(),
+});
+
+export const UpdateNotificationsSchema = z.object({
+  email: NotificationEmailSchema.optional(),
+  url: z.string().optional(),
+});
+
 // Schema para a resposta de criação de aplicação OAuth2
 export const PublicKeysSchema = z.object({
   public_key: z.string(),
@@ -219,6 +234,7 @@ export const createCustomerOpenapi: any = zodToOpenAPI(CreateCustomerSchema);
 export const createCustomerResponseOpenapi: any = zodToOpenAPI(createCustomerResponseSchema);
 export const createSubscriptionOpenapi: any = zodToOpenAPI(CreateSubscriptionSchema);
 export const createSubscriptionResponseOpenapi: any = zodToOpenAPI(createSubscriptionResponseSchema);
+export const updateNotificationsOpenapi: any = zodToOpenAPI(UpdateNotificationsSchema);
 
 // Type exports
 export type PublicKeys = z.infer<typeof PublicKeysSchema>;
@@ -244,3 +260,4 @@ export type SubscriptionPaymentMethod = z.infer<typeof SubscriptionPaymentMethod
 export type CreateSubscription = z.infer<typeof CreateSubscriptionSchema>;
 export type SubscriptionResponse = z.infer<typeof SubscriptionResponseSchema>;
 export type CreateSubscriptionResponse = z.infer<typeof createSubscriptionResponseSchema>;
+export type UpdateNotifications = z.infer<typeof UpdateNotificationsSchema>;

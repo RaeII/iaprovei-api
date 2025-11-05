@@ -5,7 +5,8 @@ Pagamentos recorrente dash -> https://sandbox.assinaturas.pagseguro.uol.com.br/d
 
 Pagamentos recorrentes doc -> https://developer.pagbank.com.br/docs/painel-de-pagamentos-recorrentes
 
-Pagamentos recorrentes doc api -> https://developer.pagbank.com.br/reference/consultar-chave-publica-pagamento-recorrentez
+Pagamentos recorrentes doc api -> https://developer.pagbank.com.br/reference/consultar-chave-publica-pagamento-recorrente
+
 
 
 

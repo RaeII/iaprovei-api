@@ -1,6 +1,6 @@
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
-import { PublicKeys, CreatePlan, PlanResponse, GetPlansData, CreateCustomer, CustomerResponse, CreateSubscription, SubscriptionResponse } from './schemas/pagbank.schema';
+import { PublicKeys, CreatePlan, PlanResponse, GetPlansData, CreateCustomer, CustomerResponse, CreateSubscription, SubscriptionResponse, UpdateNotifications } from './schemas/pagbank.schema';
 
 @Injectable()
 export class PagbankService {
@@ -115,5 +115,14 @@ export class PagbankService {
   async createSubscription(subscriptionData: CreateSubscription): Promise<SubscriptionResponse> {
     console.log(subscriptionData);
     return await this.request('subscriptions', 'POST', subscriptionData);
+  }
+
+  /**
+   * Atualiza as configurações de notificações no PagBank
+   * @param notificationData - Dados das notificações a serem atualizadas
+   * @returns Promise com a resposta da API do PagBank
+   */
+  async updateNotifications(notificationData: UpdateNotifications): Promise<unknown> {
+    return await this.request('notifications', 'PUT', notificationData);
   }
 }

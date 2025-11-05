@@ -1,6 +1,6 @@
-import { Controller, Get, Post, Put, UseGuards, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Put, UseGuards, Body, Param, Query } from '@nestjs/common';
 import { PagbankService } from './pagbank.service';
-import { PublicKeysResponse, publicKeysResponseOpenapi, CreatePlan, CreatePlanResponse, createPlanOpenapi, createPlanResponseOpenapi, CreatePlanSchema, GetPlansResponse, getPlansResponseOpenapi, CreateSubscription, CreateSubscriptionResponse, createSubscriptionOpenapi, createSubscriptionResponseOpenapi, CreateSubscriptionSchema } from './schemas/pagbank.schema';
+import { PublicKeysResponse, publicKeysResponseOpenapi, CreatePlan, CreatePlanResponse, createPlanOpenapi, createPlanResponseOpenapi, CreatePlanSchema, GetPlansResponse, getPlansResponseOpenapi, CreateSubscription, CreateSubscriptionResponse, createSubscriptionOpenapi, createSubscriptionResponseOpenapi, CreateSubscriptionSchema, UpdateNotifications, UpdateNotificationsSchema, updateNotificationsOpenapi } from './schemas/pagbank.schema';
 import { ApiBearerAuth, ApiResponse, ApiBody, ApiParam } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/modules/auth/guard/jwt-auth.guard';
 //import { RolesGuard } from '@/modules/auth/guard/roles.guard';
@@ -58,5 +58,43 @@ export class PagbankController {
   async createSubscription(@Body(new ZodValidationPipe(CreateSubscriptionSchema)) createSubscriptionDto: CreateSubscription): Promise<CreateSubscriptionResponse> {
     const data = await this.pagbankService.createSubscription(createSubscriptionDto);
     return { data };
+  }
+
+  @Put('notifications')
+  @Roles(Role.ADMIN)
+  @UseGuards(JwtAuthGuard)
+  @ApiBody({ schema: updateNotificationsOpenapi })
+  async updateNotifications(@Body(new ZodValidationPipe(UpdateNotificationsSchema)) updateNotificationsDto: UpdateNotifications): Promise<{ data: unknown }> {
+    const data = await this.pagbankService.updateNotifications(updateNotificationsDto);
+    return { data };
+  }
+
+  @Post('event')
+  @ApiBody({ schema: updateNotificationsOpenapi })
+  async eventNotification(event: any) {
+    console.log('\n\neventNotificationPOST\n\n');
+    console.log(event);
+    console.log('\n\neventNotificationPOST\n\n');
+    return {};
+  }
+
+  @Get('event')
+  @ApiBody({ schema: updateNotificationsOpenapi })
+  async eventNotificationGet(@Param() params: any, @Query() query: any, @Body() body: any) {
+    console.log('\n\neventNotificationGET\n\n');
+    console.log('params:', params);
+    console.log('query:', query);
+    console.log('body:', body);
+    console.log('\n\neventNotificationGET\n\n');
+    return {};
+  }
+
+  @Put('event')
+  @ApiBody({ schema: updateNotificationsOpenapi })
+  async eventNotificationPut(event: any) {
+    console.log('\n\neventNotificationPut\n\n');
+    console.log(event);
+    console.log('\n\neventNotificationPut\n\n');
+    return {};
   }
 }
