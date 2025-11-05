@@ -27,6 +27,7 @@ export const UserSchema = z.object({
   total_xp: z.number().default(0),
   current_lives: z.number().default(0),
   max_lives: z.number().default(0),
+  last_heart_regeneration_at: z.date().optional(),
   current_streak: z.number().default(0),
   best_streak: z.number().default(0),
   leage_level: LeagueLevelSchema.default('iniciante'),

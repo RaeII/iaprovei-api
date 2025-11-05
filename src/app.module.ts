@@ -22,6 +22,7 @@ import { GlobalOptionsController } from './global-options.controller';
 import { SkillCategoryModule } from './modules/skill_category/skill_category.module';
 import { StatisticsModule } from './modules/statistics/statistics.module';
 import { StudyTrailModule } from './modules/study_trail/study_trail.module';
+import { HeartsModule } from './modules/hearts/hearts.module';
 
 @Module({
   controllers: [GlobalOptionsController],
@@ -50,6 +51,7 @@ import { StudyTrailModule } from './modules/study_trail/study_trail.module';
     SkillCategoryModule,
     StatisticsModule,
     StudyTrailModule,
+    HeartsModule,
   ],
   providers: [
     OverallFilterProvider,

@@ -113,11 +113,14 @@ export class User implements UserType {
   @Column({ name: 'total_xp', default: 0 })
   total_xp: number;
 
-  @Column({ name: 'current_lives', default: 0 })
+  @Column({ name: 'current_lives', default: 5 })
   current_lives: number;
 
-  @Column({ name: 'max_lives', default: 0 })
+  @Column({ name: 'max_lives', default: 5 })
   max_lives: number;
+
+  @Column({ name: 'last_heart_regeneration_at', type: 'timestamp', nullable: true })
+  last_heart_regeneration_at: Date;
 
   @Column({ name: 'current_streak', default: 0 })
   current_streak: number;
