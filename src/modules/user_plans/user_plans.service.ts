@@ -63,6 +63,18 @@ export class UserPlansService {
       where.status = query.status as UserPlanStatus;
     }
 
+    if (query?.pagbank_subscriber_id) {
+      where.pagbank_subscriber_id = query.pagbank_subscriber_id;
+    }
+
+    if (query?.pagbank_customer_id) {
+      where.pagbank_customer_id = query.pagbank_customer_id;
+    }
+
+    if (query?.is_active !== undefined) {
+      where.is_active = query.is_active;
+    }
+
     // For date range queries, we'll need to use QueryBuilder for more complex conditions
     const queryBuilder = this.userPlansRepository
       .createQueryBuilder('user_plan')
@@ -119,27 +131,20 @@ export class UserPlansService {
 
   async findActiveByUserId(userId: number): Promise<UserPlanListData[]> {
     return this.userPlansRepository.find({
-      where: { user_id: userId, status: UserPlanStatus.ACTIVE },
+      where: { user_id: userId, is_active: true },
       select: this.getUserPlanListSelectFields(),
       order: { created_at: 'DESC' },
     });
   }
 
-  async findByPlanId(planId: number, pagination: Pagination): Promise<{ data: UserPlanListData[]; meta: PaginationMeta }> {
-    const { page, limit } = pagination;
-    const offset = generateOffset(page, limit);
-
-    const [data, total] = await this.userPlansRepository.findAndCount({
+  async findByPlanId(planId: number): Promise<UserPlanListData | null> {
+    const data = await this.userPlansRepository.findOne({
       where: { plan_id: planId },
       select: this.getUserPlanListSelectFields(),
       order: { created_at: 'DESC' },
-      skip: offset,
-      take: limit,
     });
 
-    const meta = createPaginationMeta(total, page, limit);
-
-    return { data, meta };
+    return data;
   }
 
   async update(id: number, updateUserPlanDto: UserPlanUpdate): Promise<UserPlanDetail> {
@@ -176,5 +181,92 @@ export class UserPlansService {
 
   async deactivateUserPlan(id: number): Promise<UserPlanDetail> {
     return this.update(id, { status: UserPlanStatus.INACTIVE });
+  }
+
+  async findByPagbankSubscriberId(subscriberId: string): Promise<UserPlanDetail | null> {
+    const userPlan = await this.userPlansRepository.findOne({
+      where: { pagbank_subscriber_id: subscriberId },
+      select: this.getUserPlanDetailSelectFields(),
+    });
+
+    return userPlan || null;
+  }
+
+  async findByPagbankCustomerId(customerId: string): Promise<UserPlanListData[]> {
+    return this.userPlansRepository.find({
+      where: { pagbank_customer_id: customerId },
+      select: this.getUserPlanListSelectFields(),
+      order: { created_at: 'DESC' },
+    });
+  }
+
+  async updatePagbankIds(id: number, subscriberId?: string, customerId?: string): Promise<UserPlanDetail> {
+    const updateData: Partial<UserPlanUpdate> = {};
+
+    if (subscriberId !== undefined) {
+      updateData.pagbank_subscriber_id = subscriberId;
+    }
+
+    if (customerId !== undefined) {
+      updateData.pagbank_customer_id = customerId;
+    }
+
+    return this.update(id, updateData);
+  }
+
+  async updateTrialDates(id: number, trialStartAt?: Date, trialEndAt?: Date): Promise<UserPlanDetail> {
+    const updateData: Partial<UserPlanUpdate> = {};
+
+    if (trialStartAt !== undefined) {
+      updateData.trial_start_at = trialStartAt;
+    }
+
+    if (trialEndAt !== undefined) {
+      updateData.trial_end_at = trialEndAt;
+    }
+
+    return this.update(id, updateData);
+  }
+
+  async activateUserPlanBoolean(id: number): Promise<UserPlanDetail> {
+    return this.update(id, { is_active: true });
+  }
+
+  async deactivateUserPlanBoolean(id: number): Promise<UserPlanDetail> {
+    return this.update(id, { is_active: false });
+  }
+
+  async findActiveUserPlans(pagination: Pagination): Promise<{ data: UserPlanListData[]; meta: PaginationMeta }> {
+    const { page, limit } = pagination;
+    const offset = generateOffset(page, limit);
+
+    const [data, total] = await this.userPlansRepository.findAndCount({
+      where: { is_active: true },
+      select: this.getUserPlanListSelectFields(),
+      order: { created_at: 'DESC' },
+      skip: offset,
+      take: limit,
+    });
+
+    const meta = createPaginationMeta(total, page, limit);
+
+    return { data, meta };
+  }
+
+  async findInactiveUserPlans(pagination: Pagination): Promise<{ data: UserPlanListData[]; meta: PaginationMeta }> {
+    const { page, limit } = pagination;
+    const offset = generateOffset(page, limit);
+
+    const [data, total] = await this.userPlansRepository.findAndCount({
+      where: { is_active: false },
+      select: this.getUserPlanListSelectFields(),
+      order: { created_at: 'DESC' },
+      skip: offset,
+      take: limit,
+    });
+
+    const meta = createPaginationMeta(total, page, limit);
+
+    return { data, meta };
   }
 }

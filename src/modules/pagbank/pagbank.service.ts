@@ -113,8 +113,17 @@ export class PagbankService {
    * @returns Promise com os dados da subscription criada
    */
   async createSubscription(subscriptionData: CreateSubscription): Promise<SubscriptionResponse> {
-    console.log(subscriptionData);
-    return await this.request('subscriptions', 'POST', subscriptionData);
+    const response = await this.request<SubscriptionResponse>('subscriptions', 'POST', subscriptionData);
+    console.log('\n\nresponse', response, '\n\n');
+    return response;
+  }
+
+  /**
+   * Obtém as configurações de notificações no PagBank
+   * @returns Promise com a resposta da API do PagBank
+   */
+  async getNotifications(): Promise<unknown> {
+    return await this.request('preferences/notifications', 'GET');
   }
 
   /**
@@ -123,6 +132,7 @@ export class PagbankService {
    * @returns Promise com a resposta da API do PagBank
    */
   async updateNotifications(notificationData: UpdateNotifications): Promise<unknown> {
-    return await this.request('notifications', 'PUT', notificationData);
+    console.log(notificationData);
+    return await this.request('preferences/notifications', 'PUT', notificationData);
   }
 }

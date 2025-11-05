@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Put, Delete, Param, Body, Query, UseGuards, ParseIntPipe, Patch } from '@nestjs/common';
 import { UserPlansService } from '@/modules/user_plans/user_plans.service';
 import { UserPlansValidator } from '@/modules/user_plans/user_plans.validator';
-import { UserPlanCreate, UserPlanUpdate, UserPlanQuery, UserPlanListResponse, UserPlanDetailResponse, UserPlanCreateResponse, UserPlanUpdateResponse, UserPlanCreateSchema, UserPlanUpdateSchema, UserPlanQuerySchema, userPlanListResponseOpenapi, userPlanDetailResponseOpenapi, userPlanCreateOpenapi, userPlanUpdateOpenapi, userPlanCreateResponseOpenapi, userPlanUpdateResponseOpenapi } from './schemas/user_plan.schema';
+import { UserPlanCreate, UserPlanUpdate, UserPlanQuery, UserPlanListResponse, UserPlanDetailResponse, UserPlanCreateResponse, UserPlanUpdateResponse, UserPlanListData, UserPlanCreateSchema, UserPlanUpdateSchema, UserPlanQuerySchema, userPlanListResponseOpenapi, userPlanDetailResponseOpenapi, userPlanCreateOpenapi, userPlanUpdateOpenapi, userPlanCreateResponseOpenapi, userPlanUpdateResponseOpenapi } from './schemas/user_plan.schema';
 import { PaginationSchema, Pagination } from '@/common/schemas/pagination.schema';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { ApiBearerAuth, ApiBody, ApiResponse, ApiQuery } from '@nestjs/swagger';
@@ -36,9 +36,14 @@ export class UserPlansController {
   @UseGuards(JwtAuthGuard)
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'user_id', required: false, type: Number })
+  @ApiQuery({ name: 'plan_id', required: false, type: Number })
+  @ApiQuery({ name: 'status', required: false, type: String })
+  @ApiQuery({ name: 'pagbank_subscriber_id', required: false, type: String })
+  @ApiQuery({ name: 'pagbank_customer_id', required: false, type: String })
+  @ApiQuery({ name: 'is_active', required: false, type: Boolean })
   @ApiResponse({ schema: userPlanListResponseOpenapi })
   async findAll(@Query(new ZodValidationPipe(PaginationSchema)) pagination: Pagination, @Query(new ZodValidationPipe(UserPlanQuerySchema)) query: UserPlanQuery): Promise<UserPlanListResponse> {
-    console.log('aqui', query);
     return this.userPlansService.findAll(pagination, query);
   }
 
@@ -68,8 +73,9 @@ export class UserPlansController {
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiResponse({ schema: userPlanListResponseOpenapi })
-  async findByPlanId(@Param('planId', ParseIntPipe) planId: number, @Query(new ZodValidationPipe(PaginationSchema)) pagination: Pagination): Promise<UserPlanListResponse> {
-    return this.userPlansService.findByPlanId(planId, pagination);
+  async findByPlanId(@Param('planId', ParseIntPipe) planId: number): Promise<{ data: UserPlanListData | null }> {
+    const data = await this.userPlansService.findByPlanId(planId);
+    return { data };
   }
 
   @Get(':id')
@@ -122,6 +128,82 @@ export class UserPlansController {
   async deactivate(@Param('id', ParseIntPipe) id: number, @BasicUserInfo() user: UserBasicInfo): Promise<UserPlanUpdateResponse> {
     await this.userPlansValidator.assertIsOwnerOrAdmin(id, user);
     const data = await this.userPlansService.deactivateUserPlan(id);
+    return { data };
+  }
+
+  @Get('pagbank/subscriber/:subscriberId')
+  @Roles(Role.ADMIN)
+  @UseGuards(JwtAuthGuard)
+  @ApiResponse({ schema: userPlanDetailResponseOpenapi })
+  async findByPagbankSubscriberId(@Param('subscriberId') subscriberId: string): Promise<UserPlanDetailResponse | { data: null }> {
+    const data = await this.userPlansService.findByPagbankSubscriberId(subscriberId);
+    return { data };
+  }
+
+  @Get('pagbank/customer/:customerId')
+  @Roles(Role.ADMIN)
+  @UseGuards(JwtAuthGuard)
+  @ApiResponse({ schema: userPlanListResponseOpenapi })
+  async findByPagbankCustomerId(@Param('customerId') customerId: string): Promise<{ data: any[] }> {
+    const data = await this.userPlansService.findByPagbankCustomerId(customerId);
+    return { data };
+  }
+
+  @Patch(':id/pagbank-ids')
+  @UseGuards(JwtAuthGuard)
+  @ApiResponse({ schema: userPlanUpdateResponseOpenapi })
+  async updatePagbankIds(@Param('id', ParseIntPipe) id: number, @Body() body: { pagbank_subscriber_id?: string; pagbank_customer_id?: string }, @BasicUserInfo() user: UserBasicInfo): Promise<UserPlanUpdateResponse> {
+    await this.userPlansValidator.assertIsOwnerOrAdmin(id, user);
+    const data = await this.userPlansService.updatePagbankIds(id, body.pagbank_subscriber_id, body.pagbank_customer_id);
+    return { data };
+  }
+
+  @Patch(':id/trial-dates')
+  @UseGuards(JwtAuthGuard)
+  @ApiResponse({ schema: userPlanUpdateResponseOpenapi })
+  async updateTrialDates(@Param('id', ParseIntPipe) id: number, @Body() body: { trial_start_at?: string; trial_end_at?: string }, @BasicUserInfo() user: UserBasicInfo): Promise<UserPlanUpdateResponse> {
+    await this.userPlansValidator.assertIsOwnerOrAdmin(id, user);
+    const trialStartAt = body.trial_start_at ? new Date(body.trial_start_at) : undefined;
+    const trialEndAt = body.trial_end_at ? new Date(body.trial_end_at) : undefined;
+    const data = await this.userPlansService.updateTrialDates(id, trialStartAt, trialEndAt);
+    return { data };
+  }
+
+  @Get('active')
+  @Roles(Role.ADMIN)
+  @UseGuards(JwtAuthGuard)
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiResponse({ schema: userPlanListResponseOpenapi })
+  async findActiveUserPlans(@Query(new ZodValidationPipe(PaginationSchema)) pagination: Pagination): Promise<UserPlanListResponse> {
+    return this.userPlansService.findActiveUserPlans(pagination);
+  }
+
+  @Get('inactive')
+  @Roles(Role.ADMIN)
+  @UseGuards(JwtAuthGuard)
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiResponse({ schema: userPlanListResponseOpenapi })
+  async findInactiveUserPlans(@Query(new ZodValidationPipe(PaginationSchema)) pagination: Pagination): Promise<UserPlanListResponse> {
+    return this.userPlansService.findInactiveUserPlans(pagination);
+  }
+
+  @Patch(':id/activate-boolean')
+  @UseGuards(JwtAuthGuard)
+  @ApiResponse({ schema: userPlanUpdateResponseOpenapi })
+  async activateBoolean(@Param('id', ParseIntPipe) id: number, @BasicUserInfo() user: UserBasicInfo): Promise<UserPlanUpdateResponse> {
+    await this.userPlansValidator.assertIsOwnerOrAdmin(id, user);
+    const data = await this.userPlansService.activateUserPlanBoolean(id);
+    return { data };
+  }
+
+  @Patch(':id/deactivate-boolean')
+  @UseGuards(JwtAuthGuard)
+  @ApiResponse({ schema: userPlanUpdateResponseOpenapi })
+  async deactivateBoolean(@Param('id', ParseIntPipe) id: number, @BasicUserInfo() user: UserBasicInfo): Promise<UserPlanUpdateResponse> {
+    await this.userPlansValidator.assertIsOwnerOrAdmin(id, user);
+    const data = await this.userPlansService.deactivateUserPlanBoolean(id);
     return { data };
   }
 }

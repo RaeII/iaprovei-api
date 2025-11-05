@@ -11,6 +11,11 @@ export const UserPlanSchema = z.object({
   user_id: z.number(),
   plan_id: z.number(),
   status: UserPlanStatusSchema.nullable(),
+  pagbank_subscriber_id: z.string().nullable(),
+  pagbank_customer_id: z.string().nullable(),
+  trial_start_at: z.date().nullable(),
+  trial_end_at: z.date().nullable(),
+  is_active: z.boolean(),
   created_at: z.date(),
   updated_at: z.date(),
 });
@@ -59,6 +64,9 @@ export const UserPlanQuerySchema = z.object({
   user_id: z.coerce.number().optional(),
   plan_id: z.coerce.number().optional(),
   status: UserPlanStatusSchema.optional(),
+  pagbank_subscriber_id: z.string().optional(),
+  pagbank_customer_id: z.string().optional(),
+  is_active: z.coerce.boolean().optional(),
 });
 
 // OpenAPI schemas

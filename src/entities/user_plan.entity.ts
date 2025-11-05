@@ -24,8 +24,24 @@ export class UserPlan implements UserPlanType {
     type: 'enum',
     enum: UserPlanStatus,
     nullable: true,
+    default: UserPlanStatus.ACTIVE,
   })
   status?: UserPlanStatus;
+
+  @Column({ name: 'pagbank_subscriber_id', type: 'varchar', length: 255, nullable: true })
+  pagbank_subscriber_id?: string;
+
+  @Column({ name: 'pagbank_customer_id', type: 'varchar', length: 255, nullable: true })
+  pagbank_customer_id?: string;
+
+  @Column({ name: 'trial_start_at', type: 'date', nullable: true })
+  trial_start_at?: Date;
+
+  @Column({ name: 'trial_end_at', type: 'date', nullable: true })
+  trial_end_at?: Date;
+
+  @Column({ name: 'is_active', type: 'boolean', default: true })
+  is_active: boolean;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
   created_at: Date;

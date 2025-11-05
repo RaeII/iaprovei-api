@@ -202,23 +202,72 @@ export const createCustomerResponseSchema = z.object({
   data: CustomerResponseSchema,
 });
 
+// Schema para trial na subscription
+export const SubscriptionTrialSchema = z.object({
+  start_at: z.string(),
+  end_at: z.string(),
+});
+
+// Schema para billing cycle na subscription
+export const SubscriptionBillingCycleSchema = z.object({
+  occurrence: z.number(),
+});
+
+// Schema para o plano completo na resposta da subscription
+export const SubscriptionPlanResponseSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  interval: z.object({
+    length: z.number(),
+    unit: z.string(),
+  }),
+});
+
+// Schema para o cartão na resposta da subscription
+export const SubscriptionCardResponseSchema = z.object({
+  id: z.string().optional(),
+  brand: z.string().optional(),
+  first_digits: z.string().optional(),
+  last_digits: z.string().optional(),
+  exp_month: z.string().optional(),
+  exp_year: z.string().optional(),
+  holder: z
+    .object({
+      name: z.string().optional(),
+    })
+    .optional(),
+});
+
+// Schema para método de pagamento na resposta da subscription
+export const SubscriptionPaymentMethodResponseSchema = z.object({
+  type: z.string(),
+  card: SubscriptionCardResponseSchema,
+});
+
+// Schema para customer na resposta da subscription
+export const SubscriptionCustomerResponseSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string(),
+  address: CustomerAddressSchema,
+});
+
 // Schema para a resposta de criação de subscription
 export const SubscriptionResponseSchema = z.object({
   id: z.string(),
   reference_id: z.string(),
+  amount: PlanAmountSchema,
   status: z.string(),
-  plan: z.object({
-    id: z.string(),
-    name: z.string(),
-    amount: PlanAmountSchema,
-  }),
-  customer: z.object({
-    id: z.string(),
-    name: z.string(),
-    email: z.string(),
-  }),
+  trial: SubscriptionTrialSchema.optional(),
+  plan: SubscriptionPlanResponseSchema,
+  payment_method: z.array(SubscriptionPaymentMethodResponseSchema),
+  next_invoice_at: z.string(),
+  billing_cycle: SubscriptionBillingCycleSchema,
+  pro_rata: z.boolean(),
+  customer: SubscriptionCustomerResponseSchema,
   created_at: z.string(),
   updated_at: z.string(),
+  split_enabled: z.boolean(),
   links: z.array(PlanLinkSchema),
 });
 
@@ -258,6 +307,12 @@ export type SubscriptionPlan = z.infer<typeof SubscriptionPlanSchema>;
 export type SubscriptionPaymentCard = z.infer<typeof SubscriptionPaymentCardSchema>;
 export type SubscriptionPaymentMethod = z.infer<typeof SubscriptionPaymentMethodSchema>;
 export type CreateSubscription = z.infer<typeof CreateSubscriptionSchema>;
+export type SubscriptionTrial = z.infer<typeof SubscriptionTrialSchema>;
+export type SubscriptionBillingCycle = z.infer<typeof SubscriptionBillingCycleSchema>;
+export type SubscriptionPlanResponse = z.infer<typeof SubscriptionPlanResponseSchema>;
+export type SubscriptionCardResponse = z.infer<typeof SubscriptionCardResponseSchema>;
+export type SubscriptionPaymentMethodResponse = z.infer<typeof SubscriptionPaymentMethodResponseSchema>;
+export type SubscriptionCustomerResponse = z.infer<typeof SubscriptionCustomerResponseSchema>;
 export type SubscriptionResponse = z.infer<typeof SubscriptionResponseSchema>;
 export type CreateSubscriptionResponse = z.infer<typeof createSubscriptionResponseSchema>;
 export type UpdateNotifications = z.infer<typeof UpdateNotificationsSchema>;

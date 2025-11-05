@@ -1,17 +1,26 @@
-import { Controller, Get, Post, Put, UseGuards, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Put, UseGuards, Body, Param, Query, BadRequestException } from '@nestjs/common';
 import { PagbankService } from './pagbank.service';
 import { PublicKeysResponse, publicKeysResponseOpenapi, CreatePlan, CreatePlanResponse, createPlanOpenapi, createPlanResponseOpenapi, CreatePlanSchema, GetPlansResponse, getPlansResponseOpenapi, CreateSubscription, CreateSubscriptionResponse, createSubscriptionOpenapi, createSubscriptionResponseOpenapi, CreateSubscriptionSchema, UpdateNotifications, UpdateNotificationsSchema, updateNotificationsOpenapi } from './schemas/pagbank.schema';
+import { UserBasicInfo } from '@/modules/user/schemas/user.schema';
 import { ApiBearerAuth, ApiResponse, ApiBody, ApiParam } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/modules/auth/guard/jwt-auth.guard';
 //import { RolesGuard } from '@/modules/auth/guard/roles.guard';
+import { BasicUserInfo } from '@/common/decorators';
 import { Role } from '@/modules/auth/enums/role.enum';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { ZodValidationPipe } from 'nestjs-zod';
+import { PlansService } from '@/modules/plans/plans.service';
+import { UserPlansService } from '@/modules/user_plans/user_plans.service';
+import { DataNotFoundException } from '@/common/exceptions/data-not-found.exception';
 
 @Controller('pagbank')
 @ApiBearerAuth()
 export class PagbankController {
-  constructor(private readonly pagbankService: PagbankService) {}
+  constructor(
+    private readonly pagbankService: PagbankService,
+    private readonly plansService: PlansService,
+    private readonly userPlansService: UserPlansService
+  ) {}
 
   @Get()
   @UseGuards(JwtAuthGuard)
@@ -55,8 +64,35 @@ export class PagbankController {
   @UseGuards(JwtAuthGuard)
   @ApiBody({ schema: createSubscriptionOpenapi })
   @ApiResponse({ schema: createSubscriptionResponseOpenapi })
-  async createSubscription(@Body(new ZodValidationPipe(CreateSubscriptionSchema)) createSubscriptionDto: CreateSubscription): Promise<CreateSubscriptionResponse> {
+  async createSubscription(@Body(new ZodValidationPipe(CreateSubscriptionSchema)) createSubscriptionDto: CreateSubscription, @BasicUserInfo() user: UserBasicInfo): Promise<CreateSubscriptionResponse> {
+    // Validar se o plano existe usando o id_pagbank
+    const plan = await this.plansService.findByIdPagbank(createSubscriptionDto.plan.id);
+    const userPlan = await this.userPlansService.findByPlanId(user.id);
+    if (!plan) {
+      throw new DataNotFoundException(`Plano com ID PagBank "${createSubscriptionDto.plan.id}" não encontrado`);
+    }
+
+    if (userPlan.is_active) throw new BadRequestException('Usuário já possui um plano ativo');
+
     const data = await this.pagbankService.createSubscription(createSubscriptionDto);
+
+    if (userPlan) {
+    } else {
+      await this.userPlansService.create({
+        pagbank_customer_id: data.customer.id,
+        pagbank_subscriber_id: data.customer.id,
+        user_id: user.id,
+        plan_id: plan.id,
+      });
+    }
+    return { data };
+  }
+
+  @Get('notifications')
+  @Roles(Role.ADMIN)
+  @UseGuards(JwtAuthGuard)
+  async getNotifications(): Promise<{ data: unknown }> {
+    const data = await this.pagbankService.getNotifications();
     return { data };
   }
 
