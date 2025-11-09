@@ -12,6 +12,7 @@ import { ZodValidationPipe } from 'nestjs-zod';
 import { PlansService } from '@/modules/plans/plans.service';
 import { UserPlansService } from '@/modules/user_plans/user_plans.service';
 import { DataNotFoundException } from '@/common/exceptions/data-not-found.exception';
+import { UserPlanStatus } from '@/entities/user_plan.entity';
 
 @Controller('pagbank')
 @ApiBearerAuth()
@@ -76,13 +77,18 @@ export class PagbankController {
 
     const data = await this.pagbankService.createSubscription(createSubscriptionDto);
 
-    if (userPlan) {
-    } else {
+    if (!userPlan) {
       await this.userPlansService.create({
         pagbank_customer_id: data.customer.id,
         pagbank_subscriber_id: data.customer.id,
         user_id: user.id,
         plan_id: plan.id,
+      });
+    } else {
+      await this.userPlansService.update(userPlan.id, {
+        status: UserPlanStatus.ACTIVE,
+        pagbank_customer_id: data.customer.id,
+        pagbank_subscriber_id: data.customer.id,
       });
     }
     return { data };
