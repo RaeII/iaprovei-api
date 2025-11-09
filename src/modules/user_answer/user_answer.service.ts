@@ -10,6 +10,7 @@ import { createPaginationMeta, generateOffset } from '@/common/utils/query-utils
 import { QuestionOptionService } from '@/modules/question_option/question_option.service';
 import { QuestionService } from '@/modules/question/question.service';
 import { StatisticsService } from '@/modules/statistics/statistics.service';
+import { HeartsService } from '@/modules/hearts/hearts.service';
 
 @Injectable()
 export class UserAnswerService {
@@ -18,7 +19,8 @@ export class UserAnswerService {
     private userAnswersRepository: Repository<UserAnswer>,
     private questionOptionService: QuestionOptionService,
     private questionService: QuestionService,
-    private statisticsService: StatisticsService
+    private statisticsService: StatisticsService,
+    private heartsService: HeartsService
   ) {}
 
   /**
@@ -50,6 +52,12 @@ export class UserAnswerService {
     // Update statistics asynchronously to avoid impacting response time
     this.updateStatisticsAsync(createUserAnswerDto.users_id, question.subject?.skill_category_id || null);
 
+    // Deduct heart if answer is incorrect
+    let heartDeductionResult = null;
+    if (!chosenOption.is_correct) {
+      heartDeductionResult = await this.heartsService.deductHeart(createUserAnswerDto.users_id);
+    }
+
     // Remove session_id from the response
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { session_id: _, ...userAnswerResponse } = savedUserAnswer;
@@ -63,6 +71,7 @@ export class UserAnswerService {
         option_text: option.option_text,
         option_letter: option.option_letter,
       })),
+      heart_deduction: heartDeductionResult,
     };
 
     return { data: responseData };

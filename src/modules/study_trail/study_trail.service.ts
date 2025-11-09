@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { StudyTrail, StudyTrailStatus } from '@/entities/study_trail.entity';
+import { Repository, In } from 'typeorm';
+import { StudyTrail, StudyTrailStatus, StudyTrailGenerationModel } from '@/entities/study_trail.entity';
 import { StudyTrailStop, StudyTrailStopStatus, StudyTrailStopType } from '@/entities/study_trail_stop.entity';
 import { StudyTrailStopQuestion, QuestionAnswerStatus } from '@/entities/study_trail_stop_question.entity';
 import { StudyTrailPerformance } from '@/entities/study_trail_performance.entity';
@@ -106,7 +106,17 @@ export class StudyTrailService {
       throw new BadRequestException('Ainda não há questões disponíveis para esta categoria de habilidade');
     }
 
-    const totalStops = Math.max(1, Math.min(this.MAX_STOPS, Math.ceil(questionAvailability.total / this.TARGET_QUESTIONS_PER_STOP)));
+    const generationModel = (createData.generation_model as StudyTrailGenerationModel) || StudyTrailGenerationModel.ADAPTIVE;
+
+    let totalStops: number;
+    if (generationModel === StudyTrailGenerationModel.ALL_QUESTIONS_BY_DIFFICULTY) {
+      // For all-questions model, calculate stops based on 7 questions per stop
+      const MAX_QUESTIONS_PER_STOP = 7;
+      totalStops = Math.ceil(questionAvailability.total / MAX_QUESTIONS_PER_STOP);
+    } else {
+      // For adaptive model, use the original calculation
+      totalStops = Math.max(1, Math.min(this.MAX_STOPS, Math.ceil(questionAvailability.total / this.TARGET_QUESTIONS_PER_STOP)));
+    }
 
     // Criar a trilha
     const studyTrail = this.studyTrailRepository.create({
@@ -117,12 +127,19 @@ export class StudyTrailService {
       status: StudyTrailStatus.ACTIVE,
       current_stop_position: 1,
       total_stops: totalStops,
+      generation_model: generationModel,
     });
 
     const savedTrail = await this.studyTrailRepository.save(studyTrail);
 
-    // Criar a primeira parada (desbloqueada)
-    await this.createFirstStop(savedTrail.id, userId, createData.skill_category_id);
+    // Create stops based on generation model
+    if (generationModel === StudyTrailGenerationModel.ALL_QUESTIONS_BY_DIFFICULTY) {
+      // Create all stops at once with all questions ordered by difficulty
+      await this.createAllStopsByDifficulty(savedTrail.id, createData.skill_category_id);
+    } else {
+      // Create only the first stop (adaptive model)
+      await this.createFirstStop(savedTrail.id, userId, createData.skill_category_id);
+    }
 
     return this.getStudyTrailSummary(savedTrail.id, userId);
   }
@@ -222,31 +239,49 @@ export class StudyTrailService {
       }
     });
 
-    const createdTrails: StudyTrailSummary[] = [];
+    // Get all skill category IDs to check for existing trails in one query
+    const categoryIds = Array.from(uniqueCategories.keys());
 
-    for (const category of uniqueCategories.values()) {
-      const existingTrail = await this.studyTrailRepository.findOne({
-        where: {
-          user_id: userId,
-          skill_category_id: category.id,
-          status: StudyTrailStatus.ACTIVE,
-          is_active: true,
-        },
-      });
+    // Fetch all existing trails for these categories in a single query
+    const existingTrails =
+      categoryIds.length > 0
+        ? await this.studyTrailRepository.find({
+            where: {
+              user_id: userId,
+              skill_category_id: In(categoryIds),
+              status: StudyTrailStatus.ACTIVE,
+              is_active: true,
+            },
+            select: ['skill_category_id'],
+          })
+        : [];
 
-      if (existingTrail) {
-        continue;
-      }
+    const existingCategoryIds = new Set(existingTrails.map(trail => trail.skill_category_id));
 
-      const summary = await this.createStudyTrail(userId, {
-        skill_category_id: category.id,
-        name: `Trilha de ${category.name}`,
-      });
+    // Filter out categories that already have active trails
+    const categoriesToCreate = Array.from(uniqueCategories.values()).filter(category => !existingCategoryIds.has(category.id));
 
-      createdTrails.push(summary);
+    if (categoriesToCreate.length === 0) {
+      return [];
     }
 
-    return createdTrails;
+    // Create all trails in parallel for maximum performance
+    const createdTrails = await Promise.all(
+      categoriesToCreate.map(category =>
+        this.createStudyTrail(userId, {
+          skill_category_id: category.id,
+          name: `Trilha de ${category.name}`,
+          generation_model: 'all_questions_by_difficulty',
+        }).catch(error => {
+          // Log error but don't fail the entire operation
+          console.error(`Erro ao criar trilha para ${category.name}:`, error);
+          return null;
+        })
+      )
+    );
+
+    // Filter out any failed trail creations
+    return createdTrails.filter((trail): trail is StudyTrailSummary => trail !== null);
   }
 
   private getContestSkillCacheKey(contestId: number, skillCategoryId: number): string {
@@ -300,6 +335,7 @@ export class StudyTrailService {
           skill_category_name: trail.skill_category?.name || 'Categoria',
           name: trail.name,
           status: trail.status,
+          generation_model: trail.generation_model,
           current_stop_position: trail.current_stop_position,
           total_stops: trail.total_stops,
           completion_percentage: completionPercentage,
@@ -363,6 +399,7 @@ export class StudyTrailService {
       name: trail.name,
       description: trail.description,
       status: trail.status,
+      generation_model: trail.generation_model,
       current_stop_position: trail.current_stop_position,
       total_stops: trail.total_stops,
       completion_percentage: completionPercentage,
@@ -394,7 +431,12 @@ export class StudyTrailService {
     });
 
     if (!stop) {
-      // Se a parada não existe, criar dinamicamente
+      // Dynamic stop creation is only allowed for adaptive model
+      if (trail.generation_model === StudyTrailGenerationModel.ALL_QUESTIONS_BY_DIFFICULTY) {
+        throw new NotFoundException('Parada não encontrada. No modelo all_questions_by_difficulty, todas as paradas são criadas antecipadamente.');
+      }
+
+      // Se a parada não existe, criar dinamicamente (adaptive model only)
       const newStop = await this.createStudyTrailStop(startData.study_trail_id, startData.stop_position, userId, trail.skill_category_id);
       return this.startStop(newStop);
     }
@@ -507,6 +549,109 @@ export class StudyTrailService {
 
   private async createFirstStop(trailId: number, userId: number, skillCategoryId: number): Promise<StudyTrailStop> {
     return this.createStudyTrailStop(trailId, 1, userId, skillCategoryId);
+  }
+
+  /**
+   * Creates all stops at once for the all-questions-by-difficulty generation model
+   * This method fetches all available questions for a skill category, orders them by difficulty,
+   * and splits them into stops with a maximum of 7 questions per stop
+   * OPTIMIZED: Uses bulk operations and transactions for maximum performance
+   */
+  private async createAllStopsByDifficulty(trailId: number, skillCategoryId: number): Promise<void> {
+    const MAX_QUESTIONS_PER_STOP = 7;
+
+    // Fetch all questions for this skill_category ordered by difficulty (select only needed fields)
+    const allQuestions = await this.questionRepository
+      .createQueryBuilder('question')
+      .select(['question.id', 'question.difficulty_level'])
+      .innerJoin('question.origin_subject', 'subject')
+      .where('subject.skill_category_id = :skillCategoryId', { skillCategoryId })
+      .andWhere('question.is_active = :isActive', { isActive: true })
+      .orderBy('question.difficulty_level', 'ASC') // easy -> medium -> hard
+      .addOrderBy('question.id', 'ASC') // Secondary sort for consistent ordering
+      .getMany();
+
+    if (allQuestions.length === 0) {
+      throw new BadRequestException('Não há questões disponíveis para esta categoria de habilidade');
+    }
+
+    // Calculate total stops needed
+    const totalStops = Math.ceil(allQuestions.length / MAX_QUESTIONS_PER_STOP);
+
+    // Update the trail with the correct total_stops
+    await this.studyTrailRepository.update(trailId, { total_stops: totalStops });
+
+    // Prepare all stops data in memory first
+    const stopsToCreate: any[] = [];
+    const stopQuestionsMap: Map<number, { questionId: number; order: number }[]> = new Map();
+
+    for (let stopPosition = 1; stopPosition <= totalStops; stopPosition++) {
+      const startIndex = (stopPosition - 1) * MAX_QUESTIONS_PER_STOP;
+      const endIndex = Math.min(startIndex + MAX_QUESTIONS_PER_STOP, allQuestions.length);
+      const stopQuestions = allQuestions.slice(startIndex, endIndex);
+
+      // Determine the primary difficulty level for this stop
+      const difficultyCount = stopQuestions.reduce(
+        (acc, q) => {
+          acc[q.difficulty_level] = (acc[q.difficulty_level] || 0) + 1;
+          return acc;
+        },
+        {} as Record<DifficultyLevel, number>
+      );
+
+      // Get the most common difficulty in this stop
+      const primaryDifficulty = (Object.entries(difficultyCount).sort((a, b) => b[1] - a[1])[0]?.[0] || DifficultyLevel.MEDIUM) as DifficultyLevel;
+
+      // Prepare stop data
+      stopsToCreate.push({
+        study_trail_id: trailId,
+        position_order: stopPosition,
+        name: `Parada ${stopPosition}`,
+        description: `Parada ${stopPosition} da trilha de estudos`,
+        stop_type: StudyTrailStopType.PRACTICE,
+        difficulty_level: primaryDifficulty,
+        status: stopPosition === 1 ? StudyTrailStopStatus.AVAILABLE : StudyTrailStopStatus.LOCKED,
+        total_questions: stopQuestions.length,
+        xp_reward: this.calculateXPReward(primaryDifficulty),
+        estimated_duration_minutes: Math.max(5, stopQuestions.length * 2),
+        minimum_success_rate: 70,
+      });
+
+      // Store questions for this stop (will be linked after stop creation)
+      stopQuestionsMap.set(
+        stopPosition,
+        stopQuestions.map((q, index) => ({
+          questionId: q.id,
+          order: index + 1,
+        }))
+      );
+    }
+
+    // Bulk insert all stops in a single transaction
+    const savedStops = await this.studyTrailStopRepository.save(stopsToCreate);
+
+    // Prepare all stop questions for bulk insert
+    const allStopQuestions: any[] = [];
+    savedStops.forEach((stop, index) => {
+      const stopPosition = index + 1;
+      const questions = stopQuestionsMap.get(stopPosition) || [];
+
+      questions.forEach(({ questionId, order }) => {
+        allStopQuestions.push({
+          study_trail_stop_id: stop.id,
+          question_id: questionId,
+          question_order: order,
+          answer_status: QuestionAnswerStatus.NOT_ANSWERED,
+        });
+      });
+    });
+
+    // Bulk insert all stop questions in chunks to avoid query size limits
+    const CHUNK_SIZE = 500;
+    for (let i = 0; i < allStopQuestions.length; i += CHUNK_SIZE) {
+      const chunk = allStopQuestions.slice(i, i + CHUNK_SIZE);
+      await this.studyTrailStopQuestionRepository.createQueryBuilder().insert().into(StudyTrailStopQuestion).values(chunk).execute();
+    }
   }
 
   private async createStudyTrailStop(trailId: number, position: number, userId: number, skillCategoryId: number): Promise<StudyTrailStop> {
@@ -931,13 +1076,24 @@ export class StudyTrailService {
   }
 
   private async unlockNextStop(trailId: number, nextPosition: number, userId: number, skillCategoryId: number): Promise<void> {
+    const trail = await this.studyTrailRepository.findOne({ where: { id: trailId } });
+
+    if (!trail) {
+      return;
+    }
+
     let nextStop = await this.studyTrailStopRepository.findOne({
       where: { study_trail_id: trailId, position_order: nextPosition },
     });
 
     if (!nextStop) {
-      // Criar próxima parada dinamicamente
-      nextStop = await this.createStudyTrailStop(trailId, nextPosition, userId, skillCategoryId);
+      // Dynamic stop creation is only for adaptive model
+      if (trail.generation_model === StudyTrailGenerationModel.ADAPTIVE) {
+        nextStop = await this.createStudyTrailStop(trailId, nextPosition, userId, skillCategoryId);
+      } else {
+        // For all_questions_by_difficulty model, stop should already exist
+        return;
+      }
     }
 
     if (nextStop.status !== StudyTrailStopStatus.AVAILABLE) {
@@ -1065,6 +1221,7 @@ export class StudyTrailService {
       skill_category_name: trail.skill_category?.name || 'Categoria',
       name: trail.name,
       status: trail.status,
+      generation_model: trail.generation_model,
       current_stop_position: trail.current_stop_position,
       total_stops: trail.total_stops,
       completion_percentage: completionPercentage,

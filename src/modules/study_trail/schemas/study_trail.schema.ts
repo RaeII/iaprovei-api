@@ -6,6 +6,7 @@ export const StudyTrailCreateSchema = z.object({
   skill_category_id: z.number().int().positive(),
   name: z.string().min(1).max(255).optional(),
   description: z.string().max(1000).optional(),
+  generation_model: z.enum(['adaptive', 'all_questions_by_difficulty']).optional().default('adaptive'),
 });
 
 export const StudyTrailUpdateSchema = z.object({
@@ -54,6 +55,7 @@ export const StudyTrailSummarySchema = z.object({
   skill_category_name: z.string(),
   name: z.string(),
   status: z.enum(['active', 'completed', 'paused']),
+  generation_model: z.enum(['adaptive', 'all_questions_by_difficulty']),
   current_stop_position: z.number(),
   total_stops: z.number(),
   completion_percentage: z.number(),

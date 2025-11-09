@@ -6,13 +6,15 @@ import { User as UserEntity } from '@/entities/user.entity';
 import { UserValidator } from '@/modules/user/user.validator';
 import { DataNotFoundException } from '@/common/exceptions/data-not-found.exception';
 import { UserCreate, UserListData, UserMe, UserUpdate, User, UserMeSchema, UserListDataSchema, ValidationResponse } from './schemas/user.schema';
+import { HeartsService } from '@/modules/hearts/hearts.service';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(UserEntity)
     private usersRepository: Repository<UserEntity>,
-    private userValidator: UserValidator
+    private userValidator: UserValidator,
+    private heartsService: HeartsService
   ) {}
 
   // Helper method to get UserMe select fields automatically from schema
@@ -45,6 +47,9 @@ export class UserService {
     } as Partial<UserEntity>);
 
     const savedUser = await this.usersRepository.save(newUser);
+
+    // Initialize hearts for the new user (5 hearts)
+    await this.heartsService.initializeHearts(savedUser.id);
 
     // Fetch the saved user with only UserMe fields
     return this.findMe(savedUser.id);
