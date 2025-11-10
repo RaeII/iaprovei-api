@@ -68,8 +68,9 @@ export class PagbankController {
   async createSubscription(@Body(new ZodValidationPipe(CreateSubscriptionSchema)) createSubscriptionDto: CreateSubscription, @BasicUserInfo() user: UserBasicInfo): Promise<CreateSubscriptionResponse> {
     // Validar se o plano existe usando o id_pagbank
     const plan = await this.plansService.findByIdPagbank(createSubscriptionDto.plan.id);
-    const userPlan = await this.userPlansService.findByPlanId(user.id);
-
+    console.log('user', user);
+    const userPlan = await this.userPlansService.findByUserId(user.id);
+    console.log('userPlan', userPlan);
     if (!plan) {
       throw new DataNotFoundException(`Plano com ID PagBank "${createSubscriptionDto.plan.id}" não encontrado`);
     }

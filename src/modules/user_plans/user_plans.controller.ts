@@ -52,10 +52,11 @@ export class UserPlansController {
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiResponse({ schema: userPlanListResponseOpenapi })
-  async findByUserId(@Param('userId', ParseIntPipe) userId: number, @Query(new ZodValidationPipe(PaginationSchema)) pagination: Pagination, @BasicUserInfo() user: UserBasicInfo): Promise<UserPlanListResponse> {
+  async findByUserId(@Param('userId', ParseIntPipe) userId: number, @BasicUserInfo() user: UserBasicInfo): Promise<UserPlanDetailResponse> {
     console.log('aqui', userId);
     await this.userPlansValidator.assertCanAccessUserPlans(userId, user);
-    return this.userPlansService.findByUserId(userId, pagination);
+    const data = await this.userPlansService.findByUserId(userId);
+    return { data };
   }
 
   @Get('user/:userId/active')

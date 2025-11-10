@@ -33,6 +33,8 @@ export class UserPlansService {
     await this.userPlansValidator.assertPlanExists(createUserPlanDto.plan_id);
     await this.userPlansValidator.assertUserPlanDoesNotExist(createUserPlanDto.user_id, createUserPlanDto.plan_id);
 
+    console.log('createUserPlanDto create', createUserPlanDto);
+
     const newUserPlan = this.userPlansRepository.create({
       ...createUserPlanDto,
       status: createUserPlanDto.status || UserPlanStatus.ACTIVE,
@@ -112,21 +114,11 @@ export class UserPlansService {
     return userPlan;
   }
 
-  async findByUserId(userId: number, pagination: Pagination): Promise<{ data: UserPlanListData[]; meta: PaginationMeta }> {
-    const { page, limit } = pagination;
-    const offset = generateOffset(page, limit);
-
-    const [data, total] = await this.userPlansRepository.findAndCount({
+  async findByUserId(userId: number): Promise<UserPlanDetail | null> {
+    return this.userPlansRepository.findOne({
       where: { user_id: userId },
-      select: this.getUserPlanListSelectFields(),
-      order: { created_at: 'DESC' },
-      skip: offset,
-      take: limit,
+      select: this.getUserPlanDetailSelectFields(),
     });
-
-    const meta = createPaginationMeta(total, page, limit);
-
-    return { data, meta };
   }
 
   async findActiveByUserId(userId: number): Promise<UserPlanListData[]> {
