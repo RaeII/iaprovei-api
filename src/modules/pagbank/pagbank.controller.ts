@@ -74,7 +74,7 @@ export class PagbankController {
       throw new DataNotFoundException(`Plano com ID PagBank "${createSubscriptionDto.plan.id}" não encontrado`);
     }
 
-    if (userPlan.is_active) throw new BadRequestException('Usuário já possui um plano ativo');
+    if (userPlan?.is_active) throw new BadRequestException('Usuário já possui um plano ativo');
 
     const data = await this.pagbankService.createSubscription(createSubscriptionDto);
 

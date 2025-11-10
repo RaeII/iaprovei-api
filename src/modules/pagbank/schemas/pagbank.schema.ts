@@ -140,7 +140,7 @@ export const CustomerBillingInfoSchema = z.object({
 // Schema para criar um customer
 export const CreateCustomerSchema = z.object({
   phones: z.array(CustomerPhoneSchema).min(1, 'Pelo menos um telefone é obrigatório'),
-  address: CustomerAddressSchema,
+  address: CustomerAddressSchema.optional().nullable(),
   billing_info: z.array(CustomerBillingInfoSchema).min(1, 'Pelo menos uma informação de cobrança é obrigatória'),
   reference_id: z.string().min(1, 'Reference ID é obrigatório').max(65, 'Reference ID deve ter no máximo 65 caracteres'),
   name: z.string().min(1, 'Nome é obrigatório').max(100, 'Nome deve ter no máximo 100 caracteres'),
@@ -182,7 +182,7 @@ export const CustomerResponseSchema = z.object({
   tax_id: z.string(),
   birth_date: z.string(),
   phones: z.array(CustomerPhoneSchema),
-  address: CustomerAddressSchema,
+  address: CustomerAddressSchema.optional().nullable(),
   billing_info: z.array(CustomerBillingInfoSchema),
   created_at: z.string(),
   updated_at: z.string(),
@@ -249,7 +249,7 @@ export const SubscriptionCustomerResponseSchema = z.object({
   id: z.string(),
   name: z.string(),
   email: z.string(),
-  address: CustomerAddressSchema,
+  address: CustomerAddressSchema.optional().nullable(),
 });
 
 // Schema para a resposta de criação de subscription
