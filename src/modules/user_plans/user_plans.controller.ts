@@ -1,14 +1,21 @@
-import { Controller, Get, UseGuards /* ParseIntPipe */ /* Param, Post,Body, Query, Patch , Put, Delete */ } from '@nestjs/common';
-import { UserPlansService } from '@/modules/user_plans/user_plans.service';
+import {
+  Controller,
+  Get,
+  UseGuards /* ParseIntPipe */ /* Param, Post,Body, Query, Patch , Put, Delete */,
+} from '@nestjs/common';
+import { PlanDetailWithUserPlan, UserPlansService } from '@/modules/user_plans/user_plans.service';
 import { UserPlansValidator } from '@/modules/user_plans/user_plans.validator';
-import { UserPlanDetailResponse, userPlanListResponseOpenapi /*, UserPlanCreate, UserPlanQuery, UserPlanListResponse, UserPlanCreateResponse, UserPlanCreateSchema, UserPlanQuerySchema, userPlanCreateOpenapi, userPlanCreateResponseOpenapi  userPlanUpdateResponseOpenapi, UserPlanUpdate, UserPlanUpdateResponse, UserPlanListData, UserPlanUpdateSchema, userPlanUpdateOpenapi, userPlanDetailResponseOpenapi */ } from './schemas/user_plan.schema';
+import {
+  UserPlanDetailResponse,
+  userPlanListResponseOpenapi /*, UserPlanCreate, UserPlanQuery, UserPlanListResponse, UserPlanCreateResponse, UserPlanCreateSchema, UserPlanQuerySchema, userPlanCreateOpenapi, userPlanCreateResponseOpenapi  userPlanUpdateResponseOpenapi, UserPlanUpdate, UserPlanUpdateResponse, UserPlanListData, UserPlanUpdateSchema, userPlanUpdateOpenapi, userPlanDetailResponseOpenapi */,
+} from './schemas/user_plan.schema';
 //import { PaginationSchema, Pagination } from '@/common/schemas/pagination.schema';
 //import { ZodValidationPipe } from 'nestjs-zod';
 import { ApiBearerAuth, /* ApiBody */ ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/modules/auth/guard/jwt-auth.guard';
 import { BasicUserInfo } from '@/common/decorators';
 import { UserBasicInfo } from '@/modules/user/schemas/user.schema';
-import { PlanDetail, planDetailResponseOpenapi } from '@/modules/plans/schemas/plan.schema';
+import { planDetailResponseOpenapi } from '@/modules/plans/schemas/plan.schema';
 /* import { Role } from '@/modules/auth/enums/role.enum';
 import { Roles } from '@/common/decorators/roles.decorator'; */
 
@@ -33,7 +40,7 @@ export class UserPlansController {
   @Get('plan/me')
   @UseGuards(JwtAuthGuard)
   @ApiResponse({ schema: planDetailResponseOpenapi })
-  async findPlanDetailByUserId(@BasicUserInfo() user: UserBasicInfo): Promise<{ data: PlanDetail | null }> {
+  async findPlanDetailByUserId(@BasicUserInfo() user: UserBasicInfo): Promise<{ data: PlanDetailWithUserPlan | null }> {
     await this.userPlansValidator.assertCanAccessUserPlans(user.id, user);
     const data = await this.userPlansService.findPlanDetailByUserId(user.id);
     return { data };

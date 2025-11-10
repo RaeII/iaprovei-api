@@ -17,6 +17,12 @@ import { Pagination, PaginationMeta } from '@/common/schemas/pagination.schema';
 import { createPaginationMeta, generateOffset } from '@/common/utils/query-utils';
 import { PlanDetail } from '@/modules/plans/schemas/plan.schema';
 
+type UserPlanPrefixedFields = {
+  [K in keyof UserPlanDetail as `user_plan_${Extract<K, string>}`]: UserPlanDetail[K];
+};
+
+export type PlanDetailWithUserPlan = PlanDetail & UserPlanPrefixedFields;
+
 @Injectable()
 export class UserPlansService {
   constructor(
@@ -136,24 +142,31 @@ export class UserPlansService {
     });
   }
 
-  async findPlanDetailByUserId(userId: number): Promise<PlanDetail | null> {
+  async findPlanDetailByUserId(userId: number): Promise<PlanDetailWithUserPlan | null> {
+    const planSelects = [
+      'plan.id as id',
+      'plan.id_pagbank as id_pagbank',
+      'plan.title as title',
+      'plan.description as description',
+      'plan.description_topics as description_topics',
+      'plan.price as price',
+      'plan.is_active as is_active',
+      'plan.created_at as created_at',
+      'plan.updated_at as updated_at',
+    ];
+
+    const userPlanSelects = this.getUserPlanDetailSelectFields().map(field => {
+      const column = String(field);
+      return `user_plan.${column} as user_plan_${column}`;
+    });
+
     const plan = await this.userPlansRepository
       .createQueryBuilder('user_plan')
       .innerJoin('user_plan.plan', 'plan')
-      .select([
-        'plan.id as id',
-        'plan.id_pagbank as id_pagbank',
-        'plan.title as title',
-        'plan.description as description',
-        'plan.description_topics as description_topics',
-        'plan.price as price',
-        'plan.is_active as is_active',
-        'plan.created_at as created_at',
-        'plan.updated_at as updated_at',
-      ])
+      .select([...planSelects, ...userPlanSelects])
       .where('user_plan.user_id = :userId', { userId })
       .orderBy('user_plan.created_at', 'DESC')
-      .getRawOne<PlanDetail>();
+      .getRawOne<PlanDetailWithUserPlan>();
 
     return plan ?? null;
   }
