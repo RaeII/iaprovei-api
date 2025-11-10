@@ -8,6 +8,7 @@ import { ApiBearerAuth, /* ApiBody */ ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/modules/auth/guard/jwt-auth.guard';
 import { BasicUserInfo } from '@/common/decorators';
 import { UserBasicInfo } from '@/modules/user/schemas/user.schema';
+import { PlanDetail, planDetailResponseOpenapi } from '@/modules/plans/schemas/plan.schema';
 /* import { Role } from '@/modules/auth/enums/role.enum';
 import { Roles } from '@/common/decorators/roles.decorator'; */
 
@@ -26,6 +27,15 @@ export class UserPlansController {
     console.log('aqui', user.id);
     await this.userPlansValidator.assertCanAccessUserPlans(user.id, user);
     const data = await this.userPlansService.findByUserId(user.id);
+    return { data };
+  }
+
+  @Get('plan/me')
+  @UseGuards(JwtAuthGuard)
+  @ApiResponse({ schema: planDetailResponseOpenapi })
+  async findPlanDetailByUserId(@BasicUserInfo() user: UserBasicInfo): Promise<{ data: PlanDetail | null }> {
+    await this.userPlansValidator.assertCanAccessUserPlans(user.id, user);
+    const data = await this.userPlansService.findPlanDetailByUserId(user.id);
     return { data };
   }
 

@@ -1,3 +1,4 @@
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImxlYXJzaSIsInN1YiI6OSwiaWF0IjoxNzYyODAxNzU0LCJleHAiOjE3NjI4ODgxNTR9.FhaCtEsoKR-mCWp0JvclMCLn0kastA2n3Q5MYJkaID0
 Inicio -> https://portaldev.pagbank.com.br/primeiros-passos
 Tokens -> https://portaldev.pagbank.com.br/tokens
 Cartões de teste -> https://developer.pagbank.com.br/docs/cartoes-de-teste
