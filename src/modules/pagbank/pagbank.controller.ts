@@ -69,6 +69,7 @@ export class PagbankController {
     // Validar se o plano existe usando o id_pagbank
     const plan = await this.plansService.findByIdPagbank(createSubscriptionDto.plan.id);
     const userPlan = await this.userPlansService.findByPlanId(user.id);
+
     if (!plan) {
       throw new DataNotFoundException(`Plano com ID PagBank "${createSubscriptionDto.plan.id}" não encontrado`);
     }
@@ -83,12 +84,17 @@ export class PagbankController {
         pagbank_subscriber_id: data.customer.id,
         user_id: user.id,
         plan_id: plan.id,
+        trial_start_at: new Date(data.trial.start_at),
+        trial_end_at: new Date(data.trial.end_at),
       });
     } else {
       await this.userPlansService.update(userPlan.id, {
         status: UserPlanStatus.ACTIVE,
+        is_active: true,
         pagbank_customer_id: data.customer.id,
         pagbank_subscriber_id: data.customer.id,
+        trial_start_at: new Date(data.trial.start_at),
+        trial_end_at: new Date(data.trial.end_at),
       });
     }
     return { data };
