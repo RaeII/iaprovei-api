@@ -1,15 +1,15 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, Query, UseGuards, ParseIntPipe, Patch } from '@nestjs/common';
+import { Controller, Get, UseGuards /* ParseIntPipe */ /* Param, Post,Body, Query, Patch , Put, Delete */ } from '@nestjs/common';
 import { UserPlansService } from '@/modules/user_plans/user_plans.service';
 import { UserPlansValidator } from '@/modules/user_plans/user_plans.validator';
-import { UserPlanCreate, UserPlanUpdate, UserPlanQuery, UserPlanListResponse, UserPlanDetailResponse, UserPlanCreateResponse, UserPlanUpdateResponse, UserPlanListData, UserPlanCreateSchema, UserPlanUpdateSchema, UserPlanQuerySchema, userPlanListResponseOpenapi, userPlanDetailResponseOpenapi, userPlanCreateOpenapi, userPlanUpdateOpenapi, userPlanCreateResponseOpenapi, userPlanUpdateResponseOpenapi } from './schemas/user_plan.schema';
-import { PaginationSchema, Pagination } from '@/common/schemas/pagination.schema';
-import { ZodValidationPipe } from 'nestjs-zod';
-import { ApiBearerAuth, ApiBody, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { UserPlanDetailResponse, userPlanListResponseOpenapi /*, UserPlanCreate, UserPlanQuery, UserPlanListResponse, UserPlanCreateResponse, UserPlanCreateSchema, UserPlanQuerySchema, userPlanCreateOpenapi, userPlanCreateResponseOpenapi  userPlanUpdateResponseOpenapi, UserPlanUpdate, UserPlanUpdateResponse, UserPlanListData, UserPlanUpdateSchema, userPlanUpdateOpenapi, userPlanDetailResponseOpenapi */ } from './schemas/user_plan.schema';
+//import { PaginationSchema, Pagination } from '@/common/schemas/pagination.schema';
+//import { ZodValidationPipe } from 'nestjs-zod';
+import { ApiBearerAuth, /* ApiBody */ ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/modules/auth/guard/jwt-auth.guard';
 import { BasicUserInfo } from '@/common/decorators';
 import { UserBasicInfo } from '@/modules/user/schemas/user.schema';
-import { Role } from '@/modules/auth/enums/role.enum';
-import { Roles } from '@/common/decorators/roles.decorator';
+/* import { Role } from '@/modules/auth/enums/role.enum';
+import { Roles } from '@/common/decorators/roles.decorator'; */
 
 @Controller('user-plans')
 @ApiBearerAuth()
@@ -18,6 +18,18 @@ export class UserPlansController {
     private readonly userPlansService: UserPlansService,
     private readonly userPlansValidator: UserPlansValidator
   ) {}
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  @ApiResponse({ schema: userPlanListResponseOpenapi })
+  async findByUserId(@BasicUserInfo() user: UserBasicInfo): Promise<UserPlanDetailResponse> {
+    console.log('aqui', user.id);
+    await this.userPlansValidator.assertCanAccessUserPlans(user.id, user);
+    const data = await this.userPlansService.findByUserId(user.id);
+    return { data };
+  }
+
+  /*
 
   @Post()
   @UseGuards(JwtAuthGuard)
@@ -47,7 +59,10 @@ export class UserPlansController {
     return this.userPlansService.findAll(pagination, query);
   }
 
+
+
   @Get('user/:userId')
+  @Roles(Role.ADMIN)
   @UseGuards(JwtAuthGuard)
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
@@ -60,6 +75,7 @@ export class UserPlansController {
   }
 
   @Get('user/:userId/active')
+  @Roles(Role.ADMIN)
   @UseGuards(JwtAuthGuard)
   @ApiResponse({ schema: userPlanListResponseOpenapi })
   async findActiveByUserId(@Param('userId', ParseIntPipe) userId: number, @BasicUserInfo() user: UserBasicInfo): Promise<{ data: any[] }> {
@@ -80,6 +96,7 @@ export class UserPlansController {
   }
 
   @Get(':id')
+  @Roles(Role.ADMIN)
   @UseGuards(JwtAuthGuard)
   @ApiResponse({ schema: userPlanDetailResponseOpenapi })
   async findOne(@Param('id', ParseIntPipe) id: number, @BasicUserInfo() user: UserBasicInfo): Promise<UserPlanDetailResponse> {
@@ -89,6 +106,7 @@ export class UserPlansController {
   }
 
   @Put(':id')
+  @Roles(Role.ADMIN)
   @UseGuards(JwtAuthGuard)
   @ApiBody({ schema: userPlanUpdateOpenapi })
   @ApiResponse({ schema: userPlanUpdateResponseOpenapi })
@@ -99,6 +117,7 @@ export class UserPlansController {
   }
 
   @Delete(':id')
+  @Roles(Role.ADMIN)
   @UseGuards(JwtAuthGuard)
   async remove(@Param('id', ParseIntPipe) id: number, @BasicUserInfo() user: UserBasicInfo): Promise<void> {
     await this.userPlansValidator.assertIsOwnerOrAdmin(id, user);
@@ -106,6 +125,7 @@ export class UserPlansController {
   }
 
   @Patch(':id/cancel')
+  @Roles(Role.ADMIN)
   @UseGuards(JwtAuthGuard)
   @ApiResponse({ schema: userPlanUpdateResponseOpenapi })
   async cancel(@Param('id', ParseIntPipe) id: number, @BasicUserInfo() user: UserBasicInfo): Promise<UserPlanUpdateResponse> {
@@ -115,6 +135,7 @@ export class UserPlansController {
   }
 
   @Patch(':id/activate')
+  @Roles(Role.ADMIN)
   @UseGuards(JwtAuthGuard)
   @ApiResponse({ schema: userPlanUpdateResponseOpenapi })
   async activate(@Param('id', ParseIntPipe) id: number, @BasicUserInfo() user: UserBasicInfo): Promise<UserPlanUpdateResponse> {
@@ -124,6 +145,7 @@ export class UserPlansController {
   }
 
   @Patch(':id/deactivate')
+  @Roles(Role.ADMIN)
   @UseGuards(JwtAuthGuard)
   @ApiResponse({ schema: userPlanUpdateResponseOpenapi })
   async deactivate(@Param('id', ParseIntPipe) id: number, @BasicUserInfo() user: UserBasicInfo): Promise<UserPlanUpdateResponse> {
@@ -151,6 +173,7 @@ export class UserPlansController {
   }
 
   @Patch(':id/pagbank-ids')
+  @Roles(Role.ADMIN)
   @UseGuards(JwtAuthGuard)
   @ApiResponse({ schema: userPlanUpdateResponseOpenapi })
   async updatePagbankIds(@Param('id', ParseIntPipe) id: number, @Body() body: { pagbank_subscriber_id?: string; pagbank_customer_id?: string }, @BasicUserInfo() user: UserBasicInfo): Promise<UserPlanUpdateResponse> {
@@ -160,6 +183,7 @@ export class UserPlansController {
   }
 
   @Patch(':id/trial-dates')
+  @Roles(Role.ADMIN)
   @UseGuards(JwtAuthGuard)
   @ApiResponse({ schema: userPlanUpdateResponseOpenapi })
   async updateTrialDates(@Param('id', ParseIntPipe) id: number, @Body() body: { trial_start_at?: string; trial_end_at?: string }, @BasicUserInfo() user: UserBasicInfo): Promise<UserPlanUpdateResponse> {
@@ -191,6 +215,7 @@ export class UserPlansController {
   }
 
   @Patch(':id/activate-boolean')
+  @Roles(Role.ADMIN)
   @UseGuards(JwtAuthGuard)
   @ApiResponse({ schema: userPlanUpdateResponseOpenapi })
   async activateBoolean(@Param('id', ParseIntPipe) id: number, @BasicUserInfo() user: UserBasicInfo): Promise<UserPlanUpdateResponse> {
@@ -200,11 +225,12 @@ export class UserPlansController {
   }
 
   @Patch(':id/deactivate-boolean')
+  @Roles(Role.ADMIN)
   @UseGuards(JwtAuthGuard)
   @ApiResponse({ schema: userPlanUpdateResponseOpenapi })
   async deactivateBoolean(@Param('id', ParseIntPipe) id: number, @BasicUserInfo() user: UserBasicInfo): Promise<UserPlanUpdateResponse> {
     await this.userPlansValidator.assertIsOwnerOrAdmin(id, user);
     const data = await this.userPlansService.deactivateUserPlanBoolean(id);
     return { data };
-  }
+  } */
 }
