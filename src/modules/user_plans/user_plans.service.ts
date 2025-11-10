@@ -4,7 +4,15 @@ import { Repository, FindOptionsWhere } from 'typeorm';
 import { UserPlan as UserPlanEntity, UserPlanStatus } from '@/entities/user_plan.entity';
 import { UserPlansValidator } from '@/modules/user_plans/user_plans.validator';
 import { DataNotFoundException } from '@/common/exceptions/data-not-found.exception';
-import { UserPlanCreate, UserPlanUpdate, UserPlanListData, UserPlanDetail, UserPlanQuery, UserPlanListDataSchema, UserPlanDetailSchema } from './schemas/user_plan.schema';
+import {
+  UserPlanCreate,
+  UserPlanUpdate,
+  UserPlanListData,
+  UserPlanDetail,
+  UserPlanQuery,
+  UserPlanListDataSchema,
+  UserPlanDetailSchema,
+} from './schemas/user_plan.schema';
 import { Pagination, PaginationMeta } from '@/common/schemas/pagination.schema';
 import { createPaginationMeta, generateOffset } from '@/common/utils/query-utils';
 import { PlanDetail } from '@/modules/plans/schemas/plan.schema';
@@ -47,7 +55,10 @@ export class UserPlansService {
     return this.findOne(savedUserPlan.id);
   }
 
-  async findAll(pagination: Pagination, query?: UserPlanQuery): Promise<{ data: UserPlanListData[]; meta: PaginationMeta }> {
+  async findAll(
+    pagination: Pagination,
+    query?: UserPlanQuery
+  ): Promise<{ data: UserPlanListData[]; meta: PaginationMeta }> {
     const { page, limit } = pagination;
     const offset = generateOffset(page, limit);
 
@@ -85,7 +96,10 @@ export class UserPlansService {
       .where(where);
 
     // Get total count and paginated results
-    const [data, total] = await Promise.all([queryBuilder.orderBy('user_plan.created_at', 'DESC').skip(offset).take(limit).getRawMany(), queryBuilder.getCount()]);
+    const [data, total] = await Promise.all([
+      queryBuilder.orderBy('user_plan.created_at', 'DESC').skip(offset).take(limit).getRawMany(),
+      queryBuilder.getCount(),
+    ]);
 
     const meta = createPaginationMeta(total, page, limit);
 
@@ -123,7 +137,23 @@ export class UserPlansService {
   }
 
   async findPlanDetailByUserId(userId: number): Promise<PlanDetail | null> {
-    const plan = await this.userPlansRepository.createQueryBuilder('user_plan').innerJoin('user_plan.plan', 'plan').select(['plan.id as id', 'plan.id_pagbank as id_pagbank', 'plan.title as title', 'plan.description as description', 'plan.description_topics as description_topics', 'plan.price as price', 'plan.is_active as is_active', 'plan.created_at as created_at', 'plan.updated_at as updated_at']).where('user_plan.user_id = :userId', { userId }).orderBy('user_plan.created_at', 'DESC').getRawOne<PlanDetail>();
+    const plan = await this.userPlansRepository
+      .createQueryBuilder('user_plan')
+      .innerJoin('user_plan.plan', 'plan')
+      .select([
+        'plan.id as id',
+        'plan.id_pagbank as id_pagbank',
+        'plan.title as title',
+        'plan.description as description',
+        'plan.description_topics as description_topics',
+        'plan.price as price',
+        'plan.is_active as is_active',
+        'plan.created_at as created_at',
+        'plan.updated_at as updated_at',
+      ])
+      .where('user_plan.user_id = :userId', { userId })
+      .orderBy('user_plan.created_at', 'DESC')
+      .getRawOne<PlanDetail>();
 
     return plan ?? null;
   }

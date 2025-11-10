@@ -1,3 +1,8 @@
+const fs = require('fs');
+const path = require('path');
+
+const prettierConfig = JSON.parse(fs.readFileSync(path.resolve(__dirname, '.prettierrc'), 'utf8'));
+
 module.exports = {
   parser: '@typescript-eslint/parser',
   parserOptions: {
@@ -17,20 +22,7 @@ module.exports = {
   },
   ignorePatterns: ['.eslintrc.js'],
   rules: {
-    "prettier/prettier": [
-      "error",
-      {
-        "printWidth": 2000,
-        "tabWidth": 2,
-        "useTabs": false,
-        "semi": true,
-        "singleQuote": true,
-        "trailingComma": "es5",
-        "bracketSpacing": true,
-        "arrowParens": "avoid",
-        "endOfLine": "lf"
-      }
-    ],
+    'prettier/prettier': ['error', prettierConfig],
     '@typescript-eslint/interface-name-prefix': 'off',
     '@typescript-eslint/explicit-function-return-type': 'off',
     '@typescript-eslint/explicit-module-boundary-types': 'off',
