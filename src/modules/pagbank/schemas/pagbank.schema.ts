@@ -64,7 +64,10 @@ export const ResultSetSchema = z.object({
 
 // Schema para criar um plano
 export const CreatePlanSchema = z.object({
-  reference_id: z.string().min(1, 'Reference ID é obrigatório').max(65, 'Reference ID deve ter no máximo 65 caracteres'),
+  reference_id: z
+    .string()
+    .min(1, 'Reference ID é obrigatório')
+    .max(65, 'Reference ID deve ter no máximo 65 caracteres'),
   name: z.string().min(1, 'Nome é obrigatório').max(65, 'Nome deve ter no máximo 65 caracteres'),
   description: z.string().max(250, 'Descrição deve ter no máximo 250 caracteres').optional(),
   amount: PlanAmountSchema,
@@ -139,10 +142,14 @@ export const CustomerBillingInfoSchema = z.object({
 
 // Schema para criar um customer
 export const CreateCustomerSchema = z.object({
+  id: z.string().optional().nullable(),
   phones: z.array(CustomerPhoneSchema).min(1, 'Pelo menos um telefone é obrigatório'),
   address: CustomerAddressSchema.optional().nullable(),
   billing_info: z.array(CustomerBillingInfoSchema).min(1, 'Pelo menos uma informação de cobrança é obrigatória'),
-  reference_id: z.string().min(1, 'Reference ID é obrigatório').max(65, 'Reference ID deve ter no máximo 65 caracteres'),
+  reference_id: z
+    .string()
+    .min(1, 'Reference ID é obrigatório')
+    .max(65, 'Reference ID deve ter no máximo 65 caracteres'),
   name: z.string().min(1, 'Nome é obrigatório').max(100, 'Nome deve ter no máximo 100 caracteres'),
   email: z.string().email('Email deve ter um formato válido').max(100, 'Email deve ter no máximo 100 caracteres'),
   tax_id: z.string().min(11, 'CPF deve ter pelo menos 11 caracteres').max(14, 'CPF deve ter no máximo 14 caracteres'),
@@ -168,9 +175,12 @@ export const SubscriptionPaymentMethodSchema = z.object({
 // Schema para criar uma subscription
 export const CreateSubscriptionSchema = z.object({
   plan: SubscriptionPlanSchema,
-  customer: CreateCustomerSchema,
+  customer: CreateCustomerSchema.optional().nullable(),
   payment_method: z.array(SubscriptionPaymentMethodSchema).min(1, 'Pelo menos um método de pagamento é obrigatório'),
-  reference_id: z.string().min(1, 'Reference ID é obrigatório').max(65, 'Reference ID deve ter no máximo 65 caracteres'),
+  reference_id: z
+    .string()
+    .min(1, 'Reference ID é obrigatório')
+    .max(65, 'Reference ID deve ter no máximo 65 caracteres'),
 });
 
 // Schema para a resposta de criação de customer

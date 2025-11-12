@@ -104,6 +104,11 @@ export class PagbankController {
 
     if (userPlan?.is_active) throw new BadRequestException('Usuário já possui um plano ativo');
 
+    if (userPlan?.pagbank_customer_id) {
+      console.log('userPlan.pagbank_subscriber_id', userPlan.pagbank_customer_id);
+      createSubscriptionDto.customer = { id: userPlan.pagbank_customer_id } as any;
+    }
+
     const data = await this.pagbankService.createSubscription(createSubscriptionDto);
 
     console.log('data', data);
