@@ -106,10 +106,12 @@ export class PagbankController {
 
     const data = await this.pagbankService.createSubscription(createSubscriptionDto);
 
+    console.log('data', data);
+
     if (!userPlan) {
       await this.userPlansService.create({
         pagbank_customer_id: data.customer.id,
-        pagbank_subscriber_id: data.customer.id,
+        pagbank_subscriber_id: data.id,
         user_id: user.id,
         plan_id: plan.id,
         trial_start_at: new Date(data.trial.start_at),
@@ -120,7 +122,7 @@ export class PagbankController {
         status: UserPlanStatus.ACTIVE,
         is_active: true,
         pagbank_customer_id: data.customer.id,
-        pagbank_subscriber_id: data.customer.id,
+        pagbank_subscriber_id: data.id,
         trial_start_at: new Date(data.trial.start_at),
         trial_end_at: new Date(data.trial.end_at),
       });

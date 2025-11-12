@@ -143,6 +143,7 @@ export class PagbankService {
    * @returns Promise com a resposta da API do PagBank
    */
   async cancelSubscription(subscriberId: string): Promise<unknown> {
+    console.log(`subscriptions/${subscriberId}/cancel`);
     return await this.request(`subscriptions/${subscriberId}/cancel`, 'PUT');
   }
 
