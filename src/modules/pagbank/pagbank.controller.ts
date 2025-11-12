@@ -1,6 +1,24 @@
-import { Controller, Get, Post, Put, UseGuards, Body, Param, Query, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, UseGuards, Body, Param, Query, BadRequestException } from '@nestjs/common';
 import { PagbankService } from './pagbank.service';
-import { PublicKeysResponse, publicKeysResponseOpenapi, CreatePlan, CreatePlanResponse, createPlanOpenapi, createPlanResponseOpenapi, CreatePlanSchema, GetPlansResponse, getPlansResponseOpenapi, CreateSubscription, CreateSubscriptionResponse, createSubscriptionOpenapi, createSubscriptionResponseOpenapi, CreateSubscriptionSchema, UpdateNotifications, UpdateNotificationsSchema, updateNotificationsOpenapi } from './schemas/pagbank.schema';
+import {
+  PublicKeysResponse,
+  publicKeysResponseOpenapi,
+  CreatePlan,
+  CreatePlanResponse,
+  createPlanOpenapi,
+  createPlanResponseOpenapi,
+  CreatePlanSchema,
+  GetPlansResponse,
+  getPlansResponseOpenapi,
+  CreateSubscription,
+  CreateSubscriptionResponse,
+  createSubscriptionOpenapi,
+  createSubscriptionResponseOpenapi,
+  CreateSubscriptionSchema,
+  UpdateNotifications,
+  UpdateNotificationsSchema,
+  updateNotificationsOpenapi,
+} from './schemas/pagbank.schema';
 import { UserBasicInfo } from '@/modules/user/schemas/user.schema';
 import { ApiBearerAuth, ApiResponse, ApiBody, ApiParam } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/modules/auth/guard/jwt-auth.guard';
@@ -13,6 +31,7 @@ import { PlansService } from '@/modules/plans/plans.service';
 import { UserPlansService } from '@/modules/user_plans/user_plans.service';
 import { DataNotFoundException } from '@/common/exceptions/data-not-found.exception';
 import { UserPlanStatus } from '@/entities/user_plan.entity';
+import { UserPlanDetail } from '@/modules/user_plans/schemas/user_plan.schema';
 
 @Controller('pagbank')
 @ApiBearerAuth()
@@ -45,7 +64,9 @@ export class PagbankController {
   @UseGuards(JwtAuthGuard)
   @ApiBody({ schema: createPlanOpenapi })
   @ApiResponse({ schema: createPlanResponseOpenapi })
-  async createPlan(@Body(new ZodValidationPipe(CreatePlanSchema)) createPlanDto: CreatePlan): Promise<CreatePlanResponse> {
+  async createPlan(
+    @Body(new ZodValidationPipe(CreatePlanSchema)) createPlanDto: CreatePlan
+  ): Promise<CreatePlanResponse> {
     const data = await this.pagbankService.createPlan(createPlanDto);
     return { data };
   }
@@ -56,7 +77,10 @@ export class PagbankController {
   @ApiParam({ name: 'plan_id', description: 'ID do plano a ser atualizado', type: 'string' })
   @ApiBody({ schema: createPlanOpenapi })
   @ApiResponse({ schema: createPlanResponseOpenapi })
-  async updatePlan(@Param('plan_id') planId: string, @Body(new ZodValidationPipe(CreatePlanSchema)) updatePlanDto: CreatePlan): Promise<CreatePlanResponse> {
+  async updatePlan(
+    @Param('plan_id') planId: string,
+    @Body(new ZodValidationPipe(CreatePlanSchema)) updatePlanDto: CreatePlan
+  ): Promise<CreatePlanResponse> {
     const data = await this.pagbankService.updatePlan(planId, updatePlanDto);
     return { data };
   }
@@ -65,7 +89,10 @@ export class PagbankController {
   @UseGuards(JwtAuthGuard)
   @ApiBody({ schema: createSubscriptionOpenapi })
   @ApiResponse({ schema: createSubscriptionResponseOpenapi })
-  async createSubscription(@Body(new ZodValidationPipe(CreateSubscriptionSchema)) createSubscriptionDto: CreateSubscription, @BasicUserInfo() user: UserBasicInfo): Promise<CreateSubscriptionResponse> {
+  async createSubscription(
+    @Body(new ZodValidationPipe(CreateSubscriptionSchema)) createSubscriptionDto: CreateSubscription,
+    @BasicUserInfo() user: UserBasicInfo
+  ): Promise<CreateSubscriptionResponse> {
     // Validar se o plano existe usando o id_pagbank
     const plan = await this.plansService.findByIdPagbank(createSubscriptionDto.plan.id);
     console.log('user', user);
@@ -101,6 +128,35 @@ export class PagbankController {
     return { data };
   }
 
+  @Delete('cancel')
+  @UseGuards(JwtAuthGuard)
+  async cancelSubscription(@BasicUserInfo() user: UserBasicInfo): Promise<{ data: UserPlanDetail }> {
+    const userPlan = await this.userPlansService.findByUserId(user.id);
+
+    if (!userPlan) {
+      throw new DataNotFoundException(
+        `Plano ativo para o usuário "${user.id}"`,
+        'Plano do usuário',
+        PagbankController.name
+      );
+    }
+
+    if (!userPlan.is_active || !userPlan.pagbank_subscriber_id) {
+      throw new BadRequestException('Usuário não possui um plano ativo para cancelamento');
+    }
+
+    await this.pagbankService.cancelSubscription(userPlan.pagbank_subscriber_id);
+
+    const data = await this.userPlansService.update(userPlan.id, {
+      status: UserPlanStatus.CANCELLED,
+      is_active: false,
+    });
+
+    console.log('data', data);
+
+    return { data };
+  }
+
   @Get('notifications')
   @Roles(Role.ADMIN)
   @UseGuards(JwtAuthGuard)
@@ -113,7 +169,9 @@ export class PagbankController {
   @Roles(Role.ADMIN)
   @UseGuards(JwtAuthGuard)
   @ApiBody({ schema: updateNotificationsOpenapi })
-  async updateNotifications(@Body(new ZodValidationPipe(UpdateNotificationsSchema)) updateNotificationsDto: UpdateNotifications): Promise<{ data: unknown }> {
+  async updateNotifications(
+    @Body(new ZodValidationPipe(UpdateNotificationsSchema)) updateNotificationsDto: UpdateNotifications
+  ): Promise<{ data: unknown }> {
     const data = await this.pagbankService.updateNotifications(updateNotificationsDto);
     return { data };
   }

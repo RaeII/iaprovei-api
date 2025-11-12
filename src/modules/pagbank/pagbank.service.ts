@@ -1,6 +1,16 @@
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
-import { PublicKeys, CreatePlan, PlanResponse, GetPlansData, CreateCustomer, CustomerResponse, CreateSubscription, SubscriptionResponse, UpdateNotifications } from './schemas/pagbank.schema';
+import {
+  PublicKeys,
+  CreatePlan,
+  PlanResponse,
+  GetPlansData,
+  CreateCustomer,
+  CustomerResponse,
+  CreateSubscription,
+  SubscriptionResponse,
+  UpdateNotifications,
+} from './schemas/pagbank.schema';
 
 @Injectable()
 export class PagbankService {
@@ -34,7 +44,12 @@ export class PagbankService {
    * @param additionalHeaders - Headers adicionais (opcional)
    * @returns Promise com a resposta da API
    */
-  private async request<T = any>(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET', body?: any, additionalHeaders?: Record<string, string>): Promise<T> {
+  private async request<T = any>(
+    endpoint: string,
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
+    body?: any,
+    additionalHeaders?: Record<string, string>
+  ): Promise<T> {
     const config: AxiosRequestConfig = {
       method,
       url: endpoint,
@@ -54,7 +69,11 @@ export class PagbankService {
         const status = axiosError.response?.status;
         const errorData = axiosError.response?.data;
 
-        this.logger.error(`\n\n Erro na requisição PagBank: ${status} - \n\n ${JSON.stringify(errorData)} \n\n`, axiosError.stack, '\n\n');
+        this.logger.error(
+          `\n\n Erro na requisição PagBank: ${status} - \n\n ${JSON.stringify(errorData)} \n\n`,
+          axiosError.stack,
+          '\n\n'
+        );
 
         throw new InternalServerErrorException(`Erro ao comunicar com PagBank: ${status} - ${axiosError.message}`);
       }
@@ -116,6 +135,15 @@ export class PagbankService {
     const response = await this.request<SubscriptionResponse>('subscriptions', 'POST', subscriptionData);
     console.log('\n\nresponse', response, '\n\n');
     return response;
+  }
+
+  /**
+   * Cancela uma assinatura existente no PagBank
+   * @param subscriberId - ID do assinante (subscriber) retornado pelo PagBank
+   * @returns Promise com a resposta da API do PagBank
+   */
+  async cancelSubscription(subscriberId: string): Promise<unknown> {
+    return await this.request(`subscriptions/${subscriberId}/cancel`, 'PUT');
   }
 
   /**
