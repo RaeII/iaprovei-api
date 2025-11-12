@@ -3,7 +3,7 @@ import { zodToOpenAPI } from 'nestjs-zod';
 
 // Constants
 export const MAX_HEARTS = 5;
-export const HEART_REGENERATION_INTERVAL_HOURS = 1;
+export const HEART_REGENERATION_INTERVAL_HOURS = 4;
 
 // Heart status schema
 export const HeartStatusSchema = z.object({
@@ -34,6 +34,3 @@ export const heartDeductionResponseOpenapi: any = zodToOpenAPI(HeartDeductionRes
 export type HeartStatus = z.infer<typeof HeartStatusSchema>;
 export type HeartStatusResponse = z.infer<typeof HeartStatusResponseSchema>;
 export type HeartDeductionResponse = z.infer<typeof HeartDeductionResponseSchema>;
-
-
-
