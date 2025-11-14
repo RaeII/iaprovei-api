@@ -6,6 +6,8 @@ import { SkillCategoryLookupService } from './services/skill-category-lookup.ser
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '@/entities/user.entity';
 import { SkillCategory } from '@/entities/skill_category.entity';
+import { UserHeartsService } from './services/user-hearts.service';
+import { HeartsService } from '@/modules/hearts/hearts.service';
 
 @Module({
   imports: [AuthModule, TypeOrmModule.forFeature([User, SkillCategory])],
@@ -19,7 +21,9 @@ import { SkillCategory } from '@/entities/skill_category.entity';
       provide: 'ISkillCategoryLookupService',
       useClass: SkillCategoryLookupService,
     },
+    UserHeartsService,
+    HeartsService,
   ],
-  exports: [UserContextService, 'IUserLookupService', 'ISkillCategoryLookupService'],
+  exports: [UserContextService, 'IUserLookupService', 'ISkillCategoryLookupService', UserHeartsService],
 })
 export class SharedModule {}

@@ -7,10 +7,10 @@ import { QuestionOptionModule } from '@/modules/question_option/question_option.
 import { QuestionModule } from '@/modules/question/question.module';
 import { ContestModule } from '@/modules/contest/contest.module';
 import { StatisticsModule } from '@/modules/statistics/statistics.module';
-import { HeartsModule } from '@/modules/hearts/hearts.module';
+import { SharedModule } from '@/shared/shared.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([UserAnswer]), QuestionOptionModule, QuestionModule, ContestModule, StatisticsModule, HeartsModule],
+  imports: [TypeOrmModule.forFeature([UserAnswer]), QuestionOptionModule, QuestionModule, ContestModule, StatisticsModule, SharedModule],
   controllers: [UserAnswerController],
   providers: [UserAnswerService],
   exports: [UserAnswerService],

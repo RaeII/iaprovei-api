@@ -15,6 +15,7 @@ import { StudyTrailCreate, StudyTrailStopStart, StudyTrailStopAnswer, StudyTrail
 import { DifficultySelectionStrategy, AdaptiveDifficultyStrategy, DifficultyStrategyFactory } from './strategies/difficulty-selection.strategies';
 import { AiAssistanceService } from '@/modules/ai_assistance/ai_assistance.service';
 import { AiCourseMaterialSuggestionRequest } from '@/modules/ai_assistance/schemas/ai_assistance.schema';
+import { UserHeartsService } from '@/shared/services/user-hearts.service';
 
 type AvailableSkillCategory = AiCourseMaterialSuggestionRequest['available_skill_categories'][number];
 
@@ -44,7 +45,8 @@ export class StudyTrailService {
     private contestRepository: Repository<Contest>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
-    private readonly aiAssistanceService: AiAssistanceService
+    private readonly aiAssistanceService: AiAssistanceService,
+    private readonly userHeartsService: UserHeartsService
   ) {
     this.difficultyStrategy = new AdaptiveDifficultyStrategy();
   }
@@ -462,6 +464,8 @@ export class StudyTrailService {
       throw new NotFoundException('Questão não encontrada ou não pertence ao usuário');
     }
 
+    await this.userHeartsService.assertHasAvailableHearts(userId);
+
     // Verificar se a parada permite refazer (se não atingiu 70% de acerto)
     if (stopQuestion.answer_status !== QuestionAnswerStatus.NOT_ANSWERED) {
       // Verificar se a parada pode ser refeita
@@ -520,6 +524,10 @@ export class StudyTrailService {
     } else {
       this.processAnswerAsync(stopQuestion.study_trail_stop_id, userId, stopQuestion.study_trail_stop.study_trail.skill_category_id, isCorrect, answerData.response_time_seconds || 0);
     }
+    if (!isCorrect) {
+      await this.userHeartsService.deductHeart(userId);
+    }
+
     // Preparar resposta básica imediatamente
     const response = {
       is_correct: isCorrect,
