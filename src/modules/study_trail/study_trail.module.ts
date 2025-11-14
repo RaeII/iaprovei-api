@@ -12,9 +12,10 @@ import { Contest } from '@/entities/contest.entity';
 import { AiAssistanceModule } from '@/modules/ai_assistance/ai_assistance.module';
 import { StudyTrailController } from './study_trail.controller';
 import { StudyTrailService } from './study_trail.service';
+import { SharedModule } from '@/shared/shared.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([StudyTrail, StudyTrailStop, StudyTrailStopQuestion, StudyTrailPerformance, Question, Subject, SkillCategory, Contest, User]), AiAssistanceModule],
+  imports: [TypeOrmModule.forFeature([StudyTrail, StudyTrailStop, StudyTrailStopQuestion, StudyTrailPerformance, Question, Subject, SkillCategory, Contest, User]), AiAssistanceModule, SharedModule],
   controllers: [StudyTrailController],
   providers: [StudyTrailService],
   exports: [StudyTrailService],

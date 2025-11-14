@@ -10,7 +10,7 @@ import { createPaginationMeta, generateOffset } from '@/common/utils/query-utils
 import { QuestionOptionService } from '@/modules/question_option/question_option.service';
 import { QuestionService } from '@/modules/question/question.service';
 import { StatisticsService } from '@/modules/statistics/statistics.service';
-import { HeartsService } from '@/modules/hearts/hearts.service';
+import { UserHeartsService } from '@/shared/services/user-hearts.service';
 
 @Injectable()
 export class UserAnswerService {
@@ -20,7 +20,7 @@ export class UserAnswerService {
     private questionOptionService: QuestionOptionService,
     private questionService: QuestionService,
     private statisticsService: StatisticsService,
-    private heartsService: HeartsService
+    private userHeartsService: UserHeartsService
   ) {}
 
   /**
@@ -30,6 +30,7 @@ export class UserAnswerService {
    * Returns both the user answer and correct answer information
    */
   async create(createUserAnswerDto: UserAnswerCreate, sessionId: string): Promise<UserAnswerCreateResponse> {
+    await this.userHeartsService.assertHasAvailableHearts(createUserAnswerDto.users_id);
     // Get the chosen option to validate it exists and check correctness
     const chosenOption = await this.questionOptionService.findOneInternal(createUserAnswerDto.option_id);
 
@@ -55,7 +56,7 @@ export class UserAnswerService {
     // Deduct heart if answer is incorrect
     let heartDeductionResult = null;
     if (!chosenOption.is_correct) {
-      heartDeductionResult = await this.heartsService.deductHeart(createUserAnswerDto.users_id);
+      heartDeductionResult = await this.userHeartsService.deductHeart(createUserAnswerDto.users_id);
     }
 
     // Remove session_id from the response

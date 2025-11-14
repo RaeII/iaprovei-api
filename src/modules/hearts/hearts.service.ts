@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '@/entities/user.entity';
 import { DataNotFoundException } from '@/common/exceptions/data-not-found.exception';
-import { HeartStatus, HeartDeductionResponse, MAX_HEARTS, HEART_REGENERATION_INTERVAL_HOURS } from './schemas/hearts.schema';
+import { HeartStatus, MAX_HEARTS, HEART_REGENERATION_INTERVAL_HOURS } from './schemas/hearts.schema';
 
 @Injectable()
 export class HeartsService {
@@ -49,38 +49,6 @@ export class HeartsService {
       hearts_to_regenerate: heartsToRegenerate,
       next_heart_regeneration_at: nextHeartRegenerationAt,
       is_full: isFull,
-    };
-  }
-
-  /**
-   * Deduct one heart from the user
-   * Called when a user answers a question incorrectly
-   * Returns updated heart count
-   */
-  async deductHeart(userId: number): Promise<HeartDeductionResponse> {
-    // First regenerate any pending hearts
-    await this.regenerateHearts(userId);
-
-    const user = await this.findUser(userId);
-
-    if (user.current_lives <= 0) {
-      return {
-        success: false,
-        current_hearts: 0,
-        message: 'Você não tem mais corações disponíveis',
-      };
-    }
-
-    const newHeartCount = user.current_lives - 1;
-
-    await this.usersRepository.update(userId, {
-      current_lives: newHeartCount,
-    });
-
-    return {
-      success: true,
-      current_hearts: newHeartCount,
-      message: newHeartCount === 0 ? 'Você perdeu seu último coração! Aguarde a regeneração.' : `Você perdeu um coração. Restam ${newHeartCount} corações.`,
     };
   }
 
