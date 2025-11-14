@@ -7,10 +7,7 @@ import { UserPlan } from '@/entities/user_plan.entity';
 import { SharedModule } from '@/shared/shared.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([UserPlan]),
-    SharedModule,
-  ],
+  imports: [TypeOrmModule.forFeature([UserPlan]), SharedModule],
   controllers: [UserPlansController],
   providers: [UserPlansService, UserPlansValidator],
   exports: [UserPlansService, UserPlansValidator],

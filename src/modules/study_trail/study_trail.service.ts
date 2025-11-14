@@ -10,12 +10,24 @@ import { Subject } from '@/entities/subject.entity';
 import { SkillCategory } from '@/entities/skill_category.entity';
 import { User } from '@/entities/user.entity';
 import { Contest } from '@/entities/contest.entity';
-import { StudyTrailCreate, StudyTrailStopStart, StudyTrailStopAnswer, StudyTrailSummary, StudyTrailDetails, StudyTrailStopPerformance } from './schemas/study_trail.schema';
+import {
+  StudyTrailCreate,
+  StudyTrailStopStart,
+  StudyTrailStopAnswer,
+  StudyTrailSummary,
+  StudyTrailDetails,
+  StudyTrailStopPerformance,
+} from './schemas/study_trail.schema';
 
-import { DifficultySelectionStrategy, AdaptiveDifficultyStrategy, DifficultyStrategyFactory } from './strategies/difficulty-selection.strategies';
+import {
+  DifficultySelectionStrategy,
+  AdaptiveDifficultyStrategy,
+  DifficultyStrategyFactory,
+} from './strategies/difficulty-selection.strategies';
 import { AiAssistanceService } from '@/modules/ai_assistance/ai_assistance.service';
 import { AiCourseMaterialSuggestionRequest } from '@/modules/ai_assistance/schemas/ai_assistance.schema';
 import { UserHeartsService } from '@/shared/services/user-hearts.service';
+import { UserPlansService } from '@/modules/user_plans/user_plans.service';
 
 type AvailableSkillCategory = AiCourseMaterialSuggestionRequest['available_skill_categories'][number];
 
@@ -46,7 +58,8 @@ export class StudyTrailService {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private readonly aiAssistanceService: AiAssistanceService,
-    private readonly userHeartsService: UserHeartsService
+    private readonly userHeartsService: UserHeartsService,
+    private readonly userPlansService: UserPlansService
   ) {
     this.difficultyStrategy = new AdaptiveDifficultyStrategy();
   }
@@ -108,7 +121,8 @@ export class StudyTrailService {
       throw new BadRequestException('Ainda não há questões disponíveis para esta categoria de habilidade');
     }
 
-    const generationModel = (createData.generation_model as StudyTrailGenerationModel) || StudyTrailGenerationModel.ADAPTIVE;
+    const generationModel =
+      (createData.generation_model as StudyTrailGenerationModel) || StudyTrailGenerationModel.ADAPTIVE;
 
     let totalStops: number;
     if (generationModel === StudyTrailGenerationModel.ALL_QUESTIONS_BY_DIFFICULTY) {
@@ -117,7 +131,10 @@ export class StudyTrailService {
       totalStops = Math.ceil(questionAvailability.total / MAX_QUESTIONS_PER_STOP);
     } else {
       // For adaptive model, use the original calculation
-      totalStops = Math.max(1, Math.min(this.MAX_STOPS, Math.ceil(questionAvailability.total / this.TARGET_QUESTIONS_PER_STOP)));
+      totalStops = Math.max(
+        1,
+        Math.min(this.MAX_STOPS, Math.ceil(questionAvailability.total / this.TARGET_QUESTIONS_PER_STOP))
+      );
     }
 
     // Criar a trilha
@@ -191,7 +208,8 @@ export class StudyTrailService {
           continue;
         }
 
-        const contestQuestionCount = questionCountMap.get(this.getContestSkillCacheKey(contest.id, skillCategory.id)) ?? 0;
+        const contestQuestionCount =
+          questionCountMap.get(this.getContestSkillCacheKey(contest.id, skillCategory.id)) ?? 0;
         const globalQuestionCount = globalQuestionCountMap.get(skillCategory.id) ?? 0;
         const questionCount = Math.max(contestQuestionCount, globalQuestionCount);
 
@@ -215,12 +233,15 @@ export class StudyTrailService {
     }
 
     if (availableSkillCategories.length === 0) {
-      throw new NotFoundException('Nenhuma categoria de habilidade possui questões suficientes para gerar trilhas automaticamente');
+      throw new NotFoundException(
+        'Nenhuma categoria de habilidade possui questões suficientes para gerar trilhas automaticamente'
+      );
     }
 
     const aiResponse = await this.aiAssistanceService.suggestSkillCategoriesForCourse({
       desired_course: user.desired_course.trim(),
-      available_skill_categories: availableSkillCategories as AiCourseMaterialSuggestionRequest['available_skill_categories'],
+      available_skill_categories:
+        availableSkillCategories as AiCourseMaterialSuggestionRequest['available_skill_categories'],
     });
 
     const matchedNames = new Set(aiResponse.matched_skill_categories.map(item => item.name.trim().toLowerCase()));
@@ -228,7 +249,9 @@ export class StudyTrailService {
       return [];
     }
 
-    const matchedCategories = availableSkillCategories.filter(category => matchedNames.has(category.name.trim().toLowerCase()));
+    const matchedCategories = availableSkillCategories.filter(category =>
+      matchedNames.has(category.name.trim().toLowerCase())
+    );
 
     if (matchedCategories.length === 0) {
       return [];
@@ -261,7 +284,9 @@ export class StudyTrailService {
     const existingCategoryIds = new Set(existingTrails.map(trail => trail.skill_category_id));
 
     // Filter out categories that already have active trails
-    const categoriesToCreate = Array.from(uniqueCategories.values()).filter(category => !existingCategoryIds.has(category.id));
+    const categoriesToCreate = Array.from(uniqueCategories.values()).filter(
+      category => !existingCategoryIds.has(category.id)
+    );
 
     if (categoriesToCreate.length === 0) {
       return [];
@@ -295,7 +320,17 @@ export class StudyTrailService {
       return new Map();
     }
 
-    const rawCounts = await this.questionRepository.createQueryBuilder('question').innerJoin('question.origin_subject', 'subject').select('subject.contest_id', 'contestId').addSelect('subject.skill_category_id', 'skillCategoryId').addSelect('COUNT(question.id)', 'questionCount').where('question.is_active = :isActive', { isActive: true }).andWhere('subject.contest_id IN (:...contestIds)', { contestIds }).groupBy('subject.contest_id').addGroupBy('subject.skill_category_id').getRawMany();
+    const rawCounts = await this.questionRepository
+      .createQueryBuilder('question')
+      .innerJoin('question.origin_subject', 'subject')
+      .select('subject.contest_id', 'contestId')
+      .addSelect('subject.skill_category_id', 'skillCategoryId')
+      .addSelect('COUNT(question.id)', 'questionCount')
+      .where('question.is_active = :isActive', { isActive: true })
+      .andWhere('subject.contest_id IN (:...contestIds)', { contestIds })
+      .groupBy('subject.contest_id')
+      .addGroupBy('subject.skill_category_id')
+      .getRawMany();
 
     const countMap = new Map<string, number>();
     for (const entry of rawCounts) {
@@ -311,7 +346,15 @@ export class StudyTrailService {
       return new Map();
     }
 
-    const rawCounts = await this.questionRepository.createQueryBuilder('question').innerJoin('question.origin_subject', 'subject').select('subject.skill_category_id', 'skillCategoryId').addSelect('COUNT(question.id)', 'questionCount').where('question.is_active = :isActive', { isActive: true }).andWhere('subject.skill_category_id IN (:...skillCategoryIds)', { skillCategoryIds }).groupBy('subject.skill_category_id').getRawMany();
+    const rawCounts = await this.questionRepository
+      .createQueryBuilder('question')
+      .innerJoin('question.origin_subject', 'subject')
+      .select('subject.skill_category_id', 'skillCategoryId')
+      .addSelect('COUNT(question.id)', 'questionCount')
+      .where('question.is_active = :isActive', { isActive: true })
+      .andWhere('subject.skill_category_id IN (:...skillCategoryIds)', { skillCategoryIds })
+      .groupBy('subject.skill_category_id')
+      .getRawMany();
 
     const countMap = new Map<number, number>();
     for (const entry of rawCounts) {
@@ -435,11 +478,18 @@ export class StudyTrailService {
     if (!stop) {
       // Dynamic stop creation is only allowed for adaptive model
       if (trail.generation_model === StudyTrailGenerationModel.ALL_QUESTIONS_BY_DIFFICULTY) {
-        throw new NotFoundException('Parada não encontrada. No modelo all_questions_by_difficulty, todas as paradas são criadas antecipadamente.');
+        throw new NotFoundException(
+          'Parada não encontrada. No modelo all_questions_by_difficulty, todas as paradas são criadas antecipadamente.'
+        );
       }
 
       // Se a parada não existe, criar dinamicamente (adaptive model only)
-      const newStop = await this.createStudyTrailStop(startData.study_trail_id, startData.stop_position, userId, trail.skill_category_id);
+      const newStop = await this.createStudyTrailStop(
+        startData.study_trail_id,
+        startData.stop_position,
+        userId,
+        trail.skill_category_id
+      );
       return this.startStop(newStop);
     }
 
@@ -464,7 +514,10 @@ export class StudyTrailService {
       throw new NotFoundException('Questão não encontrada ou não pertence ao usuário');
     }
 
-    await this.userHeartsService.assertHasAvailableHearts(userId);
+    const userHasActivePlan = await this.userPlansService.hasActivePlan(userId);
+    if (!userHasActivePlan) {
+      await this.userHeartsService.assertHasAvailableHearts(userId);
+    }
 
     // Verificar se a parada permite refazer (se não atingiu 70% de acerto)
     if (stopQuestion.answer_status !== QuestionAnswerStatus.NOT_ANSWERED) {
@@ -519,10 +572,22 @@ export class StudyTrailService {
 
     if (isLastQuestion) {
       // Processar operações pesadas de forma assíncrona (não bloquear resposta)
-      await this.processAnswerAsync(stopQuestion.study_trail_stop_id, userId, stopQuestion.study_trail_stop.study_trail.skill_category_id, isCorrect, answerData.response_time_seconds || 0);
+      await this.processAnswerAsync(
+        stopQuestion.study_trail_stop_id,
+        userId,
+        stopQuestion.study_trail_stop.study_trail.skill_category_id,
+        isCorrect,
+        answerData.response_time_seconds || 0
+      );
       performance = await this.calculateStopPerformance(stopQuestion.study_trail_stop_id);
     } else {
-      this.processAnswerAsync(stopQuestion.study_trail_stop_id, userId, stopQuestion.study_trail_stop.study_trail.skill_category_id, isCorrect, answerData.response_time_seconds || 0);
+      this.processAnswerAsync(
+        stopQuestion.study_trail_stop_id,
+        userId,
+        stopQuestion.study_trail_stop.study_trail.skill_category_id,
+        isCorrect,
+        answerData.response_time_seconds || 0
+      );
     }
     if (!isCorrect) {
       await this.userHeartsService.deductHeart(userId);
@@ -541,7 +606,13 @@ export class StudyTrailService {
     return response;
   }
 
-  private async processAnswerAsync(stopId: number, userId: number, skillCategoryId: number, isCorrect: boolean, responseTime: number): Promise<void> {
+  private async processAnswerAsync(
+    stopId: number,
+    userId: number,
+    skillCategoryId: number,
+    isCorrect: boolean,
+    responseTime: number
+  ): Promise<void> {
     // Processar operações pesadas de forma assíncrona sem bloquear a resposta
     try {
       // Atualizar estatísticas da parada
@@ -608,7 +679,8 @@ export class StudyTrailService {
       );
 
       // Get the most common difficulty in this stop
-      const primaryDifficulty = (Object.entries(difficultyCount).sort((a, b) => b[1] - a[1])[0]?.[0] || DifficultyLevel.MEDIUM) as DifficultyLevel;
+      const primaryDifficulty = (Object.entries(difficultyCount).sort((a, b) => b[1] - a[1])[0]?.[0] ||
+        DifficultyLevel.MEDIUM) as DifficultyLevel;
 
       // Prepare stop data
       stopsToCreate.push({
@@ -658,11 +730,21 @@ export class StudyTrailService {
     const CHUNK_SIZE = 500;
     for (let i = 0; i < allStopQuestions.length; i += CHUNK_SIZE) {
       const chunk = allStopQuestions.slice(i, i + CHUNK_SIZE);
-      await this.studyTrailStopQuestionRepository.createQueryBuilder().insert().into(StudyTrailStopQuestion).values(chunk).execute();
+      await this.studyTrailStopQuestionRepository
+        .createQueryBuilder()
+        .insert()
+        .into(StudyTrailStopQuestion)
+        .values(chunk)
+        .execute();
     }
   }
 
-  private async createStudyTrailStop(trailId: number, position: number, userId: number, skillCategoryId: number): Promise<StudyTrailStop> {
+  private async createStudyTrailStop(
+    trailId: number,
+    position: number,
+    userId: number,
+    skillCategoryId: number
+  ): Promise<StudyTrailStop> {
     // Obter performance do usuário para determinar dificuldade
     const performance = await this.getUserPerformance(userId, skillCategoryId);
 
@@ -709,7 +791,13 @@ export class StudyTrailService {
     const savedStop = await this.studyTrailStopRepository.save(stop);
 
     // Gerar questões para a parada
-    const generationResult = await this.generateQuestionsForStop(savedStop.id, skillCategoryId, difficulty, targetQuestions, usedQuestionIds);
+    const generationResult = await this.generateQuestionsForStop(
+      savedStop.id,
+      skillCategoryId,
+      difficulty,
+      targetQuestions,
+      usedQuestionIds
+    );
 
     if (generationResult.count === 0) {
       await this.studyTrailStopRepository.remove(savedStop);
@@ -738,7 +826,13 @@ export class StudyTrailService {
     return savedStop;
   }
 
-  private async generateQuestionsForStop(stopId: number, skillCategoryId: number, requestedDifficulty: DifficultyLevel, targetQuestions: number, initiallyExcludedQuestionIds: number[]): Promise<{ count: number; primaryDifficulty: DifficultyLevel | null }> {
+  private async generateQuestionsForStop(
+    stopId: number,
+    skillCategoryId: number,
+    requestedDifficulty: DifficultyLevel,
+    targetQuestions: number,
+    initiallyExcludedQuestionIds: number[]
+  ): Promise<{ count: number; primaryDifficulty: DifficultyLevel | null }> {
     const difficultyOrder = this.getDifficultySearchOrder(requestedDifficulty);
     const excludedIds = new Set<number>(initiallyExcludedQuestionIds);
     const selectedQuestions: Question[] = [];
@@ -749,7 +843,12 @@ export class StudyTrailService {
       }
 
       const remaining = targetQuestions - selectedQuestions.length;
-      const qb = this.questionRepository.createQueryBuilder('question').innerJoin('question.origin_subject', 'subject').where('subject.skill_category_id = :skillCategoryId', { skillCategoryId }).andWhere('question.difficulty_level = :difficulty', { difficulty }).andWhere('question.is_active = :isActive', { isActive: true });
+      const qb = this.questionRepository
+        .createQueryBuilder('question')
+        .innerJoin('question.origin_subject', 'subject')
+        .where('subject.skill_category_id = :skillCategoryId', { skillCategoryId })
+        .andWhere('question.difficulty_level = :difficulty', { difficulty })
+        .andWhere('question.is_active = :isActive', { isActive: true });
 
       if (excludedIds.size > 0) {
         qb.andWhere('question.id NOT IN (:...excludedIds)', { excludedIds: Array.from(excludedIds) });
@@ -811,7 +910,15 @@ export class StudyTrailService {
       [DifficultyLevel.HARD]: 0,
     };
 
-    const rows = await this.questionRepository.createQueryBuilder('question').innerJoin('question.origin_subject', 'subject').select('question.difficulty_level', 'difficulty').addSelect('COUNT(question.id)', 'count').where('subject.skill_category_id = :skillCategoryId', { skillCategoryId }).andWhere('question.is_active = :isActive', { isActive: true }).groupBy('question.difficulty_level').getRawMany();
+    const rows = await this.questionRepository
+      .createQueryBuilder('question')
+      .innerJoin('question.origin_subject', 'subject')
+      .select('question.difficulty_level', 'difficulty')
+      .addSelect('COUNT(question.id)', 'count')
+      .where('subject.skill_category_id = :skillCategoryId', { skillCategoryId })
+      .andWhere('question.is_active = :isActive', { isActive: true })
+      .groupBy('question.difficulty_level')
+      .getRawMany();
 
     let total = 0;
     for (const row of rows) {
@@ -830,7 +937,12 @@ export class StudyTrailService {
   }
 
   private async getUsedQuestionIdsForTrail(trailId: number): Promise<number[]> {
-    const rows = await this.studyTrailStopQuestionRepository.createQueryBuilder('stopQuestion').innerJoin('stopQuestion.study_trail_stop', 'stop').select('stopQuestion.question_id', 'questionId').where('stop.study_trail_id = :trailId', { trailId }).getRawMany();
+    const rows = await this.studyTrailStopQuestionRepository
+      .createQueryBuilder('stopQuestion')
+      .innerJoin('stopQuestion.study_trail_stop', 'stop')
+      .select('stopQuestion.question_id', 'questionId')
+      .where('stop.study_trail_id = :trailId', { trailId })
+      .getRawMany();
 
     return rows.map(row => Number(row.questionId));
   }
@@ -852,7 +964,13 @@ export class StudyTrailService {
     await this.studyTrailStopRepository.save(stop);
 
     // Buscar questões da parada com query otimizada
-    const questions = await this.studyTrailStopQuestionRepository.createQueryBuilder('sq').leftJoinAndSelect('sq.question', 'q').leftJoinAndSelect('q.question_options', 'qo').where('sq.study_trail_stop_id = :stopId', { stopId: stop.id }).orderBy('sq.question_order', 'ASC').getMany();
+    const questions = await this.studyTrailStopQuestionRepository
+      .createQueryBuilder('sq')
+      .leftJoinAndSelect('sq.question', 'q')
+      .leftJoinAndSelect('q.question_options', 'qo')
+      .where('sq.study_trail_stop_id = :stopId', { stopId: stop.id })
+      .orderBy('sq.question_order', 'ASC')
+      .getMany();
 
     return {
       stop_id: stop.id,
@@ -945,7 +1063,10 @@ export class StudyTrailService {
     const correctAnswers = questions.filter(q => q.answer_status === QuestionAnswerStatus.CORRECT);
     const incorrectAnswers = questions.filter(q => q.answer_status === QuestionAnswerStatus.INCORRECT);
 
-    const averageResponseTime = answeredQuestions.length > 0 ? answeredQuestions.reduce((sum, q) => sum + q.response_time_seconds, 0) / answeredQuestions.length : 0;
+    const averageResponseTime =
+      answeredQuestions.length > 0
+        ? answeredQuestions.reduce((sum, q) => sum + q.response_time_seconds, 0) / answeredQuestions.length
+        : 0;
 
     const totalXP = questions.reduce((sum, q) => sum + q.xp_earned, 0);
     const successRate = answeredQuestions.length > 0 ? (correctAnswers.length / answeredQuestions.length) * 100 : 0;
@@ -982,7 +1103,10 @@ export class StudyTrailService {
     };
   }
 
-  private calculatePerformanceGrade(successRate: number, averageResponseTime: number): 'A+' | 'A' | 'B+' | 'B' | 'C+' | 'C' | 'D' | 'F' | 'S' | null {
+  private calculatePerformanceGrade(
+    successRate: number,
+    averageResponseTime: number
+  ): 'A+' | 'A' | 'B+' | 'B' | 'C+' | 'C' | 'D' | 'F' | 'S' | null {
     if (successRate === 100 && averageResponseTime <= 10) return 'S';
     if (successRate >= 95 && averageResponseTime <= 20) return 'A+';
     if (successRate >= 90 && averageResponseTime <= 30) return 'A';
@@ -996,7 +1120,12 @@ export class StudyTrailService {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private calculateBonuses(questions: any[], correctAnswers: any[], averageResponseTime: number): { streak: number; speed: number; accuracy: number } {
+  private calculateBonuses(
+    questions: any[],
+    correctAnswers: any[],
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    averageResponseTime: number
+  ): { streak: number; speed: number; accuracy: number } {
     // Bônus por sequência de acertos
     let maxStreak = 0;
     let currentStreak = 0;
@@ -1027,7 +1156,16 @@ export class StudyTrailService {
 
   private async updateStopStatistics(stopId: number): Promise<void> {
     // Usar query mais eficiente para calcular estatísticas
-    const stats = await this.studyTrailStopQuestionRepository.createQueryBuilder('sq').select(['COUNT(CASE WHEN sq.answer_status != :notAnswered THEN 1 END) as answered_count', 'COUNT(CASE WHEN sq.answer_status = :correct THEN 1 END) as correct_count', 'SUM(sq.xp_earned) as total_xp']).where('sq.study_trail_stop_id = :stopId', { stopId }).setParameters({ notAnswered: QuestionAnswerStatus.NOT_ANSWERED, correct: QuestionAnswerStatus.CORRECT }).getRawOne();
+    const stats = await this.studyTrailStopQuestionRepository
+      .createQueryBuilder('sq')
+      .select([
+        'COUNT(CASE WHEN sq.answer_status != :notAnswered THEN 1 END) as answered_count',
+        'COUNT(CASE WHEN sq.answer_status = :correct THEN 1 END) as correct_count',
+        'SUM(sq.xp_earned) as total_xp',
+      ])
+      .where('sq.study_trail_stop_id = :stopId', { stopId })
+      .setParameters({ notAnswered: QuestionAnswerStatus.NOT_ANSWERED, correct: QuestionAnswerStatus.CORRECT })
+      .getRawOne();
 
     const stop = await this.studyTrailStopRepository.findOne({
       where: { id: stopId },
@@ -1053,7 +1191,13 @@ export class StudyTrailService {
         stop.completed_at = new Date();
 
         // Desbloquear próxima parada de forma assíncrona
-        this.unlockNextStopAsync(stop.study_trail_id, stop.position_order + 1, stop.study_trail.user_id, stop.study_trail.skill_category_id, stop.study_trail.total_stops);
+        this.unlockNextStopAsync(
+          stop.study_trail_id,
+          stop.position_order + 1,
+          stop.study_trail.user_id,
+          stop.study_trail.skill_category_id,
+          stop.study_trail.total_stops
+        );
       } else {
         // Se não atingiu 70%, marcar como FAILED (mantém histórico de performance)
         stop.status = StudyTrailStopStatus.FAILED;
@@ -1064,7 +1208,13 @@ export class StudyTrailService {
     await this.studyTrailStopRepository.save(stop);
   }
 
-  private async unlockNextStopAsync(trailId: number, nextPosition: number, userId: number, skillCategoryId: number, totalStops: number): Promise<void> {
+  private async unlockNextStopAsync(
+    trailId: number,
+    nextPosition: number,
+    userId: number,
+    skillCategoryId: number,
+    totalStops: number
+  ): Promise<void> {
     try {
       // Desbloquear próxima parada
       if (nextPosition <= totalStops) {
@@ -1083,7 +1233,12 @@ export class StudyTrailService {
     }
   }
 
-  private async unlockNextStop(trailId: number, nextPosition: number, userId: number, skillCategoryId: number): Promise<void> {
+  private async unlockNextStop(
+    trailId: number,
+    nextPosition: number,
+    userId: number,
+    skillCategoryId: number
+  ): Promise<void> {
     const trail = await this.studyTrailRepository.findOne({ where: { id: trailId } });
 
     if (!trail) {
@@ -1156,7 +1311,12 @@ export class StudyTrailService {
     return performance;
   }
 
-  private async updateUserPerformance(userId: number, skillCategoryId: number, isCorrect: boolean, responseTime: number): Promise<void> {
+  private async updateUserPerformance(
+    userId: number,
+    skillCategoryId: number,
+    isCorrect: boolean,
+    responseTime: number
+  ): Promise<void> {
     // Usar query mais eficiente para atualizar performance
     const updateData: any = {
       total_questions_answered: () => 'total_questions_answered + 1',
@@ -1175,7 +1335,12 @@ export class StudyTrailService {
     }
 
     // Atualizar performance usando query builder para operações atômicas
-    await this.studyTrailPerformanceRepository.createQueryBuilder().update().set(updateData).where('user_id = :userId AND skill_category_id = :skillCategoryId', { userId, skillCategoryId }).execute();
+    await this.studyTrailPerformanceRepository
+      .createQueryBuilder()
+      .update()
+      .set(updateData)
+      .where('user_id = :userId AND skill_category_id = :skillCategoryId', { userId, skillCategoryId })
+      .execute();
 
     // Atualizar campos calculados separadamente
     await this.studyTrailPerformanceRepository
@@ -1183,7 +1348,8 @@ export class StudyTrailService {
       .update()
       .set({
         success_rate: () => '(correct_answers / total_questions_answered) * 100',
-        average_response_time: () => '((average_response_time * (total_questions_answered - 1)) + :responseTime) / total_questions_answered',
+        average_response_time: () =>
+          '((average_response_time * (total_questions_answered - 1)) + :responseTime) / total_questions_answered',
       })
       .where('user_id = :userId AND skill_category_id = :skillCategoryId', { userId, skillCategoryId })
       .setParameter('responseTime', responseTime)

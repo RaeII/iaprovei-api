@@ -31,8 +31,6 @@ export class UserPlansController {
   @UseGuards(JwtAuthGuard)
   @ApiResponse({ schema: userPlanListResponseOpenapi })
   async findByUserId(@BasicUserInfo() user: UserBasicInfo): Promise<UserPlanDetailResponse> {
-    console.log('aqui', user.id);
-    await this.userPlansValidator.assertCanAccessUserPlans(user.id, user);
     const data = await this.userPlansService.findByUserId(user.id);
     return { data };
   }
@@ -41,7 +39,6 @@ export class UserPlansController {
   @UseGuards(JwtAuthGuard)
   @ApiResponse({ schema: planDetailResponseOpenapi })
   async findPlanDetailByUserId(@BasicUserInfo() user: UserBasicInfo): Promise<{ data: PlanDetailWithUserPlan | null }> {
-    await this.userPlansValidator.assertCanAccessUserPlans(user.id, user);
     const data = await this.userPlansService.findPlanDetailByUserId(user.id);
     return { data };
   }

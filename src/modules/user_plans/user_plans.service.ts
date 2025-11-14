@@ -311,4 +311,13 @@ export class UserPlansService {
 
     return { data, meta };
   }
+
+  async hasActivePlan(userId: number): Promise<boolean> {
+    const userPlan = await this.userPlansRepository.findOne({
+      where: { user_id: userId, is_active: true },
+      select: ['is_active'],
+    });
+
+    return !!userPlan;
+  }
 }

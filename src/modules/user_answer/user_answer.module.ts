@@ -8,9 +8,18 @@ import { QuestionModule } from '@/modules/question/question.module';
 import { ContestModule } from '@/modules/contest/contest.module';
 import { StatisticsModule } from '@/modules/statistics/statistics.module';
 import { SharedModule } from '@/shared/shared.module';
+import { UserPlansModule } from '@/modules/user_plans/user_plans.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([UserAnswer]), QuestionOptionModule, QuestionModule, ContestModule, StatisticsModule, SharedModule],
+  imports: [
+    TypeOrmModule.forFeature([UserAnswer]),
+    QuestionOptionModule,
+    QuestionModule,
+    ContestModule,
+    StatisticsModule,
+    SharedModule,
+    UserPlansModule,
+  ],
   controllers: [UserAnswerController],
   providers: [UserAnswerService],
   exports: [UserAnswerService],

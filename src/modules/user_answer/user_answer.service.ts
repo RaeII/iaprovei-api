@@ -5,12 +5,26 @@ import * as https from 'https';
 import * as http from 'http';
 import { UserAnswer } from '@/entities/user_answer.entity';
 import { DataNotFoundException } from '@/common/exceptions/data-not-found.exception';
-import { UserAnswerCreate, UserAnswerQuery, UserAnswerFilter, UserAnswerInternalFilter, UserAnswerListResponse, UserAnswerDetailedListResponse, UserAnswerPerformanceListResponse, UserAnswerSessionListResponse, UserAnswerDetail, UserAnswerCountResponse, UserAnswerStatsResponse, UserAnswerCreateResponse } from './schemas/user_answer.schema';
+import {
+  UserAnswerCreate,
+  UserAnswerQuery,
+  UserAnswerFilter,
+  UserAnswerInternalFilter,
+  UserAnswerListResponse,
+  UserAnswerDetailedListResponse,
+  UserAnswerPerformanceListResponse,
+  UserAnswerSessionListResponse,
+  UserAnswerDetail,
+  UserAnswerCountResponse,
+  UserAnswerStatsResponse,
+  UserAnswerCreateResponse,
+} from './schemas/user_answer.schema';
 import { createPaginationMeta, generateOffset } from '@/common/utils/query-utils';
 import { QuestionOptionService } from '@/modules/question_option/question_option.service';
 import { QuestionService } from '@/modules/question/question.service';
 import { StatisticsService } from '@/modules/statistics/statistics.service';
 import { UserHeartsService } from '@/shared/services/user-hearts.service';
+import { UserPlansService } from '@/modules/user_plans/user_plans.service';
 
 @Injectable()
 export class UserAnswerService {
@@ -20,7 +34,8 @@ export class UserAnswerService {
     private questionOptionService: QuestionOptionService,
     private questionService: QuestionService,
     private statisticsService: StatisticsService,
-    private userHeartsService: UserHeartsService
+    private userHeartsService: UserHeartsService,
+    private userPlansService: UserPlansService
   ) {}
 
   /**
@@ -30,7 +45,10 @@ export class UserAnswerService {
    * Returns both the user answer and correct answer information
    */
   async create(createUserAnswerDto: UserAnswerCreate, sessionId: string): Promise<UserAnswerCreateResponse> {
-    await this.userHeartsService.assertHasAvailableHearts(createUserAnswerDto.users_id);
+    const userHasActivePlan = await this.userPlansService.hasActivePlan(createUserAnswerDto.users_id);
+    if (!userHasActivePlan) {
+      await this.userHeartsService.assertHasAvailableHearts(createUserAnswerDto.users_id);
+    }
     // Get the chosen option to validate it exists and check correctness
     const chosenOption = await this.questionOptionService.findOneInternal(createUserAnswerDto.option_id);
 
@@ -91,7 +109,14 @@ export class UserAnswerService {
     }
 
     // Select only basic fields for performance
-    queryBuilder.select(['userAnswer.id', 'userAnswer.users_id', 'userAnswer.question_id', 'userAnswer.option_id', 'userAnswer.is_correct', 'userAnswer.answared_at']);
+    queryBuilder.select([
+      'userAnswer.id',
+      'userAnswer.users_id',
+      'userAnswer.question_id',
+      'userAnswer.option_id',
+      'userAnswer.is_correct',
+      'userAnswer.answared_at',
+    ]);
 
     // Apply sorting
     if (sort_by) {
@@ -165,7 +190,16 @@ export class UserAnswerService {
     const queryBuilder = this.createBaseQueryBuilder(filters);
 
     // Select performance-relevant fields
-    queryBuilder.select(['userAnswer.id', 'userAnswer.users_id', 'userAnswer.question_id', 'userAnswer.is_correct', 'userAnswer.response_time', 'userAnswer.confidence_level', 'userAnswer.difficulty_at_time', 'userAnswer.used_hint']);
+    queryBuilder.select([
+      'userAnswer.id',
+      'userAnswer.users_id',
+      'userAnswer.question_id',
+      'userAnswer.is_correct',
+      'userAnswer.response_time',
+      'userAnswer.confidence_level',
+      'userAnswer.difficulty_at_time',
+      'userAnswer.used_hint',
+    ]);
     queryBuilder.where('userAnswer.users_id = :userId', { userId });
     // Apply sorting
     if (sort_by) {
@@ -207,7 +241,13 @@ export class UserAnswerService {
     const queryBuilder = this.createBaseQueryBuilder(filters);
 
     // Select session-relevant fields (excluding session_id from selection)
-    queryBuilder.select(['userAnswer.id', 'userAnswer.users_id', 'userAnswer.is_correct', 'userAnswer.response_time', 'userAnswer.answared_at']);
+    queryBuilder.select([
+      'userAnswer.id',
+      'userAnswer.users_id',
+      'userAnswer.is_correct',
+      'userAnswer.response_time',
+      'userAnswer.answared_at',
+    ]);
     queryBuilder.where('userAnswer.users_id = :userId', { userId });
     // Apply sorting
     if (sort_by) {

@@ -42,7 +42,10 @@ export class UserHeartsService {
     return {
       success: true,
       current_hearts: newHeartCount,
-      message: newHeartCount === 0 ? 'Você perdeu seu último coração! Aguarde a regeneração.' : `Você perdeu um coração. Restam ${newHeartCount} corações.`,
+      message:
+        newHeartCount === 0
+          ? 'Você perdeu seu último coração! Aguarde a regeneração.'
+          : `Você perdeu um coração. Restam ${newHeartCount} corações.`,
     };
   }
 
