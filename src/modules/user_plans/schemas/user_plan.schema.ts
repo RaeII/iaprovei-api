@@ -15,6 +15,10 @@ export const UserPlanSchema = z.object({
   pagbank_customer_id: z.string().nullable(),
   trial_start_at: z.date().nullable(),
   trial_end_at: z.date().nullable(),
+  next_invoice_at: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de data inválido. Use YYYY-MM-DD')
+    .nullable(),
   is_active: z.boolean(),
   created_at: z.date(),
   updated_at: z.date(),

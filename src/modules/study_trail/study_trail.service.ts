@@ -515,6 +515,7 @@ export class StudyTrailService {
     }
 
     const userHasActivePlan = await this.userPlansService.hasActivePlan(userId);
+    console.log('\n\n\nuserHasActivePlan', userHasActivePlan, '\n\n\n');
     if (!userHasActivePlan) {
       await this.userHeartsService.assertHasAvailableHearts(userId);
     }

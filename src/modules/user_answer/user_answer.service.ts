@@ -46,6 +46,7 @@ export class UserAnswerService {
    */
   async create(createUserAnswerDto: UserAnswerCreate, sessionId: string): Promise<UserAnswerCreateResponse> {
     const userHasActivePlan = await this.userPlansService.hasActivePlan(createUserAnswerDto.users_id);
+    console.log('\n\n\nuserHasActivePlan', userHasActivePlan, '\n\n\n');
     if (!userHasActivePlan) {
       await this.userHeartsService.assertHasAvailableHearts(createUserAnswerDto.users_id);
     }

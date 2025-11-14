@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import { User } from '@/entities/user.entity';
 import { Plan } from '@/entities/plan.entity';
 import { UserPlan as UserPlanType } from '@/modules/user_plans/schemas/user_plan.schema';
@@ -39,6 +47,9 @@ export class UserPlan implements UserPlanType {
 
   @Column({ name: 'trial_end_at', type: 'date', nullable: true })
   trial_end_at?: Date;
+
+  @Column({ name: 'next_invoice_at', type: 'varchar', length: 10, nullable: true })
+  next_invoice_at?: string;
 
   @Column({ name: 'is_active', type: 'boolean', default: true })
   is_active: boolean;

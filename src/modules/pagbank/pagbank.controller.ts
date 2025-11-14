@@ -116,6 +116,7 @@ export class PagbankController {
         pagbank_subscriber_id: data.id,
         user_id: user.id,
         plan_id: plan.id,
+        next_invoice_at: data.next_invoice_at,
         trial_start_at: new Date(data.trial.start_at),
         trial_end_at: new Date(data.trial.end_at),
       });
@@ -126,6 +127,7 @@ export class PagbankController {
         pagbank_customer_id: data.customer.id,
         pagbank_subscriber_id: data.id,
         trial_start_at: new Date(data.trial.start_at),
+        next_invoice_at: data.next_invoice_at,
         trial_end_at: new Date(data.trial.end_at),
       });
     }
