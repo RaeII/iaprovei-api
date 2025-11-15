@@ -60,7 +60,7 @@ export class PagbankService {
     try {
       const response = await this.axiosInstance.request<T>(config);
 
-      console.log('response', response.data);
+      console.log('response PagBank', response.data);
 
       return response.data;
     } catch (error) {
@@ -133,7 +133,6 @@ export class PagbankService {
    */
   async createSubscription(subscriptionData: CreateSubscription): Promise<SubscriptionResponse> {
     const response = await this.request<SubscriptionResponse>('subscriptions', 'POST', subscriptionData);
-    console.log('\n\nresponse', response, '\n\n');
     return response;
   }
 
@@ -143,7 +142,6 @@ export class PagbankService {
    * @returns Promise com a resposta da API do PagBank
    */
   async cancelSubscription(subscriberId: string): Promise<unknown> {
-    console.log(`subscriptions/${subscriberId}/cancel`);
     return await this.request(`subscriptions/${subscriberId}/cancel`, 'PUT');
   }
 
@@ -161,7 +159,6 @@ export class PagbankService {
    * @returns Promise com a resposta da API do PagBank
    */
   async updateNotifications(notificationData: UpdateNotifications): Promise<unknown> {
-    console.log(notificationData);
     return await this.request('preferences/notifications', 'PUT', notificationData);
   }
 }

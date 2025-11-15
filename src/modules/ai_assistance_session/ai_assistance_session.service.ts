@@ -34,8 +34,11 @@ export class AiAssistanceSessionService {
    */
   async create(createAiAssistanceSessionDto: AiAssistanceSessionCreate): Promise<AiAssistanceSession> {
     // Validate input data using the validator (follows Single Responsibility Principle)
-    await Promise.all([this.aiAssistanceSessionValidator.assertUserExists(createAiAssistanceSessionDto.user_id), this.aiAssistanceSessionValidator.assertQuestionExists(createAiAssistanceSessionDto.question_id), this.aiAssistanceSessionValidator.assertSessionIdIsValid(createAiAssistanceSessionDto.session_id)]);
-    console.log('createAiAssistanceSessionDto', createAiAssistanceSessionDto);
+    await Promise.all([
+      this.aiAssistanceSessionValidator.assertUserExists(createAiAssistanceSessionDto.user_id),
+      this.aiAssistanceSessionValidator.assertQuestionExists(createAiAssistanceSessionDto.question_id),
+      this.aiAssistanceSessionValidator.assertSessionIdIsValid(createAiAssistanceSessionDto.session_id),
+    ]);
     // Create the AI assistance session entity
     const newAiAssistanceSession = this.aiAssistanceSessionsRepository.create({
       ...createAiAssistanceSessionDto,

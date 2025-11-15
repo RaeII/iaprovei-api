@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, UseGuards, Body, Param, Query, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, UseGuards, Body, Param, BadRequestException } from '@nestjs/common';
 import { PagbankService } from './pagbank.service';
 import {
   PublicKeysResponse,
@@ -151,14 +151,13 @@ export class PagbankController {
       throw new BadRequestException('Usuário não possui um plano ativo para cancelamento');
     }
 
-    await this.pagbankService.cancelSubscription(userPlan.pagbank_subscriber_id);
+    const response = await this.pagbankService.cancelSubscription(userPlan.pagbank_subscriber_id);
+    console.log('\n\n response Cancel Subscription PagBank', response, '\n\n');
 
     const data = await this.userPlansService.update(userPlan.id, {
       status: UserPlanStatus.CANCELLED,
       is_active: false,
     });
-
-    console.log('data', data);
 
     return { data };
   }
@@ -182,32 +181,21 @@ export class PagbankController {
     return { data };
   }
 
-  @Post('event')
+  /*@Post('event')
   @ApiBody({ schema: updateNotificationsOpenapi })
-  async eventNotification(event: any) {
-    console.log('\n\neventNotificationPOST\n\n');
-    console.log(event);
-    console.log('\n\neventNotificationPOST\n\n');
+  async eventNotification(@Body() event: any) {
     return {};
-  }
+  } */
 
-  @Get('event')
+  /*@Get('event')
   @ApiBody({ schema: updateNotificationsOpenapi })
   async eventNotificationGet(@Param() params: any, @Query() query: any, @Body() body: any) {
-    console.log('\n\neventNotificationGET\n\n');
-    console.log('params:', params);
-    console.log('query:', query);
-    console.log('body:', body);
-    console.log('\n\neventNotificationGET\n\n');
     return {};
-  }
+  } */
 
-  @Put('event')
+  /*@Put('event')
   @ApiBody({ schema: updateNotificationsOpenapi })
   async eventNotificationPut(event: any) {
-    console.log('\n\neventNotificationPut\n\n');
-    console.log(event);
-    console.log('\n\neventNotificationPut\n\n');
     return {};
-  }
+  } */
 }
