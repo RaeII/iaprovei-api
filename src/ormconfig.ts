@@ -20,7 +20,8 @@ const config: MysqlConnectionOptions = {
   ],
   synchronize: process.env.NODE_ENV !== 'production',
   // synchronize: false,
-  logging: process.env.NODE_ENV !== 'production',
+  //logging: process.env.NODE_ENV !== 'production',
+  logging: false,
   migrations: [`${__dirname}/migrations/*{.ts,.js}`],
 };
 

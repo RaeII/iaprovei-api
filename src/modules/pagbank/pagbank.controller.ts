@@ -32,6 +32,7 @@ import { UserPlansService } from '@/modules/user_plans/user_plans.service';
 import { DataNotFoundException } from '@/common/exceptions/data-not-found.exception';
 import { UserPlanStatus } from '@/entities/user_plan.entity';
 import { UserPlanDetail } from '@/modules/user_plans/schemas/user_plan.schema';
+import { DiscordLogService } from '@/shared/services/discord-log.service';
 
 @Controller('pagbank')
 @ApiBearerAuth()
@@ -39,7 +40,8 @@ export class PagbankController {
   constructor(
     private readonly pagbankService: PagbankService,
     private readonly plansService: PlansService,
-    private readonly userPlansService: UserPlansService
+    private readonly userPlansService: UserPlansService,
+    private readonly discordLogService: DiscordLogService
   ) {}
 
   @Get()
@@ -130,6 +132,27 @@ export class PagbankController {
         next_invoice_at: data.next_invoice_at,
         trial_end_at: new Date(data.trial.end_at),
       });
+
+      await this.discordLogService
+        .payment({
+          title: 'NOVO PAGAMENTO',
+          message: `
+        **_ _\nUsuário:** ${user.id}
+        **Nome:** ${user.username}
+        **pagbank_customer_id:** ${data.customer.id}
+        **pagbank_subscriber_id:** ${data.id}
+        **trial_start_at:** ${data.trial.start_at}
+        **trial_end_at:** ${data.trial.end_at}
+        **next_invoice_at:** ${data.next_invoice_at}
+        **Plano:** ${plan.id}
+        **Amount:** ${data.amount}
+        **Status:** ${data.status}
+        **Created At:** ${new Date()}
+        `,
+        })
+        .catch(error => {
+          console.log('Erro ao enviar log de pagamento', error);
+        });
     }
     return { data };
   }
