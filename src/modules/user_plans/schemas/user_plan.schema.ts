@@ -3,7 +3,17 @@ import { zodToOpenAPI } from 'nestjs-zod';
 import { PaginationMetaSchema } from '@/common/schemas/pagination.schema';
 
 // Enum schema matching the TypeORM enum
-export const UserPlanStatusSchema = z.enum(['active', 'inactive', 'cancelled']);
+export const UserPlanStatusSchema = z.enum([
+  'ACTIVE',
+  'INACTIVE',
+  'OVERDUE',
+  'CANCELLED',
+  'PENDING_ACTION',
+  'EXPIRED',
+  'PENDING',
+  'SUSPENDED',
+  'TRIAL',
+]);
 
 // Base user plan schema - complete user plan entity
 export const UserPlanSchema = z.object({

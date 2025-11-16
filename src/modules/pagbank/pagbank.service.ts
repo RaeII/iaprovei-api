@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
 import {
   PublicKeys,
@@ -10,6 +10,7 @@ import {
   CreateSubscription,
   SubscriptionResponse,
   UpdateNotifications,
+  UpdateCustomerBillingInfo,
 } from './schemas/pagbank.schema';
 
 @Injectable()
@@ -66,19 +67,12 @@ export class PagbankService {
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const axiosError = error as AxiosError;
-        const status = axiosError.response?.status;
         const errorData = axiosError.response?.data;
 
-        this.logger.error(
-          `\n\n Erro na requisição PagBank: ${status} - \n\n ${JSON.stringify(errorData)} \n\n`,
-          axiosError.stack,
-          '\n\n'
-        );
-
-        throw new InternalServerErrorException(`Erro ao comunicar com PagBank: ${status} - ${axiosError.message}`);
+        throw errorData;
       }
 
-      throw new InternalServerErrorException('Erro ao comunicar com o PagBank');
+      throw error;
     }
   }
 
@@ -160,5 +154,15 @@ export class PagbankService {
    */
   async updateNotifications(notificationData: UpdateNotifications): Promise<unknown> {
     return await this.request('preferences/notifications', 'PUT', notificationData);
+  }
+
+  /**
+   * Atualiza as informações de cobrança de um customer existente no PagBank
+   * @param customerId - ID do customer a ter as informações de cobrança atualizadas
+   * @param billingInfoData - Array com as novas informações de cobrança
+   * @returns Promise com a resposta da API do PagBank
+   */
+  async updateCustomerBillingInfo(customerId: string, billingInfoData: UpdateCustomerBillingInfo[]): Promise<unknown> {
+    return await this.request(`customers/${customerId}/billing_info`, 'PUT', billingInfoData);
   }
 }

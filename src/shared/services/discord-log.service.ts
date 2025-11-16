@@ -5,7 +5,10 @@ export class DiscordLogService {
   urlWebhookDiscord: Map<string, string>;
 
   constructor() {
-    this.urlWebhookDiscord = new Map().set('payment', process.env.WEBHOOK_PAYMENT_DISCORD);
+    this.urlWebhookDiscord = new Map()
+      .set('payment', process.env.WEBHOOK_PAYMENT_DISCORD)
+      .set('cancellation', process.env.WEBHOOK_CANCELLATION_DISCORD)
+      .set('error', process.env.WEBHOOK_ERROR_DISCORD);
   }
 
   maxLength = (str: string, length = 1020) => {
@@ -54,7 +57,7 @@ export class DiscordLogService {
         value: this.maxLength(e?.details || e.data.details),
       });
 
-    if (e?.message || false)
+    if (e?.message && e?.message !== '')
       field.push({
         name: '**MESSAGE**',
         value: this.maxLength(e.message),
@@ -102,6 +105,12 @@ export class DiscordLogService {
         inline: true,
       });
 
+    if (e?.error_messages || false)
+      field.push({
+        name: '**PAGBANK API**',
+        value: this.maxLength(JSON.stringify(e.error_messages)),
+      });
+
     return field;
   };
 
@@ -110,6 +119,32 @@ export class DiscordLogService {
       EmbedTitle: 'PAGAMENTO',
       title: e?.title || 'Novo Pagamento',
       userName: 'payment',
+      field: [],
+    };
+
+    fields.field = await this.field(e);
+
+    await this.sendDiscord(fields);
+  };
+
+  cancellation = async (e: any) => {
+    const fields = {
+      EmbedTitle: 'CANCELAMENTO DE PAGAMENTO',
+      title: e?.title || 'CANCELAMENTO DE PAGAMENTO',
+      userName: 'cancellation',
+      field: [],
+    };
+
+    fields.field = await this.field(e);
+
+    await this.sendDiscord(fields);
+  };
+
+  error = async (e: any) => {
+    const fields = {
+      EmbedTitle: 'ERRO',
+      title: e?.title || 'ERRO',
+      userName: 'error',
       field: [],
     };
 

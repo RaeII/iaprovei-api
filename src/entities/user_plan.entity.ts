@@ -12,9 +12,15 @@ import { Plan } from '@/entities/plan.entity';
 import { UserPlan as UserPlanType } from '@/modules/user_plans/schemas/user_plan.schema';
 
 export enum UserPlanStatus {
-  ACTIVE = 'active',
-  INACTIVE = 'inactive',
-  CANCELLED = 'cancelled',
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  OVERDUE = 'OVERDUE', // Atrasado
+  CANCELLED = 'CANCELLED', // Cancelado
+  PENDING_ACTION = 'PENDING_ACTION', // Aguardando ação do usuário
+  EXPIRED = 'EXPIRED', // assinatura chegou ao fim.
+  PENDING = 'PENDING', // Aguardando pagamento
+  SUSPENDED = 'SUSPENDED', // Suspenso
+  TRIAL = 'TRIAL', // Assinatura em trial
 }
 
 @Entity('user_plans')

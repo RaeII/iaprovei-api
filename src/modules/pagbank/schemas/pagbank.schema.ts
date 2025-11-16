@@ -1,5 +1,6 @@
 import { zodToOpenAPI } from 'nestjs-zod';
 import { z } from 'zod';
+import { UserPlanStatusSchema } from '@/modules/user_plans/schemas/user_plan.schema';
 
 // Enums para os schemas
 export const IntervalUnitSchema = z.enum(['DAY', 'MONTH', 'YEAR']);
@@ -134,9 +135,21 @@ export const CustomerCardSchema = z.object({
   encrypted: z.string().min(1, 'Dados criptografados do cartão são obrigatórios'),
 });
 
+// Schema para cartão criptografado com código de segurança (para atualização)
+export const UpdateCustomerCardSchema = z.object({
+  encrypted: z.string().min(1, 'Dados criptografados do cartão são obrigatórios'),
+  security_code: z.number().int().min(100).max(9999, 'Código de segurança deve ter entre 3 e 4 dígitos'),
+});
+
 // Schema para informações de cobrança
 export const CustomerBillingInfoSchema = z.object({
   card: CustomerCardSchema,
+  type: BillingTypeSchema,
+});
+
+// Schema para atualização de informações de cobrança
+export const UpdateCustomerBillingInfoSchema = z.object({
+  card: UpdateCustomerCardSchema,
   type: BillingTypeSchema,
 });
 
@@ -267,7 +280,7 @@ export const SubscriptionResponseSchema = z.object({
   id: z.string(),
   reference_id: z.string(),
   amount: PlanAmountSchema,
-  status: z.string(),
+  status: UserPlanStatusSchema,
   trial: SubscriptionTrialSchema.optional(),
   plan: SubscriptionPlanResponseSchema,
   payment_method: z.array(SubscriptionPaymentMethodResponseSchema),
@@ -309,7 +322,9 @@ export type PlanStatus = z.infer<typeof PlanStatusSchema>;
 export type CustomerPhone = z.infer<typeof CustomerPhoneSchema>;
 export type CustomerAddress = z.infer<typeof CustomerAddressSchema>;
 export type CustomerCard = z.infer<typeof CustomerCardSchema>;
+export type UpdateCustomerCard = z.infer<typeof UpdateCustomerCardSchema>;
 export type CustomerBillingInfo = z.infer<typeof CustomerBillingInfoSchema>;
+export type UpdateCustomerBillingInfo = z.infer<typeof UpdateCustomerBillingInfoSchema>;
 export type CreateCustomer = z.infer<typeof CreateCustomerSchema>;
 export type CustomerResponse = z.infer<typeof CustomerResponseSchema>;
 export type CreateCustomerResponse = z.infer<typeof createCustomerResponseSchema>;
