@@ -33,6 +33,7 @@ import { DataNotFoundException } from '@/common/exceptions/data-not-found.except
 import { UserPlanStatus } from '@/entities/user_plan.entity';
 import { UserPlanDetail } from '@/modules/user_plans/schemas/user_plan.schema';
 import { DiscordLogService } from '@/shared/services/discord-log.service';
+import { RecaptchaService } from '@/shared/services/recaptcha.service';
 
 @Controller('pagbank')
 @ApiBearerAuth()
@@ -41,7 +42,8 @@ export class PagbankController {
     private readonly pagbankService: PagbankService,
     private readonly plansService: PlansService,
     private readonly userPlansService: UserPlansService,
-    private readonly discordLogService: DiscordLogService
+    private readonly discordLogService: DiscordLogService,
+    private readonly recaptchaService: RecaptchaService
   ) {}
 
   @Get()
@@ -92,15 +94,28 @@ export class PagbankController {
   @ApiBody({ schema: createSubscriptionOpenapi })
   @ApiResponse({ schema: createSubscriptionResponseOpenapi })
   async createSubscription(
-    @Body(new ZodValidationPipe(CreateSubscriptionSchema)) createSubscriptionDto: CreateSubscription,
+    @Body(new ZodValidationPipe(CreateSubscriptionSchema))
+    createSubscriptionDto: CreateSubscription & { recaptcha_token?: string },
     @BasicUserInfo() user: UserBasicInfo
   ): Promise<CreateSubscriptionResponse> {
     try {
+      // Validar reCAPTCHA se o token estiver presente
+      if (createSubscriptionDto.recaptcha_token) {
+        const isValidCaptcha = await this.recaptchaService.validateToken(createSubscriptionDto.recaptcha_token);
+        if (!isValidCaptcha) {
+          throw new BadRequestException('Falha na verificação de segurança. Por favor, tente novamente.');
+        }
+      }
+
+      // Remove o token do reCAPTCHA antes de processar a subscription
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { recaptcha_token, ...subscriptionData } = createSubscriptionDto;
+
       // Validar se o plano existe usando o id_pagbank
-      const plan = await this.plansService.findByIdPagbank(createSubscriptionDto.plan.id);
+      const plan = await this.plansService.findByIdPagbank(subscriptionData.plan.id);
       const userPlan = await this.userPlansService.findByUserId(user.id);
       if (!plan) {
-        throw new DataNotFoundException(`Plano com ID PagBank "${createSubscriptionDto.plan.id}" não encontrado`);
+        throw new DataNotFoundException(`Plano com ID PagBank "${subscriptionData.plan.id}" não encontrado`);
       }
 
       if (userPlan?.is_active) throw new BadRequestException('Usuário já possui um plano ativo');
@@ -114,19 +129,19 @@ export class PagbankController {
         await this.pagbankService.updateCustomerBillingInfo(userPlan.pagbank_customer_id, [
           {
             card: {
-              encrypted: createSubscriptionDto.customer.billing_info[0].card.encrypted,
-              security_code: createSubscriptionDto.payment_method[0].card.security_code,
+              encrypted: subscriptionData.customer.billing_info[0].card.encrypted,
+              security_code: subscriptionData.payment_method[0].card.security_code,
             },
-            type: createSubscriptionDto.payment_method[0].type as 'CREDIT_CARD' | 'DEBIT_CARD',
+            type: subscriptionData.payment_method[0].type as 'CREDIT_CARD' | 'DEBIT_CARD',
           },
         ]);
         /**
          * Se o usuário já possui um customer no PagBank, é passado o id do customer para a criação da subscription
          */
-        createSubscriptionDto.customer = { id: userPlan.pagbank_customer_id } as any;
+        subscriptionData.customer = { id: userPlan.pagbank_customer_id } as any;
       }
 
-      const data = await this.pagbankService.createSubscription(createSubscriptionDto);
+      const data = await this.pagbankService.createSubscription(subscriptionData);
 
       console.log('subscriptions', data);
 
@@ -207,9 +222,7 @@ export class PagbankController {
         throw new BadRequestException('Usuário não possui um plano ativo para cancelamento');
       }
 
-      const response = await this.pagbankService.cancelSubscription(
-        `${userPlan.pagbank_subscriber_id} - ${userPlan.id}`
-      );
+      const response = await this.pagbankService.cancelSubscription(userPlan.pagbank_subscriber_id);
       console.log('\n\n response Cancel Subscription PagBank', response, '\n\n');
 
       const data = await this.userPlansService.update(userPlan.id, {

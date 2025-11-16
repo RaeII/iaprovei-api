@@ -194,6 +194,7 @@ export const CreateSubscriptionSchema = z.object({
     .string()
     .min(1, 'Reference ID é obrigatório')
     .max(65, 'Reference ID deve ter no máximo 65 caracteres'),
+  recaptcha_token: z.string().optional(),
 });
 
 // Schema para a resposta de criação de customer
