@@ -20,7 +20,9 @@ export class SharedPlanLookupService implements IPlanLookupService {
    * Busca um plano por ID com campos essenciais
    * Otimizado para retornar apenas os campos necessários
    */
-  async findActivePlanById(planId: number): Promise<{ id: number; is_active: boolean; id_pagbank: string; description_topics?: string } | null> {
+  async findActivePlanById(
+    planId: number
+  ): Promise<{ id: number; is_active: boolean; id_pagbank: string; description_topics?: string } | null> {
     const plan = await this.planRepository.findOne({
       where: { id: planId },
       select: { id: true, is_active: true, id_pagbank: true, description_topics: true },

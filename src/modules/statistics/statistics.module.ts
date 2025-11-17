@@ -10,7 +10,16 @@ import { StatisticsService } from './statistics.service';
 import { StatisticsController } from './statistics.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([UserAnswer, Question, SkillCategory, UserStatistics, UserSkillCategoryStatistics, UserDailyStatistics])],
+  imports: [
+    TypeOrmModule.forFeature([
+      UserAnswer,
+      Question,
+      SkillCategory,
+      UserStatistics,
+      UserSkillCategoryStatistics,
+      UserDailyStatistics,
+    ]),
+  ],
   controllers: [StatisticsController],
   providers: [StatisticsService],
   exports: [StatisticsService],

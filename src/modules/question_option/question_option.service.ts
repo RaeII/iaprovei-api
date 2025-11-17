@@ -3,7 +3,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { QuestionOption } from '@/entities/question_option.entity';
 import { DataNotFoundException } from '@/common/exceptions/data-not-found.exception';
-import { QuestionOptionQuery, QuestionOptionFilter, QuestionOptionListResponse, QuestionOptionDetailedListResponse, QuestionOption as QuestionOptionSchema } from './schemas/question_option.schema';
+import {
+  QuestionOptionQuery,
+  QuestionOptionFilter,
+  QuestionOptionListResponse,
+  QuestionOptionDetailedListResponse,
+  QuestionOption as QuestionOptionSchema,
+} from './schemas/question_option.schema';
 import { createPaginationMeta, generateOffset } from '@/common/utils/query-utils';
 
 @Injectable()
@@ -106,7 +112,11 @@ export class QuestionOptionService {
     });
 
     if (!questionOption) {
-      throw new DataNotFoundException(`Question option with id "${id}"`, 'Opção de questão', QuestionOptionService.name);
+      throw new DataNotFoundException(
+        `Question option with id "${id}"`,
+        'Opção de questão',
+        QuestionOptionService.name
+      );
     }
 
     return {
@@ -130,7 +140,11 @@ export class QuestionOptionService {
     });
 
     if (!questionOption) {
-      throw new DataNotFoundException(`Question option with id "${id}"`, 'Opção de questão', QuestionOptionService.name);
+      throw new DataNotFoundException(
+        `Question option with id "${id}"`,
+        'Opção de questão',
+        QuestionOptionService.name
+      );
     }
 
     return questionOption;
@@ -141,7 +155,10 @@ export class QuestionOptionService {
    * Optimized for question-specific option retrieval
    * This is the most commonly used function for displaying question options
    */
-  async findByQuestion(questionId: number, query?: Omit<QuestionOptionQuery, 'question_id'>): Promise<QuestionOptionListResponse> {
+  async findByQuestion(
+    questionId: number,
+    query?: Omit<QuestionOptionQuery, 'question_id'>
+  ): Promise<QuestionOptionListResponse> {
     const queryParams = query || { page: 1, limit: 100, sort_by: 'display_order', sort_order: 'ASC' as const };
     return this.findAll(questionId, queryParams);
   }
@@ -151,7 +168,10 @@ export class QuestionOptionService {
    * Used when full option data is needed for a specific question (AFTER user has answered)
    * Omits is_correct field for security - only available after answering
    */
-  async findByQuestionDetailed(questionId: number, query?: Omit<QuestionOptionQuery, 'question_id'>): Promise<QuestionOptionDetailedListResponse> {
+  async findByQuestionDetailed(
+    questionId: number,
+    query?: Omit<QuestionOptionQuery, 'question_id'>
+  ): Promise<QuestionOptionDetailedListResponse> {
     const queryParams = query || { page: 1, limit: 100, sort_by: 'display_order', sort_order: 'ASC' as const };
     return this.findAllDetailed(questionId, queryParams);
   }
@@ -161,7 +181,13 @@ export class QuestionOptionService {
    * Useful for answer verification and result display
    */
   async findCorrectByQuestion(questionId: number): Promise<QuestionOptionListResponse> {
-    return this.findAll(questionId, { is_correct: true, page: 1, limit: 100, sort_by: 'display_order', sort_order: 'ASC' });
+    return this.findAll(questionId, {
+      is_correct: true,
+      page: 1,
+      limit: 100,
+      sort_by: 'display_order',
+      sort_order: 'ASC',
+    });
   }
 
   /**

@@ -5,7 +5,16 @@ import * as bcrypt from 'bcryptjs';
 import { User as UserEntity } from '@/entities/user.entity';
 import { UserValidator } from '@/modules/user/user.validator';
 import { DataNotFoundException } from '@/common/exceptions/data-not-found.exception';
-import { UserCreate, UserListData, UserMe, UserUpdate, User, UserMeSchema, UserListDataSchema, ValidationResponse } from './schemas/user.schema';
+import {
+  UserCreate,
+  UserListData,
+  UserMe,
+  UserUpdate,
+  User,
+  UserMeSchema,
+  UserListDataSchema,
+  ValidationResponse,
+} from './schemas/user.schema';
 import { HeartsService } from '@/modules/hearts/hearts.service';
 
 @Injectable()
@@ -60,7 +69,10 @@ export class UserService {
   }
 
   async findOne(id: number): Promise<UserListData> {
-    const user = await this.usersRepository.findOne({ where: { id }, select: Object.keys(UserListDataSchema.shape) as (keyof UserEntity)[] });
+    const user = await this.usersRepository.findOne({
+      where: { id },
+      select: Object.keys(UserListDataSchema.shape) as (keyof UserEntity)[],
+    });
     if (!user) {
       throw new DataNotFoundException(`User with id "${id}"`, 'Usuário', UserService.name);
     }

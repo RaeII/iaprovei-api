@@ -6,7 +6,16 @@ import { UserAnswer } from '@/entities/user_answer.entity';
 import { QuestionStatementText } from '@/entities/question_statement_text.entity';
 import { SubjectQuestionStudyPlan } from '@/entities/subject_question_study_plan.entity';
 import { DataNotFoundException } from '@/common/exceptions/data-not-found.exception';
-import { QuestionQuery, QuestionFilter, QuestionListResponse, QuestionDetailedListResponse, QuestionStatsListResponse, QuestionDetail, QuestionEagerDetail, QuestionWithLastAnsweredQuestionResponse } from './schemas/question.schema';
+import {
+  QuestionQuery,
+  QuestionFilter,
+  QuestionListResponse,
+  QuestionDetailedListResponse,
+  QuestionStatsListResponse,
+  QuestionDetail,
+  QuestionEagerDetail,
+  QuestionWithLastAnsweredQuestionResponse,
+} from './schemas/question.schema';
 import { createPaginationMeta, generateOffset } from '@/common/utils/query-utils';
 
 @Injectable()
@@ -33,7 +42,18 @@ export class QuestionService {
     const queryBuilder = this.createBaseQueryBuilder(filters, include_inactive);
 
     // Select only basic fields for performance (including created_at for sorting)
-    queryBuilder.select(['question.id', 'question.affirmation', 'question.image_url', 'question.question_type', 'question.difficulty_level', 'question.exam_board', 'question.exam_year', 'question.created_at', 'question.statement', 'question.question_statement_text_id']);
+    queryBuilder.select([
+      'question.id',
+      'question.affirmation',
+      'question.image_url',
+      'question.question_type',
+      'question.difficulty_level',
+      'question.exam_board',
+      'question.exam_year',
+      'question.created_at',
+      'question.statement',
+      'question.question_statement_text_id',
+    ]);
 
     // Always include sub_skill_category relation to get the name
     queryBuilder.leftJoinAndSelect('question.sub_skill_category', 'subSkillCategory');
@@ -63,7 +83,9 @@ export class QuestionService {
     }
 
     // Collect unique statement text IDs from questions
-    const statementTextIds = Array.from(new Set(questions.map(q => q.question_statement_text_id).filter((v): v is number => !!v)));
+    const statementTextIds = Array.from(
+      new Set(questions.map(q => q.question_statement_text_id).filter((v): v is number => !!v))
+    );
 
     // Load the statement texts for the collected IDs
     let statements_texts: Record<string, string> = {};
@@ -151,7 +173,13 @@ export class QuestionService {
     const queryBuilder = this.createBaseQueryBuilder(filters, include_inactive);
 
     // Select only statistics fields for performance
-    queryBuilder.select(['question.id', 'question.total_attempts', 'question.correct_attempts', 'question.success_rate', 'question.complexity_score']);
+    queryBuilder.select([
+      'question.id',
+      'question.total_attempts',
+      'question.correct_attempts',
+      'question.success_rate',
+      'question.complexity_score',
+    ]);
 
     // Apply sorting with stats-specific defaults
     if (sort_by) {
@@ -213,7 +241,13 @@ export class QuestionService {
   async findOneEager(id: number): Promise<QuestionEagerDetail> {
     const question = await this.questionsRepository.findOne({
       where: { id },
-      relations: ['origin_subject', 'origin_subject.contest', 'origin_subject.skill_category', 'sub_skill_category', 'question_statement_text'],
+      relations: [
+        'origin_subject',
+        'origin_subject.contest',
+        'origin_subject.skill_category',
+        'sub_skill_category',
+        'question_statement_text',
+      ],
     });
 
     if (!question) {
@@ -236,12 +270,20 @@ export class QuestionService {
    * Retrieve questions by subject ID
    * Optimized for subject-specific question retrieval
    */
-  async findBySubject(subjectId: number, query: Omit<QuestionQuery, 'subject_id'>, userId?: number): Promise<QuestionListResponse> {
+  async findBySubject(
+    subjectId: number,
+    query: Omit<QuestionQuery, 'subject_id'>,
+    userId?: number
+  ): Promise<QuestionListResponse> {
     return this.findAll({ ...query, subject_id: subjectId }, userId);
   }
 
   // TODO: Create own select
-  async findBySubjectUserProgression(subjectId: number, query: Omit<QuestionQuery, 'subject_id'>, userId?: number): Promise<QuestionWithLastAnsweredQuestionResponse> {
+  async findBySubjectUserProgression(
+    subjectId: number,
+    query: Omit<QuestionQuery, 'subject_id'>,
+    userId?: number
+  ): Promise<QuestionWithLastAnsweredQuestionResponse> {
     const questions = await this.findAll({ ...query, subject_id: subjectId }, userId);
     return {
       last_answered_question_id: questions.data.last_answered_question_id,
@@ -272,7 +314,16 @@ export class QuestionService {
    * This is more efficient than getting all answers and helps determine user progression
    */
   private async getLastAnsweredQuestionIdForSubject(userId: number, subjectId: number): Promise<number | null> {
-    const result = await this.userAnswersRepository.createQueryBuilder('ua').innerJoin('ua.question', 'q').innerJoin('subject_question_study_plan', 'sqsp', 'sqsp.questions_id = q.id').select('ua.question_id').where('ua.users_id = :userId', { userId }).andWhere('sqsp.subjects_id = :subjectId', { subjectId }).orderBy('ua.answared_at', 'DESC').limit(1).getRawOne();
+    const result = await this.userAnswersRepository
+      .createQueryBuilder('ua')
+      .innerJoin('ua.question', 'q')
+      .innerJoin('subject_question_study_plan', 'sqsp', 'sqsp.questions_id = q.id')
+      .select('ua.question_id')
+      .where('ua.users_id = :userId', { userId })
+      .andWhere('sqsp.subjects_id = :subjectId', { subjectId })
+      .orderBy('ua.answared_at', 'DESC')
+      .limit(1)
+      .getRawOne();
 
     return result?.ua_question_id || null;
   }
@@ -290,7 +341,9 @@ export class QuestionService {
     }
 
     if (filters.subject_id) {
-      queryBuilder.innerJoin('subject_question_study_plan', 'sqsp', 'sqsp.questions_id = question.id').andWhere('sqsp.subjects_id = :subjectId', { subjectId: filters.subject_id });
+      queryBuilder
+        .innerJoin('subject_question_study_plan', 'sqsp', 'sqsp.questions_id = question.id')
+        .andWhere('sqsp.subjects_id = :subjectId', { subjectId: filters.subject_id });
     }
 
     if (filters.question_type) {

@@ -40,7 +40,9 @@ export class HeartsService {
 
     let nextHeartRegenerationAt: Date | null = null;
     if (!isFull && user.last_heart_regeneration_at) {
-      nextHeartRegenerationAt = new Date(user.last_heart_regeneration_at.getTime() + HEART_REGENERATION_INTERVAL_HOURS * 60 * 60 * 1000);
+      nextHeartRegenerationAt = new Date(
+        user.last_heart_regeneration_at.getTime() + HEART_REGENERATION_INTERVAL_HOURS * 60 * 60 * 1000
+      );
     }
 
     return {
@@ -84,7 +86,9 @@ export class HeartsService {
       const newHeartCount = Math.min(user.current_lives + heartsToRegenerate, user.max_lives);
 
       // Calculate the new last_heart_regeneration_at based on the number of hearts regenerated
-      const newLastRegeneration = new Date(lastRegeneration.getTime() + heartsToRegenerate * HEART_REGENERATION_INTERVAL_HOURS * 60 * 60 * 1000);
+      const newLastRegeneration = new Date(
+        lastRegeneration.getTime() + heartsToRegenerate * HEART_REGENERATION_INTERVAL_HOURS * 60 * 60 * 1000
+      );
 
       await this.usersRepository.update(userId, {
         current_lives: newHeartCount,

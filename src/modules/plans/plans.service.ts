@@ -3,7 +3,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Plan as PlanEntity } from '@/entities/plan.entity';
 import { DataNotFoundException } from '@/common/exceptions/data-not-found.exception';
-import { PlanListData, PlanDetail, PlanActive, PlanListDataSchema, PlanCreate, PlanUpdate } from './schemas/plan.schema';
+import {
+  PlanListData,
+  PlanDetail,
+  PlanActive,
+  PlanListDataSchema,
+  PlanCreate,
+  PlanUpdate,
+} from './schemas/plan.schema';
 
 @Injectable()
 export class PlansService {
@@ -106,7 +113,15 @@ export class PlansService {
       .createQueryBuilder('plan')
       .where('plan.description_topics LIKE :searchTerm', { searchTerm: `%${searchTerm}%` })
       .andWhere('plan.is_active = :isActive', { isActive: true })
-      .select(['plan.id', 'plan.id_pagbank', 'plan.title', 'plan.description', 'plan.description_topics', 'plan.price', 'plan.is_active'])
+      .select([
+        'plan.id',
+        'plan.id_pagbank',
+        'plan.title',
+        'plan.description',
+        'plan.description_topics',
+        'plan.price',
+        'plan.is_active',
+      ])
       .getMany();
   }
 

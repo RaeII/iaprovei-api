@@ -6,7 +6,11 @@ import { ConfigModule } from '@nestjs/config';
 import jwtRefreshConfig from '@/config/jwt-refresh.config';
 
 @Module({
-  imports: [JwtModuleNest.registerAsync(jwtConfig.asProvider()), ConfigModule.forFeature(jwtConfig), ConfigModule.forFeature(jwtRefreshConfig)],
+  imports: [
+    JwtModuleNest.registerAsync(jwtConfig.asProvider()),
+    ConfigModule.forFeature(jwtConfig),
+    ConfigModule.forFeature(jwtRefreshConfig),
+  ],
   providers: [JwtService],
   exports: [JwtService, JwtModuleNest],
 })

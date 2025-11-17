@@ -3,7 +3,20 @@ import { ApiBearerAuth, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { ContestService } from './contest.service';
 import { JwtAuthGuard } from '@/modules/auth/guard/jwt-auth.guard';
 import { BasicUserInfo } from '@/common/decorators/user-context.decorator';
-import { ContestQuery, ContestCount, ContestListResponse, ContestDetailsResponse, ContestExistsResponse, ContestStatusSchema, contestListResponseOpenapi, contestDetailsResponseOpenapi, contestCountOpenapi, contestExistsResponseOpenapi, ContestWithSubjectsResponse, contestWithSubjectsOpenapi } from './schemas/contest.schema';
+import {
+  ContestQuery,
+  ContestCount,
+  ContestListResponse,
+  ContestDetailsResponse,
+  ContestExistsResponse,
+  ContestStatusSchema,
+  contestListResponseOpenapi,
+  contestDetailsResponseOpenapi,
+  contestCountOpenapi,
+  contestExistsResponseOpenapi,
+  ContestWithSubjectsResponse,
+  contestWithSubjectsOpenapi,
+} from './schemas/contest.schema';
 import { ContestStatus } from '@/entities/contest.entity';
 import { UserBasicInfo } from '@/modules/user/schemas/user.schema';
 
@@ -37,8 +50,16 @@ export class ContestController {
   @ApiQuery({ name: 'status', required: false, type: String, enum: ['available', 'coming_soon', 'draft'] })
   @ApiQuery({ name: 'include_inactive', required: false, type: Boolean })
   @ApiQuery({ name: 'full_details', required: false, type: Boolean })
-  @ApiQuery({ name: 'order_by_last_usage', required: false, type: Boolean, description: 'Order contests by last question answered date' })
-  async findAllWithSubjects(@Query() query: ContestQuery, @BasicUserInfo() userInfo: UserBasicInfo): Promise<ContestWithSubjectsResponse> {
+  @ApiQuery({
+    name: 'order_by_last_usage',
+    required: false,
+    type: Boolean,
+    description: 'Order contests by last question answered date',
+  })
+  async findAllWithSubjects(
+    @Query() query: ContestQuery,
+    @BasicUserInfo() userInfo: UserBasicInfo
+  ): Promise<ContestWithSubjectsResponse> {
     const contests = await this.contestService.findAllWithSubjects({
       ...query,
       userId: userInfo.id,

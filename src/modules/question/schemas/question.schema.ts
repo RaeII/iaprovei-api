@@ -178,7 +178,9 @@ export const QuestionWithLastAnsweredQuestionSchema = z.object({
 export const QuestionListResponseSchema = z.object({
   data: z
     .object({
-      questions: z.array(z.union([QuestionBasicSchema, QuestionWithOptionsSchema, QuestionWithOptionsAndLastAnswerSchema])),
+      questions: z.array(
+        z.union([QuestionBasicSchema, QuestionWithOptionsSchema, QuestionWithOptionsAndLastAnswerSchema])
+      ),
     })
     .extend(QuestionWithLastAnsweredQuestionSchema.shape)
     .extend({
@@ -235,7 +237,9 @@ export const questionStatsListResponseOpenapi: any = zodToOpenAPI(QuestionStatsL
 export const questionDetailResponseOpenapi: any = zodToOpenAPI(QuestionDetailResponseSchema);
 export const questionExistsResponseOpenapi: any = zodToOpenAPI(QuestionExistsResponseSchema);
 export const questionCountResponseOpenapi: any = zodToOpenAPI(QuestionCountResponseSchema);
-export const questionWithLastAnsweredQuestionResponseOpenapi: any = zodToOpenAPI(QuestionWithLastAnsweredQuestionResponseSchema);
+export const questionWithLastAnsweredQuestionResponseOpenapi: any = zodToOpenAPI(
+  QuestionWithLastAnsweredQuestionResponseSchema
+);
 
 // Type exports - inferred from Zod schemas
 export type Question = z.infer<typeof QuestionSchema>;

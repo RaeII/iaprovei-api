@@ -20,7 +20,11 @@ export class SkillCategoryLookupService implements ISkillCategoryLookupService {
     });
 
     if (!skillCategory) {
-      throw new DataNotFoundException(`SkillCategory with id "${id}"`, 'Categoria de Habilidade', SkillCategoryLookupService.name);
+      throw new DataNotFoundException(
+        `SkillCategory with id "${id}"`,
+        'Categoria de Habilidade',
+        SkillCategoryLookupService.name
+      );
     }
 
     return skillCategory;

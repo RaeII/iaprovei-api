@@ -55,7 +55,11 @@ export class SkillCategoryService {
     });
 
     if (!skillCategory) {
-      throw new DataNotFoundException(`SkillCategory with id "${id}"`, 'Categoria de Habilidade', SkillCategoryService.name);
+      throw new DataNotFoundException(
+        `SkillCategory with id "${id}"`,
+        'Categoria de Habilidade',
+        SkillCategoryService.name
+      );
     }
 
     return skillCategory;
@@ -68,13 +72,20 @@ export class SkillCategoryService {
     });
 
     if (!skillCategory) {
-      throw new DataNotFoundException(`SkillCategory with slug "${slug}"`, 'Categoria de Habilidade', SkillCategoryService.name);
+      throw new DataNotFoundException(
+        `SkillCategory with slug "${slug}"`,
+        'Categoria de Habilidade',
+        SkillCategoryService.name
+      );
     }
 
     return skillCategory;
   }
 
-  async findChildren(parentId: number, pagination?: Pagination): Promise<{ data: SkillCategoryListData[]; meta?: PaginationMeta }> {
+  async findChildren(
+    parentId: number,
+    pagination?: Pagination
+  ): Promise<{ data: SkillCategoryListData[]; meta?: PaginationMeta }> {
     // Validate parent exists
     await this.skillCategoryValidator.assertExists(parentId);
 
@@ -133,7 +144,10 @@ export class SkillCategoryService {
     return { data };
   }
 
-  async searchByName(name: string, pagination?: Pagination): Promise<{ data: SkillCategoryListData[]; meta?: PaginationMeta }> {
+  async searchByName(
+    name: string,
+    pagination?: Pagination
+  ): Promise<{ data: SkillCategoryListData[]; meta?: PaginationMeta }> {
     const selectFields = this.getSelectFields();
 
     if (pagination) {

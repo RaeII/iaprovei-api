@@ -11,4 +11,3 @@ import { HeartsController } from './hearts.controller';
   exports: [HeartsService],
 })
 export class HeartsModule {}
-

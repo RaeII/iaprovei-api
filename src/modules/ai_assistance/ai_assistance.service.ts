@@ -1,6 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { IAiProvider, AI_PROVIDER_TOKEN } from './interfaces/ai-provider.interface';
-import { AiAssistanceQuestionExplanationRequest, AiAssistanceQuestionExplanationResponse, AiAssistanceRequest, AiAssistanceResponse, AiCourseMaterialSuggestionRequest, AiCourseMaterialSuggestionResponse } from './schemas/ai_assistance.schema';
+import {
+  AiAssistanceQuestionExplanationRequest,
+  AiAssistanceQuestionExplanationResponse,
+  AiAssistanceRequest,
+  AiAssistanceResponse,
+  AiCourseMaterialSuggestionRequest,
+  AiCourseMaterialSuggestionResponse,
+} from './schemas/ai_assistance.schema';
 
 @Injectable()
 export class AiAssistanceService {
@@ -13,11 +20,15 @@ export class AiAssistanceService {
     return this.aiProvider.correctUserAnswer(request);
   }
 
-  async getQuestionExplanation(request: AiAssistanceQuestionExplanationRequest): Promise<AiAssistanceQuestionExplanationResponse> {
+  async getQuestionExplanation(
+    request: AiAssistanceQuestionExplanationRequest
+  ): Promise<AiAssistanceQuestionExplanationResponse> {
     return this.aiProvider.getQuestionExplanation(request);
   }
 
-  async suggestSkillCategoriesForCourse(request: AiCourseMaterialSuggestionRequest): Promise<AiCourseMaterialSuggestionResponse> {
+  async suggestSkillCategoriesForCourse(
+    request: AiCourseMaterialSuggestionRequest
+  ): Promise<AiCourseMaterialSuggestionResponse> {
     return this.aiProvider.suggestSkillCategoriesForCourse(request);
   }
 }

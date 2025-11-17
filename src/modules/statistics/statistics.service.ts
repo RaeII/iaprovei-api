@@ -8,7 +8,17 @@ import { SkillCategory } from '@/entities/skill_category.entity';
 import { UserStatistics } from '@/entities/user_statistics.entity';
 import { UserSkillCategoryStatistics } from '@/entities/user_skill_category_statistics.entity';
 import { UserDailyStatistics } from '@/entities/user_daily_statistics.entity';
-import { StatisticsFilter, SkillCategoryPerformanceStats, DailyPerformanceStats, PerformanceTrend, UserPerformanceStatsResponse, SkillCategoryPerformanceStatsListResponse, DailyPerformanceStatsListResponse, PerformanceTrendResponse, ComprehensiveUserStatsResponse } from './schemas/statistics.schema';
+import {
+  StatisticsFilter,
+  SkillCategoryPerformanceStats,
+  DailyPerformanceStats,
+  PerformanceTrend,
+  UserPerformanceStatsResponse,
+  SkillCategoryPerformanceStatsListResponse,
+  DailyPerformanceStatsListResponse,
+  PerformanceTrendResponse,
+  ComprehensiveUserStatsResponse,
+} from './schemas/statistics.schema';
 
 @Injectable()
 export class StatisticsService {
@@ -32,7 +42,9 @@ export class StatisticsService {
    * Uses pre-calculated statistics from user_statistics table
    */
   async getUserPerformanceStats(userId: number, filters?: StatisticsFilter): Promise<UserPerformanceStatsResponse> {
-    const queryBuilder = this.userStatisticsRepository.createQueryBuilder('us').where('us.users_id = :userId', { userId });
+    const queryBuilder = this.userStatisticsRepository
+      .createQueryBuilder('us')
+      .where('us.users_id = :userId', { userId });
 
     // Apply date filters if provided
     if (filters?.date_from) {
@@ -85,12 +97,20 @@ export class StatisticsService {
    * Get user performance statistics by skill category
    * Uses pre-calculated statistics from user_skill_category_statistics table
    */
-  async getUserPerformanceBySkillCategory(userId: number, filters?: StatisticsFilter): Promise<SkillCategoryPerformanceStatsListResponse> {
-    const queryBuilder = this.userSkillCategoryStatisticsRepository.createQueryBuilder('uscs').leftJoin('uscs.skill_category', 'sc').where('uscs.users_id = :userId', { userId });
+  async getUserPerformanceBySkillCategory(
+    userId: number,
+    filters?: StatisticsFilter
+  ): Promise<SkillCategoryPerformanceStatsListResponse> {
+    const queryBuilder = this.userSkillCategoryStatisticsRepository
+      .createQueryBuilder('uscs')
+      .leftJoin('uscs.skill_category', 'sc')
+      .where('uscs.users_id = :userId', { userId });
 
     // Apply filters
     if (filters?.skill_category_id) {
-      queryBuilder.andWhere('uscs.skill_category_id = :skillCategoryId', { skillCategoryId: filters.skill_category_id });
+      queryBuilder.andWhere('uscs.skill_category_id = :skillCategoryId', {
+        skillCategoryId: filters.skill_category_id,
+      });
     }
     if (filters?.date_from) {
       queryBuilder.andWhere('uscs.statistics_date >= :dateFrom', { dateFrom: filters.date_from });
@@ -100,7 +120,22 @@ export class StatisticsService {
     }
 
     // Get the latest statistics for each skill category
-    const skillCategoryStats = await queryBuilder.select(['uscs.skill_category_id as skill_category_id', 'sc.name as skill_category_name', 'sc.slug as skill_category_slug', 'uscs.total_questions_answered as total_questions_answered', 'uscs.correct_answers as correct_answers', 'uscs.incorrect_answers as incorrect_answers', 'uscs.success_rate as success_rate', 'uscs.error_rate as error_rate', 'uscs.average_response_time as average_response_time', 'uscs.questions_available as questions_available', 'uscs.completion_percentage as completion_percentage']).orderBy('uscs.statistics_date', 'DESC').getRawMany();
+    const skillCategoryStats = await queryBuilder
+      .select([
+        'uscs.skill_category_id as skill_category_id',
+        'sc.name as skill_category_name',
+        'sc.slug as skill_category_slug',
+        'uscs.total_questions_answered as total_questions_answered',
+        'uscs.correct_answers as correct_answers',
+        'uscs.incorrect_answers as incorrect_answers',
+        'uscs.success_rate as success_rate',
+        'uscs.error_rate as error_rate',
+        'uscs.average_response_time as average_response_time',
+        'uscs.questions_available as questions_available',
+        'uscs.completion_percentage as completion_percentage',
+      ])
+      .orderBy('uscs.statistics_date', 'DESC')
+      .getRawMany();
 
     // Group by skill category and get the latest record for each
     const latestStats = new Map();
@@ -134,14 +169,21 @@ export class StatisticsService {
    * Get daily performance statistics for a user
    * Uses pre-calculated statistics from user_daily_statistics table
    */
-  async getDailyPerformanceStats(userId: number, filters?: StatisticsFilter): Promise<DailyPerformanceStatsListResponse> {
-    const queryBuilder = this.userDailyStatisticsRepository.createQueryBuilder('uds').where('uds.users_id = :userId', { userId });
+  async getDailyPerformanceStats(
+    userId: number,
+    filters?: StatisticsFilter
+  ): Promise<DailyPerformanceStatsListResponse> {
+    const queryBuilder = this.userDailyStatisticsRepository
+      .createQueryBuilder('uds')
+      .where('uds.users_id = :userId', { userId });
 
     // Default to last 30 days if no date range provided
     const dateFrom = filters?.date_from || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const dateTo = filters?.date_to || new Date();
 
-    queryBuilder.andWhere('uds.statistics_date >= :dateFrom', { dateFrom }).andWhere('uds.statistics_date <= :dateTo', { dateTo });
+    queryBuilder
+      .andWhere('uds.statistics_date >= :dateFrom', { dateFrom })
+      .andWhere('uds.statistics_date <= :dateTo', { dateTo });
 
     const dailyStats = await queryBuilder.orderBy('uds.statistics_date', 'ASC').getMany();
 
@@ -197,7 +239,12 @@ export class StatisticsService {
     }
 
     const trendData = await queryBuilder
-      .select([`${dateFormat} as period`, 'COUNT(*) as questions_answered', 'SUM(CASE WHEN ua.is_correct = 1 THEN 1 ELSE 0 END) as correct_answers', 'AVG(ua.response_time) as average_response_time'])
+      .select([
+        `${dateFormat} as period`,
+        'COUNT(*) as questions_answered',
+        'SUM(CASE WHEN ua.is_correct = 1 THEN 1 ELSE 0 END) as correct_answers',
+        'AVG(ua.response_time) as average_response_time',
+      ])
       .groupBy(groupByClause)
       .orderBy(`${dateFormat}`, 'ASC')
       .getRawMany();
@@ -228,7 +275,12 @@ export class StatisticsService {
    * Get comprehensive statistics for a user
    */
   async getComprehensiveUserStats(userId: number, filters?: StatisticsFilter): Promise<ComprehensiveUserStatsResponse> {
-    const [userPerformance, skillCategoryBreakdown, dailyPerformance, performanceTrend] = await Promise.all([this.getUserPerformanceStats(userId, filters), this.getUserPerformanceBySkillCategory(userId, filters), this.getDailyPerformanceStats(userId, filters), this.getPerformanceTrend(userId, filters)]);
+    const [userPerformance, skillCategoryBreakdown, dailyPerformance, performanceTrend] = await Promise.all([
+      this.getUserPerformanceStats(userId, filters),
+      this.getUserPerformanceBySkillCategory(userId, filters),
+      this.getDailyPerformanceStats(userId, filters),
+      this.getPerformanceTrend(userId, filters),
+    ]);
 
     return {
       data: {
@@ -256,7 +308,19 @@ export class StatisticsService {
     const dayStart = statisticsDate.toDate();
     const dayEnd = statisticsDate.clone().endOf('day').toDate();
 
-    const dayStatsRaw = await this.userAnswersRepository.createQueryBuilder('ua').where('ua.users_id = :userId', { userId }).andWhere('ua.answared_at >= :dayStart', { dayStart }).andWhere('ua.answared_at <= :dayEnd', { dayEnd }).select(['COUNT(*) as questions_answered', 'SUM(CASE WHEN ua.is_correct = 1 THEN 1 ELSE 0 END) as correct_answers', 'SUM(CASE WHEN ua.is_correct = 0 THEN 1 ELSE 0 END) as incorrect_answers', 'AVG(ua.response_time) as average_response_time', 'SUM(ua.response_time) as study_time']).getRawOne();
+    const dayStatsRaw = await this.userAnswersRepository
+      .createQueryBuilder('ua')
+      .where('ua.users_id = :userId', { userId })
+      .andWhere('ua.answared_at >= :dayStart', { dayStart })
+      .andWhere('ua.answared_at <= :dayEnd', { dayEnd })
+      .select([
+        'COUNT(*) as questions_answered',
+        'SUM(CASE WHEN ua.is_correct = 1 THEN 1 ELSE 0 END) as correct_answers',
+        'SUM(CASE WHEN ua.is_correct = 0 THEN 1 ELSE 0 END) as incorrect_answers',
+        'AVG(ua.response_time) as average_response_time',
+        'SUM(ua.response_time) as study_time',
+      ])
+      .getRawOne();
 
     const questionsAnswered = parseInt(dayStatsRaw.questions_answered) || 0;
     const correctAnswers = parseInt(dayStatsRaw.correct_answers) || 0;
@@ -294,7 +358,11 @@ export class StatisticsService {
   /**
    * Calculate and update skill category statistics for a user
    */
-  async updateSkillCategoryStatistics(userId: number, skillCategoryId: number, date?: Date): Promise<UserSkillCategoryStatistics> {
+  async updateSkillCategoryStatistics(
+    userId: number,
+    skillCategoryId: number,
+    date?: Date
+  ): Promise<UserSkillCategoryStatistics> {
     const statisticsDate = moment(date || new Date()).startOf('day');
 
     // Get or create skill category statistics record
@@ -306,10 +374,34 @@ export class StatisticsService {
     const dayStart = statisticsDate.toDate();
     const dayEnd = statisticsDate.clone().endOf('day').toDate();
 
-    const skillCategoryStatsRaw = await this.userAnswersRepository.createQueryBuilder('ua').leftJoin('ua.question', 'q').leftJoin('q.sub_skill_category', 'sc').where('ua.users_id = :userId', { userId }).andWhere('ua.answared_at >= :dayStart', { dayStart }).andWhere('ua.answared_at <= :dayEnd', { dayEnd }).andWhere('(q.sub_skill_category_id = :skillCategoryId OR sc.father_skill_category_id = :skillCategoryId)', { skillCategoryId }).select(['COUNT(*) as total_attempts', 'COUNT(DISTINCT ua.question_id) as unique_questions_answered', 'SUM(CASE WHEN ua.is_correct = 1 THEN 1 ELSE 0 END) as correct_answers', 'SUM(CASE WHEN ua.is_correct = 0 THEN 1 ELSE 0 END) as incorrect_answers', 'AVG(ua.response_time) as average_response_time']).getRawOne();
+    const skillCategoryStatsRaw = await this.userAnswersRepository
+      .createQueryBuilder('ua')
+      .leftJoin('ua.question', 'q')
+      .leftJoin('q.sub_skill_category', 'sc')
+      .where('ua.users_id = :userId', { userId })
+      .andWhere('ua.answared_at >= :dayStart', { dayStart })
+      .andWhere('ua.answared_at <= :dayEnd', { dayEnd })
+      .andWhere('(q.sub_skill_category_id = :skillCategoryId OR sc.father_skill_category_id = :skillCategoryId)', {
+        skillCategoryId,
+      })
+      .select([
+        'COUNT(*) as total_attempts',
+        'COUNT(DISTINCT ua.question_id) as unique_questions_answered',
+        'SUM(CASE WHEN ua.is_correct = 1 THEN 1 ELSE 0 END) as correct_answers',
+        'SUM(CASE WHEN ua.is_correct = 0 THEN 1 ELSE 0 END) as incorrect_answers',
+        'AVG(ua.response_time) as average_response_time',
+      ])
+      .getRawOne();
 
     // Get total questions available for this skill category (including subcategories)
-    const questionsAvailable = await this.questionsRepository.createQueryBuilder('q').leftJoin('q.sub_skill_category', 'sc').where('q.is_active = 1').andWhere('(q.sub_skill_category_id = :skillCategoryId OR sc.father_skill_category_id = :skillCategoryId)', { skillCategoryId }).getCount();
+    const questionsAvailable = await this.questionsRepository
+      .createQueryBuilder('q')
+      .leftJoin('q.sub_skill_category', 'sc')
+      .where('q.is_active = 1')
+      .andWhere('(q.sub_skill_category_id = :skillCategoryId OR sc.father_skill_category_id = :skillCategoryId)', {
+        skillCategoryId,
+      })
+      .getCount();
 
     const totalAttempts = parseInt(skillCategoryStatsRaw.total_attempts) || 0;
     const uniqueQuestionsAnswered = parseInt(skillCategoryStatsRaw.unique_questions_answered) || 0;
@@ -326,7 +418,8 @@ export class StatisticsService {
       skillCategoryStats.incorrect_answers = incorrect;
       skillCategoryStats.success_rate = Math.round(successRate * 100) / 100;
       skillCategoryStats.error_rate = Math.round(errorRate * 100) / 100;
-      skillCategoryStats.average_response_time = Math.round((parseFloat(skillCategoryStatsRaw.average_response_time) || 0) * 100) / 100;
+      skillCategoryStats.average_response_time =
+        Math.round((parseFloat(skillCategoryStatsRaw.average_response_time) || 0) * 100) / 100;
       skillCategoryStats.questions_available = questionsAvailable;
       skillCategoryStats.completion_percentage = Math.round(completionPercentage * 100) / 100;
     } else {
@@ -361,7 +454,17 @@ export class StatisticsService {
     });
 
     // Calculate overall statistics
-    const overallStatsRaw = await this.userAnswersRepository.createQueryBuilder('ua').where('ua.users_id = :userId', { userId }).select(['COUNT(*) as total_questions_answered', 'SUM(CASE WHEN ua.is_correct = 1 THEN 1 ELSE 0 END) as correct_answers', 'SUM(CASE WHEN ua.is_correct = 0 THEN 1 ELSE 0 END) as incorrect_answers', 'AVG(ua.response_time) as average_response_time', 'SUM(ua.response_time) as total_study_time']).getRawOne();
+    const overallStatsRaw = await this.userAnswersRepository
+      .createQueryBuilder('ua')
+      .where('ua.users_id = :userId', { userId })
+      .select([
+        'COUNT(*) as total_questions_answered',
+        'SUM(CASE WHEN ua.is_correct = 1 THEN 1 ELSE 0 END) as correct_answers',
+        'SUM(CASE WHEN ua.is_correct = 0 THEN 1 ELSE 0 END) as incorrect_answers',
+        'AVG(ua.response_time) as average_response_time',
+        'SUM(ua.response_time) as total_study_time',
+      ])
+      .getRawOne();
 
     // Calculate time-based statistics using moment.js
     const now = moment();
@@ -371,11 +474,23 @@ export class StatisticsService {
 
     const timeBasedStats = await Promise.all([
       // Today
-      this.userAnswersRepository.createQueryBuilder('ua').where('ua.users_id = :userId', { userId }).andWhere('ua.answared_at >= :startOfDay', { startOfDay }).getCount(),
+      this.userAnswersRepository
+        .createQueryBuilder('ua')
+        .where('ua.users_id = :userId', { userId })
+        .andWhere('ua.answared_at >= :startOfDay', { startOfDay })
+        .getCount(),
       // This week
-      this.userAnswersRepository.createQueryBuilder('ua').where('ua.users_id = :userId', { userId }).andWhere('ua.answared_at >= :startOfWeek', { startOfWeek }).getCount(),
+      this.userAnswersRepository
+        .createQueryBuilder('ua')
+        .where('ua.users_id = :userId', { userId })
+        .andWhere('ua.answared_at >= :startOfWeek', { startOfWeek })
+        .getCount(),
       // This month
-      this.userAnswersRepository.createQueryBuilder('ua').where('ua.users_id = :userId', { userId }).andWhere('ua.answared_at >= :startOfMonth', { startOfMonth }).getCount(),
+      this.userAnswersRepository
+        .createQueryBuilder('ua')
+        .where('ua.users_id = :userId', { userId })
+        .andWhere('ua.answared_at >= :startOfMonth', { startOfMonth })
+        .getCount(),
     ]);
 
     const totalAnswers = parseInt(overallStatsRaw.total_questions_answered) || 0;
@@ -391,7 +506,8 @@ export class StatisticsService {
       userStats.incorrect_answers = incorrectAnswers;
       userStats.success_rate = Math.round(successRate * 100) / 100;
       userStats.error_rate = Math.round(errorRate * 100) / 100;
-      userStats.average_response_time = Math.round((parseFloat(overallStatsRaw.average_response_time) || 0) * 100) / 100;
+      userStats.average_response_time =
+        Math.round((parseFloat(overallStatsRaw.average_response_time) || 0) * 100) / 100;
       userStats.total_study_time = Math.round((parseFloat(overallStatsRaw.total_study_time) || 0) * 100) / 100;
       userStats.questions_answered_today = timeBasedStats[0];
       userStats.questions_answered_this_week = timeBasedStats[1];
@@ -421,6 +537,10 @@ export class StatisticsService {
    * Update all statistics for a user (should be called after answering questions)
    */
   async updateAllStatistics(userId: number, skillCategoryId: number, date?: Date): Promise<void> {
-    await Promise.all([this.updateUserStatistics(userId, date), this.updateSkillCategoryStatistics(userId, skillCategoryId, date), this.updateDailyStatistics(userId, date)]);
+    await Promise.all([
+      this.updateUserStatistics(userId, date),
+      this.updateSkillCategoryStatistics(userId, skillCategoryId, date),
+      this.updateDailyStatistics(userId, date),
+    ]);
   }
 }

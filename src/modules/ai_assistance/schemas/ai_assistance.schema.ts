@@ -81,8 +81,12 @@ export const AiCourseMaterialSuggestionResponseSchema = z.object({
 
 export const aiAssistanceRequestPayloadOpenapi: any = zodToOpenAPI(AiAssistanceRequestPayloadSchema);
 export const aiAssistanceApiResponseOpenapi: any = zodToOpenAPI(AiAssistantApiResponseSchema);
-export const aiAssistanceQuestionExplanationApiRequestOpenapi: any = zodToOpenAPI(AiAssistanceQuestionExplanationApiRequestSchema);
-export const aiAssistanceQuestionExplanationApiResponseOpenapi: any = zodToOpenAPI(AiAssistantQuestionExplanationApiResponseSchema);
+export const aiAssistanceQuestionExplanationApiRequestOpenapi: any = zodToOpenAPI(
+  AiAssistanceQuestionExplanationApiRequestSchema
+);
+export const aiAssistanceQuestionExplanationApiResponseOpenapi: any = zodToOpenAPI(
+  AiAssistantQuestionExplanationApiResponseSchema
+);
 
 export type AiAssistanceRequest = z.infer<typeof AiAssistantRequestSchema>;
 export type AiAssistanceQuestionExplanationRequest = z.infer<typeof AiAssistantQuestionExplanationRequestSchema>;

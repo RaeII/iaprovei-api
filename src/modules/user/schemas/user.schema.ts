@@ -3,7 +3,13 @@ import { zodToOpenAPI } from 'nestjs-zod';
 
 // Enum schemas matching the TypeORM enums
 export const EducationLevelSchema = z.enum(['ensino_superior', 'ensino_medio', 'curso_tecnico', 'outros']);
-export const StudyPreferenceSchema = z.enum(['video_aulas', 'leitura_material', 'exercicos_praticos', 'resumos', 'flashcards']);
+export const StudyPreferenceSchema = z.enum([
+  'video_aulas',
+  'leitura_material',
+  'exercicos_praticos',
+  'resumos',
+  'flashcards',
+]);
 export const StudyObjectiveSchema = z.enum(['concurso_publico', 'vestibular', 'enem', 'oab', 'outros']);
 export const WeeklyStudyHoursSchema = z.enum(['ate_5h', '5_10h', '10_20h', 'mais_20h']);
 export const LeagueLevelSchema = z.enum(['iniciante', 'avançado', 'expert']);

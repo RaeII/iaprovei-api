@@ -29,7 +29,9 @@ export function translateDifficultyLevel(level: DifficultyLevel): string {
 /**
  * Adds Portuguese translations to contest object
  */
-export function addContestTranslations<T extends { status: ContestStatus; difficulty_level: DifficultyLevel }>(contest: T): T & { status_translated: string; difficulty_level_translated: string } {
+export function addContestTranslations<T extends { status: ContestStatus; difficulty_level: DifficultyLevel }>(
+  contest: T
+): T & { status_translated: string; difficulty_level_translated: string } {
   return {
     ...contest,
     status_translated: translateContestStatus(contest.status),

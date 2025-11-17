@@ -4,7 +4,17 @@ import { Repository, SelectQueryBuilder } from 'typeorm';
 // import { v4 as uuidv4 } from 'uuid';
 import { AiAssistanceMessage } from '@/entities/ai_assistance_message.entity';
 import { DataNotFoundException } from '@/common/exceptions/data-not-found.exception';
-import { AiAssistanceMessageQuery, AiAssistanceMessageFilter, AiAssistanceMessageListResponse, AiAssistanceMessageDetailedListResponse, AiAssistanceMessageDetail, AiAssistanceMessageCountResponse, AiAssistanceMessageExistsResponse, AiAssistanceMessageCreate, AiAssistanceMessageDetailResponse } from './schemas/ai_assistance_message.schema';
+import {
+  AiAssistanceMessageQuery,
+  AiAssistanceMessageFilter,
+  AiAssistanceMessageListResponse,
+  AiAssistanceMessageDetailedListResponse,
+  AiAssistanceMessageDetail,
+  AiAssistanceMessageCountResponse,
+  AiAssistanceMessageExistsResponse,
+  AiAssistanceMessageCreate,
+  AiAssistanceMessageDetailResponse,
+} from './schemas/ai_assistance_message.schema';
 import { createPaginationMeta, generateOffset } from '@/common/utils/query-utils';
 import { AiAssistanceMessageValidator } from './ai_assistance_message.validator';
 import { AiAssistanceSessionService } from '@/modules/ai_assistance_session/ai_assistance_session.service';
@@ -19,10 +29,20 @@ export class AiAssistanceMessageService {
     private aiAssistanceSessionService: AiAssistanceSessionService
   ) {}
 
-  async create(createAiAssistanceMessageDto: AiAssistanceMessageCreate, userInfo: UserBasicInfo, sessionId: string): Promise<AiAssistanceMessageDetailResponse> {
-    await Promise.all([this.aiAssistanceMessageValidator.assertQuestionExists(createAiAssistanceMessageDto.question_id), this.aiAssistanceMessageValidator.assertMessageIsValid(createAiAssistanceMessageDto.message)]);
+  async create(
+    createAiAssistanceMessageDto: AiAssistanceMessageCreate,
+    userInfo: UserBasicInfo,
+    sessionId: string
+  ): Promise<AiAssistanceMessageDetailResponse> {
+    await Promise.all([
+      this.aiAssistanceMessageValidator.assertQuestionExists(createAiAssistanceMessageDto.question_id),
+      this.aiAssistanceMessageValidator.assertMessageIsValid(createAiAssistanceMessageDto.message),
+    ]);
     // Find existing session or create a new one
-    let chat = await this.aiAssistanceSessionService.findByQuestionAndUser(createAiAssistanceMessageDto.question_id, userInfo.id);
+    let chat = await this.aiAssistanceSessionService.findByQuestionAndUser(
+      createAiAssistanceMessageDto.question_id,
+      userInfo.id
+    );
 
     if (!chat) {
       // Create new session
@@ -59,13 +79,22 @@ export class AiAssistanceMessageService {
    * Retrieve all AI assistance messages with pagination and filtering
    * Filters by user unless user is admin
    */
-  async findAll(query: AiAssistanceMessageQuery, userInfo?: { user_id: number; isAdmin?: boolean }): Promise<AiAssistanceMessageListResponse> {
+  async findAll(
+    query: AiAssistanceMessageQuery,
+    userInfo?: { user_id: number; isAdmin?: boolean }
+  ): Promise<AiAssistanceMessageListResponse> {
     const { page, limit, sort_by, sort_order, ...filters } = query;
 
     const queryBuilder = this.createBaseQueryBuilder(filters, userInfo);
 
     // Select only basic fields for performance
-    queryBuilder.select(['message.id', 'message.sender', 'message.message', 'message.message_type', 'message.created_at']);
+    queryBuilder.select([
+      'message.id',
+      'message.sender',
+      'message.message',
+      'message.message_type',
+      'message.created_at',
+    ]);
 
     // Apply sorting
     if (sort_by) {
@@ -99,7 +128,10 @@ export class AiAssistanceMessageService {
    * Used when full message data is needed
    * Filters by user unless user is admin
    */
-  async findAllDetailed(query: AiAssistanceMessageQuery, userInfo?: { user_id: number; isAdmin?: boolean }): Promise<AiAssistanceMessageDetailedListResponse> {
+  async findAllDetailed(
+    query: AiAssistanceMessageQuery,
+    userInfo?: { user_id: number; isAdmin?: boolean }
+  ): Promise<AiAssistanceMessageDetailedListResponse> {
     const { page, limit, sort_by, sort_order, ...filters } = query;
 
     const queryBuilder = this.createBaseQueryBuilder(filters, userInfo);
@@ -130,7 +162,12 @@ export class AiAssistanceMessageService {
    * Checks user ownership unless user is admin
    */
   async findOne(id: number, userInfo?: { user_id: number; isAdmin?: boolean }): Promise<AiAssistanceMessageDetail> {
-    const queryBuilder = this.aiAssistanceMessagesRepository.createQueryBuilder('message').leftJoinAndSelect('message.assistanceSession', 'session').leftJoinAndSelect('session.question', 'question').leftJoinAndSelect('session.user', 'user').where('message.id = :id', { id });
+    const queryBuilder = this.aiAssistanceMessagesRepository
+      .createQueryBuilder('message')
+      .leftJoinAndSelect('message.assistanceSession', 'session')
+      .leftJoinAndSelect('session.question', 'question')
+      .leftJoinAndSelect('session.user', 'user')
+      .where('message.id = :id', { id });
 
     // If user is not admin, filter by user ownership
     if (userInfo && !userInfo.isAdmin) {
@@ -164,16 +201,27 @@ export class AiAssistanceMessageService {
   /**
    * Retrieve messages by session ID with pagination
    */
-  async findBySessionId(sessionId: string, query: Omit<AiAssistanceMessageQuery, 'assistence_sessions_id'>): Promise<AiAssistanceMessageListResponse> {
+  async findBySessionId(
+    sessionId: string,
+    query: Omit<AiAssistanceMessageQuery, 'assistence_sessions_id'>
+  ): Promise<AiAssistanceMessageListResponse> {
     const { page, limit, sort_by, sort_order, ...filters } = query;
 
-    const queryBuilder = this.aiAssistanceMessagesRepository.createQueryBuilder('message').where('message.assistence_sessions_id = :sessionId', { sessionId });
+    const queryBuilder = this.aiAssistanceMessagesRepository
+      .createQueryBuilder('message')
+      .where('message.assistence_sessions_id = :sessionId', { sessionId });
 
     // Apply additional filters
     this.applyFilters(queryBuilder, filters);
 
     // Select only basic fields for performance
-    queryBuilder.select(['message.id', 'message.sender', 'message.message', 'message.message_type', 'message.created_at']);
+    queryBuilder.select([
+      'message.id',
+      'message.sender',
+      'message.message',
+      'message.message_type',
+      'message.created_at',
+    ]);
 
     // Apply sorting
     if (sort_by) {
@@ -206,7 +254,11 @@ export class AiAssistanceMessageService {
    * Retrieve messages by question ID and user ID with pagination
    * User-friendly endpoint that automatically finds the session
    */
-  async findByQuestionAndUser(questionId: number, userInfo: UserBasicInfo, query: Omit<AiAssistanceMessageQuery, 'assistence_sessions_id'>): Promise<AiAssistanceMessageListResponse> {
+  async findByQuestionAndUser(
+    questionId: number,
+    userInfo: UserBasicInfo,
+    query: Omit<AiAssistanceMessageQuery, 'assistence_sessions_id'>
+  ): Promise<AiAssistanceMessageListResponse> {
     // Find the session for this question and user
     const session = await this.aiAssistanceSessionService.findByQuestionAndUser(questionId, userInfo.id);
 
@@ -226,7 +278,10 @@ export class AiAssistanceMessageService {
    * Count total AI assistance messages with optional filtering
    * Filters by user unless user is admin
    */
-  async count(filters?: AiAssistanceMessageFilter, userInfo?: { user_id: number; isAdmin?: boolean }): Promise<AiAssistanceMessageCountResponse> {
+  async count(
+    filters?: AiAssistanceMessageFilter,
+    userInfo?: { user_id: number; isAdmin?: boolean }
+  ): Promise<AiAssistanceMessageCountResponse> {
     const queryBuilder = this.createBaseQueryBuilder(filters || {}, userInfo);
     const count = await queryBuilder.getCount();
 
@@ -239,12 +294,19 @@ export class AiAssistanceMessageService {
    * Check if an AI assistance message exists by ID
    * Checks user ownership unless user is admin
    */
-  async exists(id: number, userInfo?: { user_id: number; isAdmin?: boolean }): Promise<AiAssistanceMessageExistsResponse> {
-    const queryBuilder = this.aiAssistanceMessagesRepository.createQueryBuilder('message').where('message.id = :id', { id });
+  async exists(
+    id: number,
+    userInfo?: { user_id: number; isAdmin?: boolean }
+  ): Promise<AiAssistanceMessageExistsResponse> {
+    const queryBuilder = this.aiAssistanceMessagesRepository
+      .createQueryBuilder('message')
+      .where('message.id = :id', { id });
 
     // If user is not admin, check ownership through session
     if (userInfo && !userInfo.isAdmin) {
-      queryBuilder.leftJoin('message.assistanceSession', 'session').andWhere('session.user_id = :userId', { userId: userInfo.user_id });
+      queryBuilder
+        .leftJoin('message.assistanceSession', 'session')
+        .andWhere('session.user_id = :userId', { userId: userInfo.user_id });
     }
 
     const count = await queryBuilder.getCount();
@@ -259,12 +321,17 @@ export class AiAssistanceMessageService {
    * Optimized for reuse across different methods
    * Includes user filtering when not admin
    */
-  private createBaseQueryBuilder(filters: AiAssistanceMessageFilter, userInfo?: { user_id: number; isAdmin?: boolean }): SelectQueryBuilder<AiAssistanceMessage> {
+  private createBaseQueryBuilder(
+    filters: AiAssistanceMessageFilter,
+    userInfo?: { user_id: number; isAdmin?: boolean }
+  ): SelectQueryBuilder<AiAssistanceMessage> {
     const queryBuilder = this.aiAssistanceMessagesRepository.createQueryBuilder('message');
 
     // If user is not admin, filter by user ownership through sessions
     if (userInfo && !userInfo.isAdmin) {
-      queryBuilder.leftJoin('message.assistanceSession', 'session').andWhere('session.user_id = :userId', { userId: userInfo.user_id });
+      queryBuilder
+        .leftJoin('message.assistanceSession', 'session')
+        .andWhere('session.user_id = :userId', { userId: userInfo.user_id });
     }
 
     this.applyFilters(queryBuilder, filters);
@@ -276,7 +343,10 @@ export class AiAssistanceMessageService {
    * Apply filtering conditions to query builder
    * Centralized filtering logic for consistency
    */
-  private applyFilters(queryBuilder: SelectQueryBuilder<AiAssistanceMessage>, filters: AiAssistanceMessageFilter): void {
+  private applyFilters(
+    queryBuilder: SelectQueryBuilder<AiAssistanceMessage>,
+    filters: AiAssistanceMessageFilter
+  ): void {
     if (filters.assistence_sessions_id !== undefined) {
       queryBuilder.andWhere('message.assistence_sessions_id = :sessionId', {
         sessionId: filters.assistence_sessions_id,

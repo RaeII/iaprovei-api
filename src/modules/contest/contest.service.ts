@@ -27,7 +27,17 @@ export class ContestService {
 
     // Performance optimization: select only needed fields if not requesting full details
     if (!options?.full_details) {
-      queryOptions.select = ['id', 'name', 'slug', 'description', 'institution', 'status', 'difficulty_level', 'total_questions', 'estimated_study_hours'];
+      queryOptions.select = [
+        'id',
+        'name',
+        'slug',
+        'description',
+        'institution',
+        'status',
+        'difficulty_level',
+        'total_questions',
+        'estimated_study_hours',
+      ];
     }
 
     // Filter by status if provided
@@ -53,16 +63,34 @@ export class ContestService {
    * Includes percentage of user answers completed per subject for authenticated user
    */
   async findAllWithSubjects(options?: ContestQuery & { userId?: number }): Promise<ContestWithSubjects[]> {
-    const queryBuilder = this.contestsRepository.createQueryBuilder('contest').leftJoinAndSelect('contest.subjects', 'subjects', 'subjects.contest_id = contest.id AND subjects.is_active = 1').leftJoinAndSelect('subjects.skill_category', 'skill_category');
+    const queryBuilder = this.contestsRepository
+      .createQueryBuilder('contest')
+      .leftJoinAndSelect('contest.subjects', 'subjects', 'subjects.contest_id = contest.id AND subjects.is_active = 1')
+      .leftJoinAndSelect('subjects.skill_category', 'skill_category');
 
     // Add subquery to count unique questions answered by user per subject and get total questions if userId is provided
     if (options?.userId) {
-      queryBuilder.leftJoin('(SELECT sqsp.subjects_id, COUNT(DISTINCT q.id) as answer_count FROM questions q INNER JOIN user_answers ua ON q.id = ua.question_id AND ua.users_id = :userId INNER JOIN subject_question_study_plan sqsp ON q.id = sqsp.questions_id GROUP BY sqsp.subjects_id)', 'user_answer_counts', 'user_answer_counts.subjects_id = subjects.id').leftJoin('(SELECT sqsp.subjects_id, COUNT(DISTINCT q.id) as total_questions FROM questions q INNER JOIN subject_question_study_plan sqsp ON q.id = sqsp.questions_id WHERE q.is_active = 1 GROUP BY sqsp.subjects_id)', 'question_counts', 'question_counts.subjects_id = subjects.id').setParameter('userId', options.userId);
+      queryBuilder
+        .leftJoin(
+          '(SELECT sqsp.subjects_id, COUNT(DISTINCT q.id) as answer_count FROM questions q INNER JOIN user_answers ua ON q.id = ua.question_id AND ua.users_id = :userId INNER JOIN subject_question_study_plan sqsp ON q.id = sqsp.questions_id GROUP BY sqsp.subjects_id)',
+          'user_answer_counts',
+          'user_answer_counts.subjects_id = subjects.id'
+        )
+        .leftJoin(
+          '(SELECT sqsp.subjects_id, COUNT(DISTINCT q.id) as total_questions FROM questions q INNER JOIN subject_question_study_plan sqsp ON q.id = sqsp.questions_id WHERE q.is_active = 1 GROUP BY sqsp.subjects_id)',
+          'question_counts',
+          'question_counts.subjects_id = subjects.id'
+        )
+        .setParameter('userId', options.userId);
     }
 
     // Add subquery to get last answer date per contest for ordering by last usage
     if (options?.order_by_last_usage && options?.userId) {
-      queryBuilder.leftJoin('(SELECT c.id as contest_id, MAX(ua.answared_at) as last_answer_date FROM contests c INNER JOIN subjects s ON c.id = s.contest_id INNER JOIN subject_question_study_plan sqsp ON s.id = sqsp.subjects_id INNER JOIN questions q ON sqsp.questions_id = q.id INNER JOIN user_answers ua ON q.id = ua.question_id WHERE ua.users_id = :userId AND s.is_active = 1 AND q.is_active = 1 GROUP BY c.id)', 'last_usage', 'last_usage.contest_id = contest.id');
+      queryBuilder.leftJoin(
+        '(SELECT c.id as contest_id, MAX(ua.answared_at) as last_answer_date FROM contests c INNER JOIN subjects s ON c.id = s.contest_id INNER JOIN subject_question_study_plan sqsp ON s.id = sqsp.subjects_id INNER JOIN questions q ON sqsp.questions_id = q.id INNER JOIN user_answers ua ON q.id = ua.question_id WHERE ua.users_id = :userId AND s.is_active = 1 AND q.is_active = 1 GROUP BY c.id)',
+        'last_usage',
+        'last_usage.contest_id = contest.id'
+      );
     }
 
     // Filter by status if provided
@@ -75,18 +103,34 @@ export class ContestService {
       queryBuilder.andWhere('contest.is_active = 1');
     }
 
-    queryBuilder.select(['contest.id', 'contest.name', 'contest.institution', 'contest.status', 'subjects.id', 'skill_category.name']);
+    queryBuilder.select([
+      'contest.id',
+      'contest.name',
+      'contest.institution',
+      'contest.status',
+      'subjects.id',
+      'skill_category.name',
+    ]);
 
     // Order by last usage if flag is enabled, otherwise by creation date
     if (options?.order_by_last_usage && options?.userId) {
-      queryBuilder.addSelect('last_usage.last_answer_date', 'contest_last_answer_date').orderBy('COALESCE(last_usage.last_answer_date, "1970-01-01")', 'DESC').addOrderBy('contest.created_at', 'DESC');
+      queryBuilder
+        .addSelect('last_usage.last_answer_date', 'contest_last_answer_date')
+        .orderBy('COALESCE(last_usage.last_answer_date, "1970-01-01")', 'DESC')
+        .addOrderBy('contest.created_at', 'DESC');
     } else {
       queryBuilder.orderBy('contest.created_at', 'DESC');
     }
 
     // Add answer count and total questions to selection if userId provided, calculate percentage
     if (options?.userId) {
-      queryBuilder.addSelect('COALESCE(user_answer_counts.answer_count, 0)', 'subjects_user_answer_count').addSelect('COALESCE(question_counts.total_questions, 0)', 'subjects_total_questions').addSelect('CASE WHEN COALESCE(question_counts.total_questions, 0) > 0 THEN ROUND((COALESCE(user_answer_counts.answer_count, 0) * 100.0) / question_counts.total_questions, 2) ELSE 0 END', 'subjects_completion_percentage');
+      queryBuilder
+        .addSelect('COALESCE(user_answer_counts.answer_count, 0)', 'subjects_user_answer_count')
+        .addSelect('COALESCE(question_counts.total_questions, 0)', 'subjects_total_questions')
+        .addSelect(
+          'CASE WHEN COALESCE(question_counts.total_questions, 0) > 0 THEN ROUND((COALESCE(user_answer_counts.answer_count, 0) * 100.0) / question_counts.total_questions, 2) ELSE 0 END',
+          'subjects_completion_percentage'
+        );
     }
 
     // Use getRawAndEntities to access both entities and computed fields
@@ -162,7 +206,17 @@ export class ContestService {
   async findByStatus(status: ContestStatus): Promise<ContestSummary[]> {
     const contests = await this.contestsRepository.find({
       where: { status, is_active: true },
-      select: ['id', 'name', 'slug', 'description', 'institution', 'status', 'difficulty_level', 'total_questions', 'estimated_study_hours'],
+      select: [
+        'id',
+        'name',
+        'slug',
+        'description',
+        'institution',
+        'status',
+        'difficulty_level',
+        'total_questions',
+        'estimated_study_hours',
+      ],
       order: {
         created_at: 'DESC',
       },

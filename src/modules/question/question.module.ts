@@ -9,7 +9,9 @@ import { QuestionController } from './question.controller';
 import { QuestionService } from './question.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Question, UserAnswer, SkillCategory, QuestionStatementText, SubjectQuestionStudyPlan])],
+  imports: [
+    TypeOrmModule.forFeature([Question, UserAnswer, SkillCategory, QuestionStatementText, SubjectQuestionStudyPlan]),
+  ],
   controllers: [QuestionController],
   providers: [QuestionService],
   exports: [QuestionService],

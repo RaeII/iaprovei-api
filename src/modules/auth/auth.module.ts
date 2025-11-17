@@ -11,7 +11,13 @@ import jwtConfig from '@/config/jwt.config';
 import jwtRefreshConfig from '@/config/jwt-refresh.config';
 
 @Module({
-  imports: [UserModule, PassportModule, JwtModule, ConfigModule.forFeature(jwtConfig), ConfigModule.forFeature(jwtRefreshConfig)],
+  imports: [
+    UserModule,
+    PassportModule,
+    JwtModule,
+    ConfigModule.forFeature(jwtConfig),
+    ConfigModule.forFeature(jwtRefreshConfig),
+  ],
   providers: [AuthService, JwtStrategy, JwtRefreshStrategy],
   controllers: [AuthController],
   exports: [AuthService],

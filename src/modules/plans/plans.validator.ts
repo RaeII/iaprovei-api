@@ -23,7 +23,10 @@ export class PlanValidator {
    * @throws ConflictException se o plano já existir
    */
   async assertIdPagbankIsNotAlreadyInUse(idPagbank: string, excludeId?: number): Promise<void> {
-    const queryBuilder = this.planRepository.createQueryBuilder('plan').where('plan.id_pagbank = :idPagbank', { idPagbank }).select('plan.id');
+    const queryBuilder = this.planRepository
+      .createQueryBuilder('plan')
+      .where('plan.id_pagbank = :idPagbank', { idPagbank })
+      .select('plan.id');
 
     if (excludeId) {
       queryBuilder.andWhere('plan.id != :excludeId', { excludeId });
@@ -65,5 +68,4 @@ export class PlanValidator {
       throw new DataNotFoundException(`Active plan with id "${id}"`, 'Plano ativo', PlanValidator.name);
     }
   }
-
 }

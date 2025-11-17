@@ -11,7 +11,9 @@ export class SharedUserPlanLookupService implements IUserPlanLookupService {
     private userPlanRepository: Repository<UserPlan>
   ) {}
 
-  async findUserPlanById(userPlanId: number): Promise<{ id: number; user_id: number; plan_id: number; status?: string } | null> {
+  async findUserPlanById(
+    userPlanId: number
+  ): Promise<{ id: number; user_id: number; plan_id: number; status?: string } | null> {
     const userPlan = await this.userPlanRepository.findOne({
       where: { id: userPlanId },
       select: { id: true, user_id: true, plan_id: true, status: true },

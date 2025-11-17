@@ -10,7 +10,11 @@ import { AiAssistanceSessionModule } from '@/modules/ai_assistance_session/ai_as
 import { SharedModule } from '@/shared/shared.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([AiAssistanceMessage, AiAssistanceSession, Question]), AiAssistanceSessionModule, SharedModule],
+  imports: [
+    TypeOrmModule.forFeature([AiAssistanceMessage, AiAssistanceSession, Question]),
+    AiAssistanceSessionModule,
+    SharedModule,
+  ],
   controllers: [AiAssistanceMessageController],
   providers: [AiAssistanceMessageService, AiAssistanceMessageValidator],
   exports: [AiAssistanceMessageService],

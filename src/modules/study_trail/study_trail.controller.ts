@@ -3,7 +3,16 @@ import { Controller, Get, Post, Put, Delete, Param, Body, UseGuards, ParseIntPip
 import { ApiTags, ApiResponse, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { StudyTrailService } from './study_trail.service';
-import { StudyTrailCreate, StudyTrailUpdate, StudyTrailStopStart, StudyTrailStopAnswer, StudyTrailCreateSchema, StudyTrailUpdateSchema, StudyTrailStopStartSchema, StudyTrailStopAnswerSchema } from './schemas/study_trail.schema';
+import {
+  StudyTrailCreate,
+  StudyTrailUpdate,
+  StudyTrailStopStart,
+  StudyTrailStopAnswer,
+  StudyTrailCreateSchema,
+  StudyTrailUpdateSchema,
+  StudyTrailStopStartSchema,
+  StudyTrailStopAnswerSchema,
+} from './schemas/study_trail.schema';
 import { JwtAuthGuard } from '@/modules/auth/guard/jwt-auth.guard';
 import { BasicUserInfo } from '@/common/decorators';
 
@@ -22,7 +31,10 @@ export class StudyTrailController {
   })
   @ApiResponse({ status: 400, description: 'Dados inválidos ou trilha já existe' })
   @ApiResponse({ status: 404, description: 'Matéria não encontrada' })
-  async createStudyTrail(@BasicUserInfo() userInfo: any, @Body(new ZodValidationPipe(StudyTrailCreateSchema)) createData: StudyTrailCreate) {
+  async createStudyTrail(
+    @BasicUserInfo() userInfo: any,
+    @Body(new ZodValidationPipe(StudyTrailCreateSchema)) createData: StudyTrailCreate
+  ) {
     return this.studyTrailService.createStudyTrail(userInfo.id, createData);
   }
 
@@ -66,7 +78,11 @@ export class StudyTrailController {
     description: 'Trilha de estudos atualizada com sucesso',
   })
   @ApiResponse({ status: 404, description: 'Trilha de estudos não encontrada' })
-  async updateStudyTrail(@Param('id', ParseIntPipe) trailId: number, @BasicUserInfo() userInfo: any, @Body(new ZodValidationPipe(StudyTrailUpdateSchema)) updateData: StudyTrailUpdate) {
+  async updateStudyTrail(
+    @Param('id', ParseIntPipe) trailId: number,
+    @BasicUserInfo() userInfo: any,
+    @Body(new ZodValidationPipe(StudyTrailUpdateSchema)) updateData: StudyTrailUpdate
+  ) {
     // TODO: Implementar método de atualização no service
     throw new Error('Método não implementado ainda');
   }
@@ -79,7 +95,10 @@ export class StudyTrailController {
   })
   @ApiResponse({ status: 403, description: 'Parada ainda está bloqueada' })
   @ApiResponse({ status: 404, description: 'Trilha de estudos não encontrada' })
-  async startStudyTrailStop(@BasicUserInfo() userInfo: any, @Body(new ZodValidationPipe(StudyTrailStopStartSchema)) startData: StudyTrailStopStart) {
+  async startStudyTrailStop(
+    @BasicUserInfo() userInfo: any,
+    @Body(new ZodValidationPipe(StudyTrailStopStartSchema)) startData: StudyTrailStopStart
+  ) {
     return this.studyTrailService.startStudyTrailStop(userInfo.id, startData);
   }
 
@@ -91,7 +110,10 @@ export class StudyTrailController {
   })
   @ApiResponse({ status: 400, description: 'Questão já foi respondida' })
   @ApiResponse({ status: 404, description: 'Questão não encontrada' })
-  async answerQuestion(@BasicUserInfo() userInfo: any, @Body(new ZodValidationPipe(StudyTrailStopAnswerSchema)) answerData: StudyTrailStopAnswer) {
+  async answerQuestion(
+    @BasicUserInfo() userInfo: any,
+    @Body(new ZodValidationPipe(StudyTrailStopAnswerSchema)) answerData: StudyTrailStopAnswer
+  ) {
     return this.studyTrailService.answerQuestion(userInfo.id, answerData);
   }
 

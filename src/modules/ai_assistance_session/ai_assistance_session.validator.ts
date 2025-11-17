@@ -52,7 +52,11 @@ export class AiAssistanceSessionValidator {
     }
 
     if (sessionId.length > 36) {
-      throw new MissingDataException('session_id', 'Session ID must not exceed 36 characters', AiAssistanceSessionValidator.name);
+      throw new MissingDataException(
+        'session_id',
+        'Session ID must not exceed 36 characters',
+        AiAssistanceSessionValidator.name
+      );
     }
   }
 }

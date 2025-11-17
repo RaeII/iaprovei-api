@@ -2,7 +2,14 @@ import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/modules/auth/guard/jwt-auth.guard';
 import { StatisticsService } from './statistics.service';
-import { StatisticsQuery, userPerformanceStatsResponseOpenapi, skillCategoryPerformanceStatsListResponseOpenapi, dailyPerformanceStatsListResponseOpenapi, performanceTrendResponseOpenapi, comprehensiveUserStatsResponseOpenapi } from './schemas/statistics.schema';
+import {
+  StatisticsQuery,
+  userPerformanceStatsResponseOpenapi,
+  skillCategoryPerformanceStatsListResponseOpenapi,
+  dailyPerformanceStatsListResponseOpenapi,
+  performanceTrendResponseOpenapi,
+  comprehensiveUserStatsResponseOpenapi,
+} from './schemas/statistics.schema';
 import { BasicUserInfo } from '@/common/decorators';
 import { UserBasicInfo } from '../user/schemas/user.schema';
 
@@ -16,7 +23,8 @@ export class StatisticsController {
   @Get('user/performance')
   @ApiOperation({
     summary: 'Get user performance statistics',
-    description: 'Retrieve comprehensive performance statistics for the authenticated user including success rate, error rate, average response time, and question counts.',
+    description:
+      'Retrieve comprehensive performance statistics for the authenticated user including success rate, error rate, average response time, and question counts.',
   })
   @ApiResponse({
     status: 200,
@@ -44,7 +52,8 @@ export class StatisticsController {
   @Get('user/skill-categories')
   @ApiOperation({
     summary: 'Get user performance by skill category',
-    description: 'Retrieve performance statistics broken down by skill category/discipline for the authenticated user across all simulados.',
+    description:
+      'Retrieve performance statistics broken down by skill category/discipline for the authenticated user across all simulados.',
   })
   @ApiResponse({
     status: 200,
@@ -71,7 +80,10 @@ export class StatisticsController {
     format: 'date',
     description: 'Filter statistics until this date (YYYY-MM-DD)',
   })
-  async getUserPerformanceBySkillCategory(@Query() query: StatisticsQuery, @BasicUserInfo() userBasicInfo: UserBasicInfo) {
+  async getUserPerformanceBySkillCategory(
+    @Query() query: StatisticsQuery,
+    @BasicUserInfo() userBasicInfo: UserBasicInfo
+  ) {
     return this.statisticsService.getUserPerformanceBySkillCategory(userBasicInfo.id, query);
   }
 
@@ -140,7 +152,8 @@ export class StatisticsController {
   @Get('user/comprehensive')
   @ApiOperation({
     summary: 'Get comprehensive user statistics',
-    description: 'Retrieve all available statistics for the authenticated user in a single response including performance, subject breakdown, daily stats, and trends.',
+    description:
+      'Retrieve all available statistics for the authenticated user in a single response including performance, subject breakdown, daily stats, and trends.',
   })
   @ApiResponse({
     status: 200,

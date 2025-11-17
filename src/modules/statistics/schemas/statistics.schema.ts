@@ -171,7 +171,9 @@ export const performanceTrendOpenapi: any = zodToOpenAPI(PerformanceTrendSchema)
 export const statisticsFilterOpenapi: any = zodToOpenAPI(StatisticsFilterSchema);
 export const statisticsQueryOpenapi: any = zodToOpenAPI(StatisticsQuerySchema);
 export const userPerformanceStatsResponseOpenapi: any = zodToOpenAPI(UserPerformanceStatsResponseSchema);
-export const skillCategoryPerformanceStatsListResponseOpenapi: any = zodToOpenAPI(SkillCategoryPerformanceStatsListResponseSchema);
+export const skillCategoryPerformanceStatsListResponseOpenapi: any = zodToOpenAPI(
+  SkillCategoryPerformanceStatsListResponseSchema
+);
 export const dailyPerformanceStatsListResponseOpenapi: any = zodToOpenAPI(DailyPerformanceStatsListResponseSchema);
 export const performanceTrendResponseOpenapi: any = zodToOpenAPI(PerformanceTrendResponseSchema);
 export const comprehensiveUserStatsResponseOpenapi: any = zodToOpenAPI(ComprehensiveUserStatsResponseSchema);

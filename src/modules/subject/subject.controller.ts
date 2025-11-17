@@ -2,7 +2,18 @@ import { Controller, Get, Post, Put, Delete, Param, Body, UseGuards } from '@nes
 import { ApiTags, ApiResponse, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { SubjectService } from './subject.service';
-import { SubjectSummary, SubjectDetails, SubjectCreate, SubjectUpdate, SubjectCreateSchema, SubjectUpdateSchema, subjectSummaryOpenapi, subjectDetailsOpenapi, subjectCreateOpenapi, subjectUpdateOpenapi } from './schemas/subject.schema';
+import {
+  SubjectSummary,
+  SubjectDetails,
+  SubjectCreate,
+  SubjectUpdate,
+  SubjectCreateSchema,
+  SubjectUpdateSchema,
+  subjectSummaryOpenapi,
+  subjectDetailsOpenapi,
+  subjectCreateOpenapi,
+  subjectUpdateOpenapi,
+} from './schemas/subject.schema';
 import { JwtAuthGuard } from '@/modules/auth/guard/jwt-auth.guard';
 
 @ApiTags('Subjects')
@@ -46,7 +57,10 @@ export class SubjectController {
   @Put(':id')
   @ApiBody({ schema: subjectUpdateOpenapi })
   @ApiResponse({ schema: subjectDetailsOpenapi })
-  async update(@Param('id') id: number, @Body(new ZodValidationPipe(SubjectUpdateSchema)) updateData: SubjectUpdate): Promise<SubjectDetails | null> {
+  async update(
+    @Param('id') id: number,
+    @Body(new ZodValidationPipe(SubjectUpdateSchema)) updateData: SubjectUpdate
+  ): Promise<SubjectDetails | null> {
     return this.subjectService.update(id, updateData);
   }
 

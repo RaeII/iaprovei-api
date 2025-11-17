@@ -2,7 +2,15 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { IAiProvider } from '../interfaces/ai-provider.interface';
-import { AiAssistanceQuestionExplanationRequest, AiAssistanceQuestionExplanationResponse, AiAssistanceRequest, AiAssistanceResponse, AiCourseMaterialSuggestionRequest, AiCourseMaterialSuggestionResponse, AiCourseMaterialSuggestionResponseSchema } from '../schemas/ai_assistance.schema';
+import {
+  AiAssistanceQuestionExplanationRequest,
+  AiAssistanceQuestionExplanationResponse,
+  AiAssistanceRequest,
+  AiAssistanceResponse,
+  AiCourseMaterialSuggestionRequest,
+  AiCourseMaterialSuggestionResponse,
+  AiCourseMaterialSuggestionResponseSchema,
+} from '../schemas/ai_assistance.schema';
 import { MisconfiguredServiceException } from '@/common/exceptions/misconfigured-service.exception';
 
 @Injectable()
@@ -53,12 +61,18 @@ export class OpenAiProvider implements IAiProvider {
     }
   }
 
-  async getQuestionExplanation(request: AiAssistanceQuestionExplanationRequest): Promise<AiAssistanceQuestionExplanationResponse> {
+  async getQuestionExplanation(
+    request: AiAssistanceQuestionExplanationRequest
+  ): Promise<AiAssistanceQuestionExplanationResponse> {
     try {
       this.logger.log('Requesting question explanation from OpenAI');
 
       const systemPrompt = this.buildQuestionExplanationSystemPrompt();
-      const messages = this.buildMessages(systemPrompt, request.image_file, this.buildQuestionExplanationUserMessage(request));
+      const messages = this.buildMessages(
+        systemPrompt,
+        request.image_file,
+        this.buildQuestionExplanationUserMessage(request)
+      );
 
       const completion = await this.openai.chat.completions.create({
         model: this.configService.get<string>('openai.model'),
@@ -84,7 +98,9 @@ export class OpenAiProvider implements IAiProvider {
     }
   }
 
-  async suggestSkillCategoriesForCourse(request: AiCourseMaterialSuggestionRequest): Promise<AiCourseMaterialSuggestionResponse> {
+  async suggestSkillCategoriesForCourse(
+    request: AiCourseMaterialSuggestionRequest
+  ): Promise<AiCourseMaterialSuggestionResponse> {
     try {
       this.logger.log('Requesting skill category suggestions from OpenAI');
 
@@ -210,9 +226,12 @@ ${request.options.join('\n')}`;
 
   private buildCourseMaterialUserMessage(request: AiCourseMaterialSuggestionRequest): string {
     const header = `The student wants to prepare for the course "${request.desired_course}". `;
-    const instructions = 'Select which of the following skill categories are essential for this course syllabus. Do not pick categories that the course would not normally cover. Only use names from the list.\n\n';
+    const instructions =
+      'Select which of the following skill categories are essential for this course syllabus. Do not pick categories that the course would not normally cover. Only use names from the list.\n\n';
 
-    const categoriesByContest = request.available_skill_categories.reduce<Map<string, typeof request.available_skill_categories>>((acc, category) => {
+    const categoriesByContest = request.available_skill_categories.reduce<
+      Map<string, typeof request.available_skill_categories>
+    >((acc, category) => {
       const contestKey = category.contest ? `${category.contest.id}` : 'general';
       const existing = acc.get(contestKey);
       if (existing) {
@@ -226,7 +245,9 @@ ${request.options.join('\n')}`;
     const categoriesList = Array.from(categoriesByContest.values())
       .map(categories => {
         const contestInfo = categories[0]?.contest;
-        const contestHeader = contestInfo ? `Contest: ${contestInfo.name}${contestInfo.slug ? ` (slug: ${contestInfo.slug})` : ''} [id: ${contestInfo.id}]\n` : 'General Skill Categories\n';
+        const contestHeader = contestInfo
+          ? `Contest: ${contestInfo.name}${contestInfo.slug ? ` (slug: ${contestInfo.slug})` : ''} [id: ${contestInfo.id}]\n`
+          : 'General Skill Categories\n';
 
         const categoryLines = categories
           .map(category => {
@@ -245,7 +266,8 @@ ${request.options.join('\n')}`;
       })
       .join('\n\n');
 
-    const outputReminder = '\n\nRespond using JSON only in the exact format described in the system prompt. Do not include extra commentary.';
+    const outputReminder =
+      '\n\nRespond using JSON only in the exact format described in the system prompt. Do not include extra commentary.';
     console.log(header + instructions + categoriesList + outputReminder);
     return header + instructions + categoriesList + outputReminder;
   }

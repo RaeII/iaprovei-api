@@ -4,7 +4,13 @@ import { PaginationMetaSchema, PaginationSchema } from '@/common/schemas/paginat
 
 // Enum schemas matching the TypeORM enums
 export const SenderSchema = z.enum(['user', 'ia']);
-export const MessageTypeSchema = z.enum(['clarification_request', 'clarification_response', 'correction_suggestion', 'correction_confirmation', 'other']);
+export const MessageTypeSchema = z.enum([
+  'clarification_request',
+  'clarification_response',
+  'correction_suggestion',
+  'correction_confirmation',
+  'other',
+]);
 
 // Base AI assistance message schema - complete entity
 export const AiAssistanceMessageSchema = z.object({
@@ -110,7 +116,9 @@ export const aiAssistanceMessageBasicOpenapi: any = zodToOpenAPI(AiAssistanceMes
 export const aiAssistanceMessageFilterOpenapi: any = zodToOpenAPI(AiAssistanceMessageFilterSchema);
 export const aiAssistanceMessageQueryOpenapi: any = zodToOpenAPI(AiAssistanceMessageQuerySchema);
 export const aiAssistanceMessageListResponseOpenapi: any = zodToOpenAPI(AiAssistanceMessageListResponseSchema);
-export const aiAssistanceMessageDetailedListResponseOpenapi: any = zodToOpenAPI(AiAssistanceMessageDetailedListResponseSchema);
+export const aiAssistanceMessageDetailedListResponseOpenapi: any = zodToOpenAPI(
+  AiAssistanceMessageDetailedListResponseSchema
+);
 export const aiAssistanceMessageDetailResponseOpenapi: any = zodToOpenAPI(AiAssistanceMessageDetailResponseSchema);
 export const aiAssistanceMessageExistsResponseOpenapi: any = zodToOpenAPI(AiAssistanceMessageExistsResponseSchema);
 export const aiAssistanceMessageCountResponseOpenapi: any = zodToOpenAPI(AiAssistanceMessageCountResponseSchema);

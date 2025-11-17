@@ -4,7 +4,20 @@ import { ZodValidationPipe } from 'nestjs-zod';
 import { QuestionOptionService } from './question_option.service';
 import { JwtAuthGuard } from '@/modules/auth/guard/jwt-auth.guard';
 import { AnsweredQuestionGuard } from './guard/answered-question.guard';
-import { QuestionOptionQuerySchema, QuestionOptionQuery, QuestionOptionListResponse, QuestionOptionDetailedListResponse, QuestionOptionDetailResponse, QuestionOptionCountResponse, QuestionOptionExistsResponse, questionOptionListResponseOpenapi, questionOptionDetailedListResponseOpenapi, questionOptionDetailResponseOpenapi, questionOptionCountResponseOpenapi, questionOptionExistsResponseOpenapi } from './schemas/question_option.schema';
+import {
+  QuestionOptionQuerySchema,
+  QuestionOptionQuery,
+  QuestionOptionListResponse,
+  QuestionOptionDetailedListResponse,
+  QuestionOptionDetailResponse,
+  QuestionOptionCountResponse,
+  QuestionOptionExistsResponse,
+  questionOptionListResponseOpenapi,
+  questionOptionDetailedListResponseOpenapi,
+  questionOptionDetailResponseOpenapi,
+  questionOptionCountResponseOpenapi,
+  questionOptionExistsResponseOpenapi,
+} from './schemas/question_option.schema';
 
 @ApiTags('Question options')
 @Controller('question/:questionId/options')
@@ -15,7 +28,10 @@ export class QuestionOptionController {
 
   @Get()
   @ApiResponse({ schema: questionOptionListResponseOpenapi })
-  async findAll(@Param('questionId', ParseIntPipe) questionId: number, @Query(new ZodValidationPipe(QuestionOptionQuerySchema)) query: QuestionOptionQuery): Promise<QuestionOptionListResponse> {
+  async findAll(
+    @Param('questionId', ParseIntPipe) questionId: number,
+    @Query(new ZodValidationPipe(QuestionOptionQuerySchema)) query: QuestionOptionQuery
+  ): Promise<QuestionOptionListResponse> {
     return this.questionOptionService.findAll(questionId, query);
   }
 
@@ -28,7 +44,10 @@ export class QuestionOptionController {
   @UseGuards(AnsweredQuestionGuard)
   @ApiResponse({ schema: questionOptionDetailedListResponseOpenapi })
   @UsePipes(new ZodValidationPipe(QuestionOptionQuerySchema))
-  async findAllDetailed(@Param('questionId', ParseIntPipe) questionId: number, @Query() query: QuestionOptionQuery): Promise<QuestionOptionDetailedListResponse> {
+  async findAllDetailed(
+    @Param('questionId', ParseIntPipe) questionId: number,
+    @Query() query: QuestionOptionQuery
+  ): Promise<QuestionOptionDetailedListResponse> {
     return this.questionOptionService.findAllDetailed(questionId, query);
   }
 
@@ -37,7 +56,9 @@ export class QuestionOptionController {
    */
   @Get('correct')
   @ApiResponse({ schema: questionOptionListResponseOpenapi })
-  async findCorrectByQuestion(@Param('questionId', ParseIntPipe) questionId: number): Promise<QuestionOptionListResponse> {
+  async findCorrectByQuestion(
+    @Param('questionId', ParseIntPipe) questionId: number
+  ): Promise<QuestionOptionListResponse> {
     return this.questionOptionService.findCorrectByQuestion(questionId);
   }
 

@@ -3,7 +3,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Subject } from '@/entities/subject.entity';
 import { SkillCategory } from '@/entities/skill_category.entity';
-import { SubjectSummary, SubjectDetails, SubjectCreate, SubjectUpdate, SubjectIdentity } from './schemas/subject.schema';
+import {
+  SubjectSummary,
+  SubjectDetails,
+  SubjectCreate,
+  SubjectUpdate,
+  SubjectIdentity,
+} from './schemas/subject.schema';
 
 @Injectable()
 export class SubjectService {
@@ -72,7 +78,12 @@ export class SubjectService {
    * Find a subject by slug (using skill category slug)
    */
   async findBySlug(slug: string): Promise<SubjectDetails | null> {
-    const subject = await this.subjectRepository.createQueryBuilder('subject').leftJoinAndSelect('subject.skill_category', 'skill_category').leftJoinAndSelect('subject.contest', 'contest').where('skill_category.slug = :slug', { slug }).getOne();
+    const subject = await this.subjectRepository
+      .createQueryBuilder('subject')
+      .leftJoinAndSelect('subject.skill_category', 'skill_category')
+      .leftJoinAndSelect('subject.contest', 'contest')
+      .where('skill_category.slug = :slug', { slug })
+      .getOne();
 
     if (!subject) {
       return null;

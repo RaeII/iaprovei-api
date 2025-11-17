@@ -13,7 +13,9 @@ export class SkillCategoryValidator {
   ) {}
 
   async assertSlugIsNotAlreadyInUse(slug: string, excludeId?: number): Promise<void> {
-    const queryBuilder = this.repository.createQueryBuilder('skill_category').where('skill_category.slug = :slug', { slug });
+    const queryBuilder = this.repository
+      .createQueryBuilder('skill_category')
+      .where('skill_category.slug = :slug', { slug });
     if (excludeId) {
       queryBuilder.andWhere('skill_category.id != :excludeId', { excludeId });
     }
@@ -27,7 +29,11 @@ export class SkillCategoryValidator {
   async assertExists(id: number): Promise<SkillCategory> {
     const skillCategory = await this.repository.findOne({ where: { id } });
     if (!skillCategory) {
-      throw new DataNotFoundException(`SkillCategory with id "${id}"`, 'Categoria de Habilidade', SkillCategoryValidator.name);
+      throw new DataNotFoundException(
+        `SkillCategory with id "${id}"`,
+        'Categoria de Habilidade',
+        SkillCategoryValidator.name
+      );
     }
     return skillCategory;
   }

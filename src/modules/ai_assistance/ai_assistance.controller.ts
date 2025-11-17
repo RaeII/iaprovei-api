@@ -1,7 +1,18 @@
 import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { AiAssistanceService } from './ai_assistance.service';
-import { AiAssistanceApiResponse, AiAssistanceQuestionExplanationApiRequest, AiAssistanceQuestionExplanationApiRequestSchema, AiAssistantQuestionExplanationApiResponse, AiAssistantRequestPayload, AiAssistanceRequestPayloadSchema, aiAssistanceApiResponseOpenapi, aiAssistanceQuestionExplanationApiRequestOpenapi, aiAssistanceQuestionExplanationApiResponseOpenapi, aiAssistanceRequestPayloadOpenapi } from './schemas/ai_assistance.schema';
+import {
+  AiAssistanceApiResponse,
+  AiAssistanceQuestionExplanationApiRequest,
+  AiAssistanceQuestionExplanationApiRequestSchema,
+  AiAssistantQuestionExplanationApiResponse,
+  AiAssistantRequestPayload,
+  AiAssistanceRequestPayloadSchema,
+  aiAssistanceApiResponseOpenapi,
+  aiAssistanceQuestionExplanationApiRequestOpenapi,
+  aiAssistanceQuestionExplanationApiResponseOpenapi,
+  aiAssistanceRequestPayloadOpenapi,
+} from './schemas/ai_assistance.schema';
 import { UserAnswerService } from '@/modules/user_answer/user_answer.service';
 import { ApiBearerAuth, ApiBody, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { BasicUserInfo, SessionId } from '@/common/decorators';
@@ -23,8 +34,15 @@ export class AiAssistanceController {
   @Post('correct-answer')
   @ApiBody({ schema: aiAssistanceRequestPayloadOpenapi })
   @ApiResponse({ schema: aiAssistanceApiResponseOpenapi })
-  async correctUserAnswer(@Body(new ZodValidationPipe(AiAssistanceRequestPayloadSchema)) request: AiAssistantRequestPayload, @SessionId() sessionId: string, @BasicUserInfo() userInfo: UserBasicInfo): Promise<AiAssistanceApiResponse> {
-    const userAnswer = await this.userAnswerService.gatherAiRequestData(request.question_id, request.user_option_answer_id);
+  async correctUserAnswer(
+    @Body(new ZodValidationPipe(AiAssistanceRequestPayloadSchema)) request: AiAssistantRequestPayload,
+    @SessionId() sessionId: string,
+    @BasicUserInfo() userInfo: UserBasicInfo
+  ): Promise<AiAssistanceApiResponse> {
+    const userAnswer = await this.userAnswerService.gatherAiRequestData(
+      request.question_id,
+      request.user_option_answer_id
+    );
 
     const aiRequest = {
       institution: userAnswer.question.contest.institution,
@@ -58,7 +76,12 @@ export class AiAssistanceController {
   @Post('question-explanation')
   @ApiBody({ schema: aiAssistanceQuestionExplanationApiRequestOpenapi })
   @ApiResponse({ schema: aiAssistanceQuestionExplanationApiResponseOpenapi })
-  async getQuestionExplanation(@Body(new ZodValidationPipe(AiAssistanceQuestionExplanationApiRequestSchema)) request: AiAssistanceQuestionExplanationApiRequest, @SessionId() sessionId: string, @BasicUserInfo() userInfo: UserBasicInfo): Promise<AiAssistantQuestionExplanationApiResponse> {
+  async getQuestionExplanation(
+    @Body(new ZodValidationPipe(AiAssistanceQuestionExplanationApiRequestSchema))
+    request: AiAssistanceQuestionExplanationApiRequest,
+    @SessionId() sessionId: string,
+    @BasicUserInfo() userInfo: UserBasicInfo
+  ): Promise<AiAssistantQuestionExplanationApiResponse> {
     const userAnswer = await this.userAnswerService.gatherAiRequestData(request.question_id);
 
     const aiRequest = {

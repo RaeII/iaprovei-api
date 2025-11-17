@@ -1,7 +1,30 @@
 import { Controller, Get, Put, Param, Delete, UseGuards, Body, ParseIntPipe, Post } from '@nestjs/common';
 import { UserService } from '@/modules/user/user.service';
 import { User } from '@/entities/user.entity';
-import { UserBasicInfo, UserDetailResponse, UserListResponse, UserMe, userDetailResponseOpenapi, userListResponseOpenapi, UserUpdate, UserUpdateSchema, userMeOpenapi, UserMeResponse, userUpdateOpenapi, ValidateEmail, ValidatePhone, ValidateUsername, ValidationResponse, validateEmailOpenapi, validatePhoneOpenapi, validateUsernameOpenapi, validationResponseOpenapi, ValidateEmailSchema, ValidatePhoneSchema, ValidateUsernameSchema } from './schemas/user.schema';
+import {
+  UserBasicInfo,
+  UserDetailResponse,
+  UserListResponse,
+  UserMe,
+  userDetailResponseOpenapi,
+  userListResponseOpenapi,
+  UserUpdate,
+  UserUpdateSchema,
+  userMeOpenapi,
+  UserMeResponse,
+  userUpdateOpenapi,
+  ValidateEmail,
+  ValidatePhone,
+  ValidateUsername,
+  ValidationResponse,
+  validateEmailOpenapi,
+  validatePhoneOpenapi,
+  validateUsernameOpenapi,
+  validationResponseOpenapi,
+  ValidateEmailSchema,
+  ValidatePhoneSchema,
+  ValidateUsernameSchema,
+} from './schemas/user.schema';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { ApiBearerAuth, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/modules/auth/guard/jwt-auth.guard';
@@ -36,7 +59,10 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   @Get(':id')
   @ApiResponse({ schema: userDetailResponseOpenapi })
-  async findOne(@Param('id', ParseIntPipe) id: number, @BasicUserInfo() user: UserBasicInfo): Promise<UserDetailResponse> {
+  async findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @BasicUserInfo() user: UserBasicInfo
+  ): Promise<UserDetailResponse> {
     await this.userValidator.assertIsOwner(id, user);
     return { data: await this.usersService.findOne(+id) };
   }
@@ -44,7 +70,11 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   @Put(':id')
   @ApiBody({ schema: userUpdateOpenapi })
-  async update(@Param('id', ParseIntPipe) id: number, @Body(new ZodValidationPipe(UserUpdateSchema)) updateUserDto: UserUpdate, @BasicUserInfo() user: UserBasicInfo): Promise<UserMe> {
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body(new ZodValidationPipe(UserUpdateSchema)) updateUserDto: UserUpdate,
+    @BasicUserInfo() user: UserBasicInfo
+  ): Promise<UserMe> {
     await this.userValidator.assertIsOwner(id, user);
     return this.usersService.update(+id, updateUserDto);
   }
@@ -59,21 +89,27 @@ export class UserController {
   @Post('validate/email')
   @ApiBody({ schema: validateEmailOpenapi })
   @ApiResponse({ schema: validationResponseOpenapi })
-  async validateEmail(@Body(new ZodValidationPipe(ValidateEmailSchema)) body: ValidateEmail): Promise<ValidationResponse> {
+  async validateEmail(
+    @Body(new ZodValidationPipe(ValidateEmailSchema)) body: ValidateEmail
+  ): Promise<ValidationResponse> {
     return this.usersService.validateEmail(body.email);
   }
 
   @Post('validate/phone')
   @ApiBody({ schema: validatePhoneOpenapi })
   @ApiResponse({ schema: validationResponseOpenapi })
-  async validatePhone(@Body(new ZodValidationPipe(ValidatePhoneSchema)) body: ValidatePhone): Promise<ValidationResponse> {
+  async validatePhone(
+    @Body(new ZodValidationPipe(ValidatePhoneSchema)) body: ValidatePhone
+  ): Promise<ValidationResponse> {
     return this.usersService.validatePhone(body.phone);
   }
 
   @Post('validate/username')
   @ApiBody({ schema: validateUsernameOpenapi })
   @ApiResponse({ schema: validationResponseOpenapi })
-  async validateUsername(@Body(new ZodValidationPipe(ValidateUsernameSchema)) body: ValidateUsername): Promise<ValidationResponse> {
+  async validateUsername(
+    @Body(new ZodValidationPipe(ValidateUsernameSchema)) body: ValidateUsername
+  ): Promise<ValidationResponse> {
     return this.usersService.validateUsername(body.username);
   }
 }

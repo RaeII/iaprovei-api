@@ -4,7 +4,25 @@ import { ZodValidationPipe } from 'nestjs-zod';
 import { UserAnswerService } from './user_answer.service';
 import { JwtAuthGuard } from '@/modules/auth/guard/jwt-auth.guard';
 import { BasicUserInfo, SessionId } from '@/common/decorators';
-import { UserAnswerQuery, UserAnswerFilter, UserAnswerQuerySchema, UserAnswerFilterSchema, UserAnswerListResponse, UserAnswerPerformanceListResponse, UserAnswerSessionListResponse, UserAnswerStatsResponse, UserAnswerCreateResponse, userAnswerCreateOpenapi, userAnswerListResponseOpenapi, userAnswerPerformanceListResponseOpenapi, userAnswerSessionListResponseOpenapi, userAnswerStatsResponseOpenapi, userAnswerCreateResponseOpenapi, UserAnswerCreatePayload, UserAnswerCreatePayloadSchema } from './schemas/user_answer.schema';
+import {
+  UserAnswerQuery,
+  UserAnswerFilter,
+  UserAnswerQuerySchema,
+  UserAnswerFilterSchema,
+  UserAnswerListResponse,
+  UserAnswerPerformanceListResponse,
+  UserAnswerSessionListResponse,
+  UserAnswerStatsResponse,
+  UserAnswerCreateResponse,
+  userAnswerCreateOpenapi,
+  userAnswerListResponseOpenapi,
+  userAnswerPerformanceListResponseOpenapi,
+  userAnswerSessionListResponseOpenapi,
+  userAnswerStatsResponseOpenapi,
+  userAnswerCreateResponseOpenapi,
+  UserAnswerCreatePayload,
+  UserAnswerCreatePayloadSchema,
+} from './schemas/user_answer.schema';
 import { UserBasicInfo } from '@/modules/user/schemas/user.schema';
 
 @ApiTags('User Answers')
@@ -22,7 +40,11 @@ export class UserAnswerController {
   @Post()
   @ApiBody({ schema: userAnswerCreateOpenapi })
   @ApiResponse({ schema: userAnswerCreateResponseOpenapi })
-  async create(@Body(new ZodValidationPipe(UserAnswerCreatePayloadSchema)) createUserAnswerDto: UserAnswerCreatePayload, @BasicUserInfo() userBasicInfo: UserBasicInfo, @SessionId() sessionId: string): Promise<UserAnswerCreateResponse> {
+  async create(
+    @Body(new ZodValidationPipe(UserAnswerCreatePayloadSchema)) createUserAnswerDto: UserAnswerCreatePayload,
+    @BasicUserInfo() userBasicInfo: UserBasicInfo,
+    @SessionId() sessionId: string
+  ): Promise<UserAnswerCreateResponse> {
     return this.userAnswerService.create({ ...createUserAnswerDto, users_id: userBasicInfo.id }, sessionId);
   }
 
@@ -32,7 +54,10 @@ export class UserAnswerController {
    */
   @Get('me')
   @ApiResponse({ schema: userAnswerListResponseOpenapi })
-  async findAll(@Query(new ZodValidationPipe(UserAnswerQuerySchema)) query: UserAnswerQuery, @BasicUserInfo() userInfo: UserBasicInfo): Promise<UserAnswerListResponse> {
+  async findAll(
+    @Query(new ZodValidationPipe(UserAnswerQuerySchema)) query: UserAnswerQuery,
+    @BasicUserInfo() userInfo: UserBasicInfo
+  ): Promise<UserAnswerListResponse> {
     return this.userAnswerService.findAll(query, userInfo.id);
   }
 
@@ -53,7 +78,10 @@ export class UserAnswerController {
    */
   @Get('performance')
   @ApiResponse({ schema: userAnswerPerformanceListResponseOpenapi })
-  async findAllPerformance(@Query(new ZodValidationPipe(UserAnswerQuerySchema)) query: UserAnswerQuery, @BasicUserInfo() userInfo: UserBasicInfo): Promise<UserAnswerPerformanceListResponse> {
+  async findAllPerformance(
+    @Query(new ZodValidationPipe(UserAnswerQuerySchema)) query: UserAnswerQuery,
+    @BasicUserInfo() userInfo: UserBasicInfo
+  ): Promise<UserAnswerPerformanceListResponse> {
     return this.userAnswerService.findAllPerformance(query, userInfo.id);
   }
 
@@ -63,7 +91,10 @@ export class UserAnswerController {
    */
   @Get('sessions')
   @ApiResponse({ schema: userAnswerSessionListResponseOpenapi })
-  async findAllBySession(@Query(new ZodValidationPipe(UserAnswerQuerySchema)) query: UserAnswerQuery, @BasicUserInfo() userInfo: UserBasicInfo): Promise<UserAnswerSessionListResponse> {
+  async findAllBySession(
+    @Query(new ZodValidationPipe(UserAnswerQuerySchema)) query: UserAnswerQuery,
+    @BasicUserInfo() userInfo: UserBasicInfo
+  ): Promise<UserAnswerSessionListResponse> {
     return this.userAnswerService.findAllBySession(query, userInfo.id);
   }
 
@@ -73,7 +104,10 @@ export class UserAnswerController {
    */
   @Get('stats')
   @ApiResponse({ schema: userAnswerStatsResponseOpenapi })
-  async getStats(@Query(new ZodValidationPipe(UserAnswerFilterSchema)) filters: UserAnswerFilter, @BasicUserInfo() userInfo: UserBasicInfo): Promise<UserAnswerStatsResponse> {
+  async getStats(
+    @Query(new ZodValidationPipe(UserAnswerFilterSchema)) filters: UserAnswerFilter,
+    @BasicUserInfo() userInfo: UserBasicInfo
+  ): Promise<UserAnswerStatsResponse> {
     return this.userAnswerService.getStats(filters, userInfo.id);
   }
 
