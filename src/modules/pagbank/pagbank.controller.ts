@@ -22,10 +22,8 @@ import {
 import { UserBasicInfo } from '@/modules/user/schemas/user.schema';
 import { ApiBearerAuth, ApiResponse, ApiBody, ApiParam } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/modules/auth/guard/jwt-auth.guard';
-//import { RolesGuard } from '@/modules/auth/guard/roles.guard';
-import { BasicUserInfo } from '@/common/decorators';
-import { Role } from '@/modules/auth/enums/role.enum';
-import { Roles } from '@/common/decorators/roles.decorator';
+import { AdminGuard } from '@/modules/auth/guard/admin.guard';
+import { BasicUserInfo, AdminOnly } from '@/common/decorators';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { PlansService } from '@/modules/plans/plans.service';
 import { UserPlansService } from '@/modules/user_plans/user_plans.service';
@@ -47,7 +45,8 @@ export class PagbankController {
   ) {}
 
   @Get()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @AdminOnly()
   @ApiResponse({ schema: getPlansResponseOpenapi })
   async getPlans(): Promise<GetPlansResponse> {
     const data = await this.pagbankService.getPlans();
@@ -55,8 +54,8 @@ export class PagbankController {
   }
 
   @Get('public-keys')
-  @Roles(Role.ADMIN)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @AdminOnly()
   @ApiResponse({ schema: publicKeysResponseOpenapi })
   async GetPublicKeys(): Promise<PublicKeysResponse> {
     const data = await this.pagbankService.GetPublicKeys();
@@ -64,8 +63,8 @@ export class PagbankController {
   }
 
   @Post('plans')
-  @Roles(Role.ADMIN)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @AdminOnly()
   @ApiBody({ schema: createPlanOpenapi })
   @ApiResponse({ schema: createPlanResponseOpenapi })
   async createPlan(
@@ -76,8 +75,8 @@ export class PagbankController {
   }
 
   @Put('plans/:plan_id')
-  @Roles(Role.ADMIN)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @AdminOnly()
   @ApiParam({ name: 'plan_id', description: 'ID do plano a ser atualizado', type: 'string' })
   @ApiBody({ schema: createPlanOpenapi })
   @ApiResponse({ schema: createPlanResponseOpenapi })
@@ -265,16 +264,16 @@ export class PagbankController {
   }
 
   @Get('notifications')
-  @Roles(Role.ADMIN)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @AdminOnly()
   async getNotifications(): Promise<{ data: unknown }> {
     const data = await this.pagbankService.getNotifications();
     return { data };
   }
 
   @Put('notifications')
-  @Roles(Role.ADMIN)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @AdminOnly()
   @ApiBody({ schema: updateNotificationsOpenapi })
   async updateNotifications(
     @Body(new ZodValidationPipe(UpdateNotificationsSchema)) updateNotificationsDto: UpdateNotifications
@@ -282,22 +281,4 @@ export class PagbankController {
     const data = await this.pagbankService.updateNotifications(updateNotificationsDto);
     return { data };
   }
-
-  /*@Post('event')
-  @ApiBody({ schema: updateNotificationsOpenapi })
-  async eventNotification(@Body() event: any) {
-    return {};
-  } */
-
-  /*@Get('event')
-  @ApiBody({ schema: updateNotificationsOpenapi })
-  async eventNotificationGet(@Param() params: any, @Query() query: any, @Body() body: any) {
-    return {};
-  } */
-
-  /*@Put('event')
-  @ApiBody({ schema: updateNotificationsOpenapi })
-  async eventNotificationPut(event: any) {
-    return {};
-  } */
 }

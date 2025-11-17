@@ -52,6 +52,7 @@ export class UserService {
       current_streak: 0,
       best_streak: 0,
       is_active: true,
+      is_admin: false,
       email_verified: false,
     } as Partial<UserEntity>);
 

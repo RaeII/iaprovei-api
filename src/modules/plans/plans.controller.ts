@@ -16,8 +16,8 @@ import {
 import { ZodValidationPipe } from 'nestjs-zod';
 import { ApiBearerAuth, ApiBody, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/modules/auth/guard/jwt-auth.guard';
-import { Role } from '@/modules/auth/enums/role.enum';
-import { Roles } from '@/common/decorators/roles.decorator';
+import { AdminGuard } from '@/modules/auth/guard/admin.guard';
+import { AdminOnly } from '@/common/decorators/admin-only.decorator';
 
 @ApiTags('Plans')
 @Controller('plans')
@@ -29,31 +29,39 @@ export class PlansController {
   ) {}
 
   @Get()
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @AdminOnly()
   @ApiResponse({ schema: planListResponseOpenapi })
   async findAll(): Promise<PlanListResponse> {
     return { data: await this.plansService.findAll() };
   }
 
   @Get('active')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @AdminOnly()
   @ApiResponse({ schema: planListResponseOpenapi })
   async findAllActive(): Promise<PlanListResponse> {
     return { data: await this.plansService.findAllActive() };
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @AdminOnly()
   @ApiResponse({ schema: planDetailResponseOpenapi })
   async findOne(@Param('id', ParseIntPipe) id: number): Promise<PlanDetailResponse> {
     return { data: await this.plansService.findOne(id) };
   }
 
   @Get(':id/active')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @AdminOnly()
   @ApiResponse({ schema: planDetailResponseOpenapi })
   async findOneActive(@Param('id', ParseIntPipe) id: number): Promise<PlanDetailResponse> {
     return { data: await this.plansService.findOneActive(id) };
   }
 
-  @Roles(Role.ADMIN)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @AdminOnly()
   @Post()
   @ApiBody({ schema: planCreateOpenapi })
   @ApiResponse({ schema: planDetailResponseOpenapi })
@@ -66,9 +74,9 @@ export class PlansController {
     return { data: plan };
   }
 
-  @Roles(Role.ADMIN)
-  @UseGuards(JwtAuthGuard)
   @Put(':id')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @AdminOnly()
   @ApiBody({ schema: planUpdateOpenapi })
   @ApiResponse({ schema: planDetailResponseOpenapi })
   async update(
@@ -87,9 +95,9 @@ export class PlansController {
     return { data: plan };
   }
 
-  @Roles(Role.ADMIN)
-  @UseGuards(JwtAuthGuard)
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @AdminOnly()
   async remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
     await this.planValidator.assertPlanExists(id);
     return this.plansService.remove(id);

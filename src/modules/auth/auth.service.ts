@@ -22,7 +22,7 @@ export class AuthService {
   }
 
   async login(user: any) {
-    const payload = { username: user.username, sub: user.id };
+    const payload = { username: user.username, sub: user.id, is_admin: user.is_admin };
     const userData = await this.usersService.findMe(user.id);
 
     const loginData = await this.jwtService.generateAuthTokenWithRefreshToken(payload);
@@ -34,7 +34,7 @@ export class AuthService {
 
   async refreshToken(userId: number) {
     const user = await this.usersService.findOne(userId);
-    const payload = { username: user.username, sub: userId };
+    const payload = { username: user.username, sub: userId, is_admin: user.is_admin };
     return this.jwtService.generateAuthToken(payload);
   }
 
@@ -49,19 +49,9 @@ export class AuthService {
 
   /**
    * Check if a user has admin privileges
-   * TODO: Update this method when you implement the admin role system
-   *
-   * Options for implementation:
-   * 1. Add 'is_admin' boolean field to User entity
-   * 2. Add 'role' enum field with values like 'user', 'admin', 'moderator'
-   * 3. Create separate UserRole entity for complex role management
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async isUserAdmin(_userId: number): Promise<boolean> {
-    // For now, return false for all users
-    // When you implement admin roles, replace this with:
-    // const user = await this.usersService.findOne(userId);
-    // return user.is_admin || user.role === 'admin';
-    return false;
+  async isUserAdmin(userId: number): Promise<boolean> {
+    const user = await this.usersService.findOneEager(userId);
+    return user.is_admin;
   }
 }

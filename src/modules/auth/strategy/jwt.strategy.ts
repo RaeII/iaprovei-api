@@ -18,6 +18,10 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     if (!payload.sub) {
       return null;
     }
-    return { user_id: payload.sub, username: payload.username };
+    return {
+      user_id: payload.sub,
+      username: payload.username,
+      is_admin: payload.is_admin || false,
+    };
   }
 }

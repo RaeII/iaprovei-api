@@ -175,6 +175,9 @@ export class User implements UserType {
   @Column({ name: 'is_active', type: 'tinyint', default: 1 })
   is_active: boolean;
 
+  @Column({ name: 'is_admin', type: 'tinyint', default: 0 })
+  is_admin: boolean;
+
   @Column({ name: 'email_verified', type: 'tinyint', default: 0 })
   email_verified: boolean;
 
