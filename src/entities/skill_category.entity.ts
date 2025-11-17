@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
-import { SkillCategory as SkillCategoryType } from '@/modules/skill_category/schemas/skill_category.schema';
+import { SkillCategory as SkillCategoryType } from '../modules/skill_category/schemas/skill_category.schema';
 
 @Entity('skill_category')
 export class SkillCategory implements SkillCategoryType {

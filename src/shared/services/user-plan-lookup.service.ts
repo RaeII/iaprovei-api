@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { UserPlan, UserPlanStatus } from '@/entities/user_plan.entity';
-import { IUserPlanLookupService } from '@/shared/contracts/user-plan-lookup.contract';
+import { UserPlan, UserPlanStatus } from '../../entities/user_plan.entity';
+import { IUserPlanLookupService } from '../contracts/user-plan-lookup.contract';
 
 @Injectable()
 export class SharedUserPlanLookupService implements IUserPlanLookupService {

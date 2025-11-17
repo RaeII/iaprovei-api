@@ -1,4 +1,4 @@
-import { Exception } from '@/common/exceptions/exception';
+import { Exception } from './exception';
 import { HttpStatus } from '@nestjs/common';
 
 export class EmailCreateErrorException extends Exception {

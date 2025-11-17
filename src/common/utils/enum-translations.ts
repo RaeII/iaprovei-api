@@ -1,4 +1,4 @@
-import { ContestStatus, DifficultyLevel } from '@/entities/contest.entity';
+import { ContestStatus, DifficultyLevel } from '../../entities/contest.entity';
 
 export const CONTEST_STATUS_TRANSLATIONS: Record<ContestStatus, string> = {
   [ContestStatus.AVAILABLE]: 'Disponível',

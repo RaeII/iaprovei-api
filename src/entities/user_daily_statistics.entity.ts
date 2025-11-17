@@ -10,7 +10,7 @@ import {
   Unique,
 } from 'typeorm';
 import { User } from './user.entity';
-import { UserDailyStatistics as UserDailyStatisticsType } from '@/modules/statistics/schemas/statistics.schema';
+import { UserDailyStatistics as UserDailyStatisticsType } from '../modules/statistics/schemas/statistics.schema';
 
 @Entity('user_daily_statistics')
 @Unique('unique_user_daily_stats', ['users_id', 'statistics_date'])

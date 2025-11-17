@@ -9,7 +9,7 @@ import {
   Index,
 } from 'typeorm';
 import { User } from './user.entity';
-import { UserStatistics as UserStatisticsType } from '@/modules/statistics/schemas/statistics.schema';
+import { UserStatistics as UserStatisticsType } from '../modules/statistics/schemas/statistics.schema';
 
 @Entity('user_statistics')
 @Index('idx_user_statistics_user_date', ['users_id', 'statistics_date'])

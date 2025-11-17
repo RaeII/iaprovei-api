@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Plan } from '@/entities/plan.entity';
-import { IPlanLookupService } from '@/shared/contracts/plan-lookup.contract';
+import { Plan } from '../../entities/plan.entity';
+import { IPlanLookupService } from '../contracts/plan-lookup.contract';
 
 /**
  * Serviço compartilhado para busca de planos

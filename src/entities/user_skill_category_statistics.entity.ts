@@ -10,7 +10,7 @@ import {
 } from 'typeorm';
 import { User } from './user.entity';
 import { SkillCategory } from './skill_category.entity';
-import { UserSkillCategoryStatistics as UserSkillCategoryStatisticsType } from '@/modules/statistics/schemas/statistics.schema';
+import { UserSkillCategoryStatistics as UserSkillCategoryStatisticsType } from '../modules/statistics/schemas/statistics.schema';
 
 @Entity('user_skill_category_statistics')
 @Index('idx_user_skill_category_statistics_user_skill_date', ['users_id', 'skill_category_id', 'statistics_date'])

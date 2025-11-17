@@ -2,7 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, Jo
 import { User } from './user.entity';
 import { Question } from './question.entity';
 import { QuestionOption } from './question_option.entity';
-import { UserAnswer as UserAnswerType } from '@/modules/user_answer/schemas/user_answer.schema';
+import { UserAnswer as UserAnswerType } from '../modules/user_answer/schemas/user_answer.schema';
 
 @Entity('user_answers')
 export class UserAnswer implements UserAnswerType {

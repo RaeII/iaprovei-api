@@ -7,7 +7,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { Subject as SubjectType } from '@/modules/subject/schemas/subject.schema';
+import { Subject as SubjectType } from '../modules/subject/schemas/subject.schema';
 import { Contest } from './contest.entity';
 import { SkillCategory } from './skill_category.entity';
 

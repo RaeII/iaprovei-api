@@ -7,9 +7,9 @@ import {
   JoinColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { User } from '@/entities/user.entity';
-import { Plan } from '@/entities/plan.entity';
-import { UserPlan as UserPlanType } from '@/modules/user_plans/schemas/user_plan.schema';
+import { User } from './user.entity';
+import { Plan } from './plan.entity';
+import { UserPlan as UserPlanType } from '../modules/user_plans/schemas/user_plan.schema';
 
 export enum UserPlanStatus {
   ACTIVE = 'ACTIVE',

@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
-import { User as UserType } from '@/modules/user/schemas/user.schema';
+import { User as UserType } from '../modules/user/schemas/user.schema';
 
 export enum EducationLevel {
   ENSINO_SUPERIOR = 'ensino_superior',

@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
-import { Plan as PlanType } from '@/modules/plans/schemas/plan.schema';
+import { Plan as PlanType } from '../modules/plans/schemas/plan.schema';
 
 @Entity('plans')
 export class Plan implements PlanType {

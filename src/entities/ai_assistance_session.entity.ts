@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Question } from './question.entity';
 import { User } from './user.entity';
-import { AiAssistanceSession as AiAssistanceSessionType } from '@/modules/ai_assistance_session/schemas/ai_assistance_session.schema';
+import { AiAssistanceSession as AiAssistanceSessionType } from '../modules/ai_assistance_session/schemas/ai_assistance_session.schema';
 
 @Entity('ai_assistance_sessions')
 export class AiAssistanceSession implements AiAssistanceSessionType {

@@ -10,7 +10,7 @@ import {
 } from 'typeorm';
 import { Subject } from './subject.entity';
 import { SkillCategory } from './skill_category.entity';
-import { Question as QuestionType } from '@/modules/question/schemas/question.schema';
+import { Question as QuestionType } from '../modules/question/schemas/question.schema';
 import { QuestionOption } from './question_option.entity';
 import { QuestionStatementText } from './question_statement_text.entity';
 
