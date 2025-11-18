@@ -11,6 +11,8 @@ import {
   SubscriptionResponse,
   UpdateNotifications,
   UpdateCustomerBillingInfo,
+  GetSubscriptionsQuery,
+  GetSubscriptionsData,
 } from './schemas/pagbank.schema';
 
 @Injectable()
@@ -58,16 +60,57 @@ export class PagbankService {
       headers: additionalHeaders,
     };
 
+    const fullUrl = `${this.axiosInstance.defaults.baseURL}${endpoint}`;
+
     try {
+      // Log da requisição
+      console.log('\n' + '='.repeat(80));
+      console.log('📤 PAGBANK REQUEST');
+      console.log('='.repeat(80));
+      console.log(`Método: ${method}`);
+      console.log(`URL: ${fullUrl}`);
+
+      if (body) {
+        console.log('\nPayload:');
+        console.log(JSON.stringify(body, null, 2));
+      } else {
+        console.log('\nPayload: {}');
+      }
+
+      console.log('='.repeat(80) + '\n');
+
       const response = await this.axiosInstance.request<T>(config);
 
-      console.log('response PagBank', response.data);
+      // Log da resposta
+      console.log('\n' + '='.repeat(80));
+      console.log('='.repeat(80));
+      console.log(`Status: ${response.status} ${response.statusText}`);
+      console.log('\nResposta:');
+      console.log(JSON.stringify(response.data, null, 2));
+      console.log('='.repeat(80) + '\n');
 
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const axiosError = error as AxiosError;
         const errorData = axiosError.response?.data;
+
+        // Log do erro
+        console.log('\n' + '='.repeat(80));
+        console.log('❌ PAGBANK ERROR');
+        console.log('='.repeat(80));
+        console.log(`Método: ${method}`);
+        console.log(`URL: ${fullUrl}`);
+
+        if (body) {
+          console.log('\n📦 Payload:');
+          console.log(JSON.stringify(body, null, 2));
+        }
+
+        console.log(`\nStatus: ${axiosError.response?.status || 'N/A'}`);
+        console.log('\n📦 Erro:');
+        console.log(JSON.stringify(errorData, null, 2));
+        console.log('='.repeat(80) + '\n');
 
         throw errorData;
       }
@@ -82,6 +125,14 @@ export class PagbankService {
    */
   async GetPublicKeys(): Promise<PublicKeys> {
     return await this.request('public-keys', 'GET');
+  }
+
+  /**
+   * Atualiza as chaves públicas do PagBank
+   * @returns Promise com os dados da aplicação criada
+   */
+  async PutPublicKeys(): Promise<PublicKeys> {
+    return await this.request('public-keys', 'PUT');
   }
 
   /**
@@ -164,5 +215,43 @@ export class PagbankService {
    */
   async updateCustomerBillingInfo(customerId: string, billingInfoData: UpdateCustomerBillingInfo[]): Promise<unknown> {
     return await this.request(`customers/${customerId}/billing_info`, 'PUT', billingInfoData);
+  }
+
+  /**
+   * Busca subscriptions (assinaturas) do PagBank com filtros opcionais
+   * @param queryParams - Parâmetros de filtro para a busca
+   * @returns Promise com a lista de subscriptions filtradas
+   */
+  async getSubscriptions(queryParams: GetSubscriptionsQuery): Promise<GetSubscriptionsData> {
+    const params = new URLSearchParams();
+
+    if (queryParams.reference_id) {
+      params.append('reference_id', queryParams.reference_id);
+    }
+
+    if (queryParams.status && queryParams.status.length > 0) {
+      queryParams.status.forEach(status => {
+        params.append('status', status);
+      });
+    }
+
+    if (queryParams.payment_method_type && queryParams.payment_method_type.length > 0) {
+      queryParams.payment_method_type.forEach(type => {
+        params.append('payment_method_type', type);
+      });
+    }
+
+    if (queryParams.created_at_start) {
+      params.append('created_at_start', queryParams.created_at_start);
+    }
+
+    if (queryParams.created_at_end) {
+      params.append('created_at_end', queryParams.created_at_end);
+    }
+
+    const queryString = params.toString();
+    const endpoint = queryString ? `subscriptions?${queryString}` : 'subscriptions';
+
+    return await this.request<GetSubscriptionsData>(endpoint, 'GET');
   }
 }

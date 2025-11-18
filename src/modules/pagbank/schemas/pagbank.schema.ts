@@ -299,6 +299,38 @@ export const createSubscriptionResponseSchema = z.object({
   data: SubscriptionResponseSchema,
 });
 
+// Schema para filtros de busca de subscriptions
+export const SubscriptionStatusFilterSchema = z.enum([
+  'ACTIVE',
+  'EXPIRED',
+  'CANCELED',
+  'SUSPENDED',
+  'OVERDUE',
+  'TRIAL',
+  'PENDING',
+  'PENDING_ACTION',
+]);
+
+export const PaymentMethodTypeFilterSchema = z.enum(['BOLETO', 'CREDIT_CARD']);
+
+export const GetSubscriptionsQuerySchema = z.object({
+  reference_id: z.string().optional(),
+  status: z.array(SubscriptionStatusFilterSchema).optional(),
+  payment_method_type: z.array(PaymentMethodTypeFilterSchema).optional(),
+  created_at_start: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de data inválido. Use YYYY-MM-DD').optional(),
+  created_at_end: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de data inválido. Use YYYY-MM-DD').optional(),
+});
+
+// Schema para a resposta da listagem de subscriptions
+export const GetSubscriptionsDataSchema = z.object({
+  result_set: ResultSetSchema,
+  subscriptions: z.array(SubscriptionResponseSchema),
+});
+
+export const GetSubscriptionsResponseSchema = z.object({
+  data: GetSubscriptionsDataSchema,
+});
+
 export const publicKeysResponseOpenapi: any = zodToOpenAPI(publicKeysResponseSchema);
 export const createPlanOpenapi: any = zodToOpenAPI(CreatePlanSchema);
 export const createPlanResponseOpenapi: any = zodToOpenAPI(createPlanResponseSchema);
@@ -308,6 +340,8 @@ export const createCustomerResponseOpenapi: any = zodToOpenAPI(createCustomerRes
 export const createSubscriptionOpenapi: any = zodToOpenAPI(CreateSubscriptionSchema);
 export const createSubscriptionResponseOpenapi: any = zodToOpenAPI(createSubscriptionResponseSchema);
 export const updateNotificationsOpenapi: any = zodToOpenAPI(UpdateNotificationsSchema);
+export const getSubscriptionsQueryOpenapi: any = zodToOpenAPI(GetSubscriptionsQuerySchema);
+export const getSubscriptionsResponseOpenapi: any = zodToOpenAPI(GetSubscriptionsResponseSchema);
 
 // Type exports
 export type PublicKeys = z.infer<typeof PublicKeysSchema>;
@@ -342,3 +376,8 @@ export type SubscriptionCustomerResponse = z.infer<typeof SubscriptionCustomerRe
 export type SubscriptionResponse = z.infer<typeof SubscriptionResponseSchema>;
 export type CreateSubscriptionResponse = z.infer<typeof createSubscriptionResponseSchema>;
 export type UpdateNotifications = z.infer<typeof UpdateNotificationsSchema>;
+export type SubscriptionStatusFilter = z.infer<typeof SubscriptionStatusFilterSchema>;
+export type PaymentMethodTypeFilter = z.infer<typeof PaymentMethodTypeFilterSchema>;
+export type GetSubscriptionsQuery = z.infer<typeof GetSubscriptionsQuerySchema>;
+export type GetSubscriptionsData = z.infer<typeof GetSubscriptionsDataSchema>;
+export type GetSubscriptionsResponse = z.infer<typeof GetSubscriptionsResponseSchema>;

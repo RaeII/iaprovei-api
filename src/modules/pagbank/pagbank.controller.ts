@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, UseGuards, Body, Param, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, UseGuards, Body, Param, BadRequestException, Query } from '@nestjs/common';
 import { PagbankService } from './pagbank.service';
 import {
   PublicKeysResponse,
@@ -18,9 +18,13 @@ import {
   UpdateNotifications,
   UpdateNotificationsSchema,
   updateNotificationsOpenapi,
+  GetSubscriptionsQuery,
+  GetSubscriptionsResponse,
+  GetSubscriptionsQuerySchema,
+  getSubscriptionsResponseOpenapi,
 } from './schemas/pagbank.schema';
 import { UserBasicInfo } from '@/modules/user/schemas/user.schema';
-import { ApiBearerAuth, ApiResponse, ApiBody, ApiParam } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiResponse, ApiBody, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/modules/auth/guard/jwt-auth.guard';
 import { AdminGuard } from '@/modules/auth/guard/admin.guard';
 import { BasicUserInfo, AdminOnly } from '@/common/decorators';
@@ -59,6 +63,15 @@ export class PagbankController {
   @ApiResponse({ schema: publicKeysResponseOpenapi })
   async GetPublicKeys(): Promise<PublicKeysResponse> {
     const data = await this.pagbankService.GetPublicKeys();
+    return { data };
+  }
+
+  @Put('public-keys')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @AdminOnly()
+  @ApiResponse({ schema: publicKeysResponseOpenapi })
+  async PutPublicKeys(): Promise<PublicKeysResponse> {
+    const data = await this.pagbankService.PutPublicKeys();
     return { data };
   }
 
@@ -261,6 +274,48 @@ export class PagbankController {
         });
       throw error;
     }
+  }
+
+  @Get('subscriptions')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @AdminOnly()
+  @ApiResponse({ schema: getSubscriptionsResponseOpenapi })
+  @ApiQuery({ name: 'reference_id', required: false, type: String, description: 'ID de referência da subscription' })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    type: [String],
+    enum: ['ACTIVE', 'EXPIRED', 'CANCELED', 'SUSPENDED', 'OVERDUE', 'TRIAL', 'PENDING', 'PENDING_ACTION'],
+    isArray: true,
+    description: 'Filtro por status da subscription',
+  })
+  @ApiQuery({
+    name: 'payment_method_type',
+    required: false,
+    type: [String],
+    enum: ['BOLETO', 'CREDIT_CARD'],
+    isArray: true,
+    description: 'Filtro por tipo de método de pagamento',
+  })
+  @ApiQuery({
+    name: 'created_at_start',
+    required: false,
+    type: String,
+    description: 'Data de início para filtro (formato: YYYY-MM-DD)',
+    example: '2020-01-02',
+  })
+  @ApiQuery({
+    name: 'created_at_end',
+    required: false,
+    type: String,
+    description: 'Data de fim para filtro (formato: YYYY-MM-DD)',
+    example: '2020-01-02',
+  })
+  async getSubscriptions(
+    @Query(new ZodValidationPipe(GetSubscriptionsQuerySchema)) queryParams: GetSubscriptionsQuery
+  ): Promise<GetSubscriptionsResponse> {
+    const data = await this.pagbankService.getSubscriptions(queryParams);
+    return { data };
   }
 
   @Get('notifications')
