@@ -6,6 +6,7 @@ import {
   PlanResponse,
   GetPlansData,
   CreateCustomer,
+  CreateCustomerSimple,
   CustomerResponse,
   CreateSubscription,
   SubscriptionResponse,
@@ -167,7 +168,7 @@ export class PagbankService {
    * @param customerData - Dados do customer a ser criado
    * @returns Promise com os dados do customer criado
    */
-  async createCustomer(customerData: CreateCustomer): Promise<CustomerResponse> {
+  async createCustomer(customerData: CreateCustomer | CreateCustomerSimple): Promise<CustomerResponse> {
     return await this.request('customers', 'POST', customerData);
   }
 

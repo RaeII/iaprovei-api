@@ -153,7 +153,24 @@ export const UpdateCustomerBillingInfoSchema = z.object({
   type: BillingTypeSchema,
 });
 
-// Schema para criar um customer
+// Schema para criar um customer (versão simplificada)
+export const CreateCustomerSimpleSchema = z.object({
+  phones: z.array(CustomerPhoneSchema).min(1, 'Pelo menos um telefone é obrigatório'),
+  reference_id: z
+    .string()
+    .min(1, 'Reference ID é obrigatório')
+    .max(65, 'Reference ID deve ter no máximo 65 caracteres'),
+  name: z.string().min(1, 'Nome é obrigatório').max(100, 'Nome deve ter no máximo 100 caracteres'),
+  email: z.string().email('Email deve ter um formato válido').max(100, 'Email deve ter no máximo 100 caracteres'),
+  tax_id: z.string().min(11, 'CPF deve ter pelo menos 11 caracteres').max(14, 'CPF deve ter no máximo 14 caracteres'),
+  address: CustomerAddressSchema.optional().nullable(),
+  birth_date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Data de nascimento deve estar no formato YYYY-MM-DD')
+    .optional(),
+});
+
+// Schema para criar um customer (versão completa)
 export const CreateCustomerSchema = z.object({
   id: z.string().optional().nullable(),
   phones: z.array(CustomerPhoneSchema).min(1, 'Pelo menos um telefone é obrigatório'),
@@ -317,8 +334,14 @@ export const GetSubscriptionsQuerySchema = z.object({
   reference_id: z.string().optional(),
   status: z.array(SubscriptionStatusFilterSchema).optional(),
   payment_method_type: z.array(PaymentMethodTypeFilterSchema).optional(),
-  created_at_start: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de data inválido. Use YYYY-MM-DD').optional(),
-  created_at_end: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de data inválido. Use YYYY-MM-DD').optional(),
+  created_at_start: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de data inválido. Use YYYY-MM-DD')
+    .optional(),
+  created_at_end: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de data inválido. Use YYYY-MM-DD')
+    .optional(),
 });
 
 // Schema para a resposta da listagem de subscriptions
@@ -336,6 +359,7 @@ export const createPlanOpenapi: any = zodToOpenAPI(CreatePlanSchema);
 export const createPlanResponseOpenapi: any = zodToOpenAPI(createPlanResponseSchema);
 export const getPlansResponseOpenapi: any = zodToOpenAPI(GetPlansResponseSchema);
 export const createCustomerOpenapi: any = zodToOpenAPI(CreateCustomerSchema);
+export const createCustomerSimpleOpenapi: any = zodToOpenAPI(CreateCustomerSimpleSchema);
 export const createCustomerResponseOpenapi: any = zodToOpenAPI(createCustomerResponseSchema);
 export const createSubscriptionOpenapi: any = zodToOpenAPI(CreateSubscriptionSchema);
 export const createSubscriptionResponseOpenapi: any = zodToOpenAPI(createSubscriptionResponseSchema);
@@ -361,6 +385,7 @@ export type UpdateCustomerCard = z.infer<typeof UpdateCustomerCardSchema>;
 export type CustomerBillingInfo = z.infer<typeof CustomerBillingInfoSchema>;
 export type UpdateCustomerBillingInfo = z.infer<typeof UpdateCustomerBillingInfoSchema>;
 export type CreateCustomer = z.infer<typeof CreateCustomerSchema>;
+export type CreateCustomerSimple = z.infer<typeof CreateCustomerSimpleSchema>;
 export type CustomerResponse = z.infer<typeof CustomerResponseSchema>;
 export type CreateCustomerResponse = z.infer<typeof createCustomerResponseSchema>;
 export type SubscriptionPlan = z.infer<typeof SubscriptionPlanSchema>;

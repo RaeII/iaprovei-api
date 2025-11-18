@@ -22,6 +22,11 @@ import {
   GetSubscriptionsResponse,
   GetSubscriptionsQuerySchema,
   getSubscriptionsResponseOpenapi,
+  CreateCustomerSimple,
+  CreateCustomerResponse,
+  CreateCustomerSimpleSchema,
+  createCustomerSimpleOpenapi,
+  createCustomerResponseOpenapi,
 } from './schemas/pagbank.schema';
 import { UserBasicInfo } from '@/modules/user/schemas/user.schema';
 import { ApiBearerAuth, ApiResponse, ApiBody, ApiParam, ApiQuery } from '@nestjs/swagger';
@@ -84,6 +89,18 @@ export class PagbankController {
     @Body(new ZodValidationPipe(CreatePlanSchema)) createPlanDto: CreatePlan
   ): Promise<CreatePlanResponse> {
     const data = await this.pagbankService.createPlan(createPlanDto);
+    return { data };
+  }
+
+  @Post('customers')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @AdminOnly()
+  @ApiBody({ schema: createCustomerSimpleOpenapi })
+  @ApiResponse({ schema: createCustomerResponseOpenapi })
+  async createCustomer(
+    @Body(new ZodValidationPipe(CreateCustomerSimpleSchema)) createCustomerDto: CreateCustomerSimple
+  ): Promise<CreateCustomerResponse> {
+    const data = await this.pagbankService.createCustomer(createCustomerDto);
     return { data };
   }
 
