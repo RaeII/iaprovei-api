@@ -1,5 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
+import * as fs from 'fs';
+import * as path from 'path';
 import {
   PublicKeys,
   CreatePlan,
@@ -23,7 +25,7 @@ export class PagbankService {
 
   constructor() {
     const baseUrl = process.env.URL_API_PAGBANK;
-    const token = process.env.TOKEN_TEST_PAGBANK;
+    const token = process.env.TOKEN_PAGBANK;
 
     if (!token) {
       this.logger.warn('TOKEN_TEST_PAGBANK não foi configurado nas variáveis de ambiente');
@@ -254,5 +256,36 @@ export class PagbankService {
     const endpoint = queryString ? `subscriptions?${queryString}` : 'subscriptions';
 
     return await this.request<GetSubscriptionsData>(endpoint, 'GET');
+  }
+
+  /**
+   * Carrega a chave pública RSA do arquivo local
+   * @returns Objeto com a chave pública e timestamp de criação
+   */
+  async getLocalPublicKey(): Promise<PublicKeys> {
+    try {
+      // Caminho para o arquivo da chave pública (relativo ao diretório raiz do projeto)
+      const publicKeyPath = path.join(process.cwd(), 'keys', 'public.pem');
+
+      // Verificar se o arquivo existe
+      if (!fs.existsSync(publicKeyPath)) {
+        throw new Error('Chave pública não encontrada. Execute: npx ts-node key.ts para gerar as chaves.');
+      }
+
+      // Carregar a chave pública
+      const publicKey = fs.readFileSync(publicKeyPath, 'utf8');
+
+      // Obter informações do arquivo para o timestamp
+      const stats = fs.statSync(publicKeyPath);
+      const createdAt = stats.birthtime.getTime();
+
+      return {
+        public_key: publicKey,
+        created_at: createdAt,
+      };
+    } catch (error) {
+      this.logger.error('Erro ao carregar chave pública local:', error);
+      throw error;
+    }
   }
 }

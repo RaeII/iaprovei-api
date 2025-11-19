@@ -62,6 +62,13 @@ export class PagbankController {
     return { data };
   }
 
+  @Get('public-key')
+  @ApiResponse({ schema: publicKeysResponseOpenapi })
+  async getLocalPublicKey(): Promise<PublicKeysResponse> {
+    const data = await this.pagbankService.getLocalPublicKey();
+    return { data };
+  }
+
   @Get('public-keys')
   @UseGuards(JwtAuthGuard, AdminGuard)
   @AdminOnly()
