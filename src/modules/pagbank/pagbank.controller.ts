@@ -27,6 +27,7 @@ import {
   CreateCustomerSimpleSchema,
   createCustomerSimpleOpenapi,
   createCustomerResponseOpenapi,
+  PublicKeys,
 } from './schemas/pagbank.schema';
 import { UserBasicInfo } from '@/modules/user/schemas/user.schema';
 import { ApiBearerAuth, ApiResponse, ApiBody, ApiParam, ApiQuery } from '@nestjs/swagger';
@@ -64,9 +65,9 @@ export class PagbankController {
 
   @Get('public-key')
   @ApiResponse({ schema: publicKeysResponseOpenapi })
-  async getLocalPublicKey(): Promise<PublicKeysResponse> {
+  async getLocalPublicKey(): Promise<PublicKeys> {
     const data = await this.pagbankService.getLocalPublicKey();
-    return { data };
+    return data;
   }
 
   @Get('public-keys')
@@ -358,6 +359,15 @@ export class PagbankController {
     @Body(new ZodValidationPipe(UpdateNotificationsSchema)) updateNotificationsDto: UpdateNotifications
   ): Promise<{ data: unknown }> {
     const data = await this.pagbankService.updateNotifications(updateNotificationsDto);
+    return { data };
+  }
+
+  @Post('oauth2/token')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @AdminOnly()
+  async requestOAuth2Token(): Promise<{ data: unknown }> {
+    const data = await this.pagbankService.requestOAuth2Token();
+    console.log('\n\n data OAuth2 Token', data, '\n\n');
     return { data };
   }
 }

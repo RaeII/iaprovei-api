@@ -288,4 +288,17 @@ export class PagbankService {
       throw error;
     }
   }
+
+  /**
+   * Solicita um token OAuth2 para criação de certificados no PagBank
+   * @returns Promise com a resposta da API do PagBank
+   */
+  async requestOAuth2Token(): Promise<unknown> {
+    const body = {
+      grant_type: 'challenge',
+      scope: 'certificate.create',
+    };
+
+    return await this.request('oauth2/token', 'POST', body);
+  }
 }
