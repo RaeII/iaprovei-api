@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as crypto from 'crypto';
 import {
   PublicKeys,
   CreatePlan,
@@ -16,6 +17,7 @@ import {
   UpdateCustomerBillingInfo,
   GetSubscriptionsQuery,
   GetSubscriptionsData,
+  OAuth2TokenResponse,
 } from './schemas/pagbank.schema';
 
 @Injectable()
@@ -290,15 +292,53 @@ export class PagbankService {
   }
 
   /**
-   * Solicita um token OAuth2 para criação de certificados no PagBank
-   * @returns Promise com a resposta da API do PagBank
+   * Descriptografa o challenge retornado pelo PagBank
+   * @param encryptedChallenge - Challenge criptografado em base64
+   * @returns Challenge descriptografado
    */
-  async requestOAuth2Token(): Promise<unknown> {
+  decryptChallenge(encryptedChallenge: string): string {
+    try {
+      const privateKeyPath = path.join(process.cwd(), 'keys', 'private.pem');
+
+      if (!fs.existsSync(privateKeyPath)) {
+        throw new Error('Chave privada não encontrada em ' + privateKeyPath);
+      }
+
+      const privateKeyPem = fs.readFileSync(privateKeyPath, 'utf8');
+      const privateKey = crypto.createPrivateKey({ key: privateKeyPem });
+
+      const decryptedData = crypto.privateDecrypt(
+        {
+          key: privateKey,
+          padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+          oaepHash: 'sha256',
+        },
+        Buffer.from(encryptedChallenge, 'base64')
+      );
+
+      return decryptedData.toString();
+    } catch (error) {
+      this.logger.error('Erro ao descriptografar challenge:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Solicita um token OAuth2 para criação de certificados no PagBank
+   * @returns Promise com a resposta da API do PagBank contendo o token e o challenge descriptografado
+   */
+  async requestOAuth2Token(): Promise<OAuth2TokenResponse> {
     const body = {
       grant_type: 'challenge',
       scope: 'certificate.create',
     };
 
-    return await this.request('oauth2/token', 'POST', body);
+    const response = await this.request<OAuth2TokenResponse>('oauth2/token', 'POST', body);
+
+    if (response.challenge) {
+      response.decrypted_challenge = this.decryptChallenge(response.challenge);
+    }
+
+    return response;
   }
 }

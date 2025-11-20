@@ -367,6 +367,16 @@ export const updateNotificationsOpenapi: any = zodToOpenAPI(UpdateNotificationsS
 export const getSubscriptionsQueryOpenapi: any = zodToOpenAPI(GetSubscriptionsQuerySchema);
 export const getSubscriptionsResponseOpenapi: any = zodToOpenAPI(GetSubscriptionsResponseSchema);
 
+// Schema para a resposta de solicitação de token OAuth2
+export const OAuth2TokenResponseSchema = z.object({
+  access_token: z.string(),
+  token_type: z.string(),
+  expires_in: z.number(),
+  scope: z.string(),
+  challenge: z.string(),
+  decrypted_challenge: z.string().optional(),
+});
+
 // Type exports
 export type PublicKeys = z.infer<typeof PublicKeysSchema>;
 export type PublicKeysResponse = z.infer<typeof publicKeysResponseSchema>;
@@ -406,3 +416,4 @@ export type PaymentMethodTypeFilter = z.infer<typeof PaymentMethodTypeFilterSche
 export type GetSubscriptionsQuery = z.infer<typeof GetSubscriptionsQuerySchema>;
 export type GetSubscriptionsData = z.infer<typeof GetSubscriptionsDataSchema>;
 export type GetSubscriptionsResponse = z.infer<typeof GetSubscriptionsResponseSchema>;
+export type OAuth2TokenResponse = z.infer<typeof OAuth2TokenResponseSchema>;
