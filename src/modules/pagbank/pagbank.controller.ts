@@ -370,4 +370,12 @@ export class PagbankController {
     console.log('\n\n data OAuth2 Token', data, '\n\n');
     return { data };
   }
+
+  @Post('certificates')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @AdminOnly()
+  async createCertificate(): Promise<{ data: unknown }> {
+    const data = await this.pagbankService.createCertificate();
+    return { data };
+  }
 }

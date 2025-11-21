@@ -3,6 +3,7 @@ import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
+import * as https from 'https';
 import {
   PublicKeys,
   CreatePlan,
@@ -23,7 +24,7 @@ import {
 @Injectable()
 export class PagbankService {
   private readonly logger = new Logger(PagbankService.name);
-  private readonly axiosInstance: AxiosInstance;
+  private axiosInstance: AxiosInstance;
 
   constructor() {
     const baseUrl = process.env.URL_API_PAGBANK;
@@ -33,6 +34,8 @@ export class PagbankService {
       this.logger.warn('TOKEN_TEST_PAGBANK não foi configurado nas variáveis de ambiente');
     }
 
+    const httpsAgent = this.getHttpsAgent();
+
     this.axiosInstance = axios.create({
       baseURL: baseUrl,
       headers: {
@@ -41,7 +44,35 @@ export class PagbankService {
         'content-type': 'application/json',
       },
       timeout: 60000,
+      httpsAgent,
     });
+  }
+
+  /**
+   * Configura o agente HTTPS com certificado e chave privada para mTLS
+   */
+  private getHttpsAgent(): https.Agent | undefined {
+    try {
+      const privateKeyPath = path.join(process.cwd(), 'keys/certificate/private.pem');
+      const certificatePath = path.join(process.cwd(), 'keys/certificate/certificate.pem');
+
+      if (fs.existsSync(privateKeyPath) && fs.existsSync(certificatePath)) {
+        const privateKey = fs.readFileSync(privateKeyPath, 'utf8');
+        const certificate = fs.readFileSync(certificatePath, 'utf8');
+
+        this.logger.log('Configurando mTLS com certificado e chave privada.');
+
+        return new https.Agent({
+          cert: certificate,
+          key: privateKey,
+        });
+      } else {
+        this.logger.warn(`Certificados não encontrados em: ${certificatePath} ou ${privateKeyPath}`);
+      }
+    } catch (error) {
+      this.logger.error('Erro ao configurar agente HTTPS (mTLS):', error);
+    }
+    return undefined;
   }
 
   /**
@@ -97,6 +128,7 @@ export class PagbankService {
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
+        console.log('\n\n error', error, '\n\n');
         const axiosError = error as AxiosError;
         const errorData = axiosError.response?.data;
 
@@ -292,6 +324,25 @@ export class PagbankService {
   }
 
   /**
+   * Solicita um token OAuth2 para criação de certificados no PagBank
+   * @returns Promise com a resposta da API do PagBank contendo o token e o challenge descriptografado
+   */
+  async requestOAuth2Token(): Promise<OAuth2TokenResponse> {
+    const body = {
+      grant_type: 'challenge',
+      scope: 'certificate.create',
+    };
+
+    const response = await this.request<OAuth2TokenResponse>('oauth2/token', 'POST', body);
+
+    if (response.challenge) {
+      response.decrypted_challenge = this.decryptChallenge(response.challenge);
+    }
+
+    return response;
+  }
+
+  /**
    * Descriptografa o challenge retornado pelo PagBank
    * @param encryptedChallenge - Challenge criptografado em base64
    * @returns Challenge descriptografado
@@ -324,21 +375,20 @@ export class PagbankService {
   }
 
   /**
-   * Solicita um token OAuth2 para criação de certificados no PagBank
-   * @returns Promise com a resposta da API do PagBank contendo o token e o challenge descriptografado
+   * Cria um novo certificado no PagBank
+   * @param certificateData - Dados do certificado
+   * @returns Promise com a resposta da API do PagBank
    */
-  async requestOAuth2Token(): Promise<OAuth2TokenResponse> {
-    const body = {
-      grant_type: 'challenge',
-      scope: 'certificate.create',
-    };
+  async createCertificate(): Promise<any> {
+    const tokenData = await this.requestOAuth2Token();
 
-    const response = await this.request<OAuth2TokenResponse>('oauth2/token', 'POST', body);
-
-    if (response.challenge) {
-      response.decrypted_challenge = this.decryptChallenge(response.challenge);
+    if (!tokenData.decrypted_challenge) {
+      throw new Error('Não foi possível obter o challenge descriptografado.');
     }
 
-    return response;
+    return await this.request('certificates', 'POST', null, {
+      X_CHALLENGE: tokenData.decrypted_challenge,
+      Authorization: `Bearer ${tokenData.access_token}`,
+    });
   }
 }
