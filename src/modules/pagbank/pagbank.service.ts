@@ -2,8 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as crypto from 'crypto';
 import * as https from 'https';
+import * as crypto from 'crypto';
 import {
   PublicKeys,
   CreatePlan,
@@ -19,12 +19,13 @@ import {
   GetSubscriptionsQuery,
   GetSubscriptionsData,
   OAuth2TokenResponse,
+  CertificateResponse,
 } from './schemas/pagbank.schema';
 
 @Injectable()
 export class PagbankService {
   private readonly logger = new Logger(PagbankService.name);
-  private axiosInstance: AxiosInstance;
+  private readonly axiosInstance: AxiosInstance;
 
   constructor() {
     const baseUrl = process.env.URL_API_PAGBANK;
@@ -49,28 +50,26 @@ export class PagbankService {
   }
 
   /**
-   * Configura o agente HTTPS com certificado e chave privada para mTLS
+   * Carrega o agente HTTPS com o certificado digital se existir
    */
   private getHttpsAgent(): https.Agent | undefined {
     try {
-      const privateKeyPath = path.join(process.cwd(), 'keys/certificate/private.pem');
-      const certificatePath = path.join(process.cwd(), 'keys/certificate/certificate.pem');
+      const certDir = path.join(process.cwd(), 'keys', 'certificate');
+      const certPath = path.join(certDir, 'cert.pem');
+      const keyPath = path.join(certDir, 'key.pem');
 
-      if (fs.existsSync(privateKeyPath) && fs.existsSync(certificatePath)) {
-        const privateKey = fs.readFileSync(privateKeyPath, 'utf8');
-        const certificate = fs.readFileSync(certificatePath, 'utf8');
+      if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
+        const cert = fs.readFileSync(certPath);
+        const key = fs.readFileSync(keyPath);
 
-        this.logger.log('Configurando mTLS com certificado e chave privada.');
-
+        this.logger.log('Certificado digital PagBank carregado com sucesso.');
         return new https.Agent({
-          cert: certificate,
-          key: privateKey,
+          cert,
+          key,
         });
-      } else {
-        this.logger.warn(`Certificados não encontrados em: ${certificatePath} ou ${privateKeyPath}`);
       }
     } catch (error) {
-      this.logger.error('Erro ao configurar agente HTTPS (mTLS):', error);
+      this.logger.warn('Não foi possível carregar o certificado digital do PagBank:', error);
     }
     return undefined;
   }
@@ -128,7 +127,6 @@ export class PagbankService {
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        console.log('\n\n error', error, '\n\n');
         const axiosError = error as AxiosError;
         const errorData = axiosError.response?.data;
 
@@ -376,19 +374,44 @@ export class PagbankService {
 
   /**
    * Cria um novo certificado no PagBank
-   * @param certificateData - Dados do certificado
    * @returns Promise com a resposta da API do PagBank
    */
-  async createCertificate(): Promise<any> {
+  async createCertificate(): Promise<CertificateResponse> {
     const tokenData = await this.requestOAuth2Token();
 
     if (!tokenData.decrypted_challenge) {
       throw new Error('Não foi possível obter o challenge descriptografado.');
     }
 
-    return await this.request('certificates', 'POST', null, {
+    const response = await this.request<CertificateResponse>('certificates', 'POST', null, {
       X_CHALLENGE: tokenData.decrypted_challenge,
       Authorization: `Bearer ${tokenData.access_token}`,
     });
+
+    if (response.key && response.pem) {
+      try {
+        const keyBuffer = Buffer.from(response.key, 'base64');
+        const pemBuffer = Buffer.from(response.pem, 'base64');
+        const certDir = path.join(process.cwd(), 'keys', 'certificate');
+
+        if (!fs.existsSync(certDir)) {
+          fs.mkdirSync(certDir, { recursive: true });
+        }
+
+        fs.writeFileSync(path.join(certDir, 'key.pem'), keyBuffer);
+        fs.writeFileSync(path.join(certDir, 'cert.pem'), pemBuffer);
+
+        this.logger.log(`Certificados salvos com sucesso em: ${certDir}`);
+
+        // Atualiza o agente HTTPS para usar o novo certificado nas próximas requisições
+        this.axiosInstance.defaults.httpsAgent = this.getHttpsAgent();
+      } catch (error) {
+        this.logger.error('Erro ao salvar certificados:', error);
+        // Não lançamos erro aqui para não impedir o retorno da resposta da API,
+        // mas logamos o problema.
+      }
+    }
+
+    return response;
   }
 }

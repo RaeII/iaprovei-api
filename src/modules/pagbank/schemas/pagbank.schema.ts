@@ -377,6 +377,13 @@ export const OAuth2TokenResponseSchema = z.object({
   decrypted_challenge: z.string().optional(),
 });
 
+// Schema para resposta da criação do certificado
+export const CertificateResponseSchema = z.object({
+  id: z.string(),
+  key: z.string(),
+  pem: z.string(),
+});
+
 // Type exports
 export type PublicKeys = z.infer<typeof PublicKeysSchema>;
 export type PublicKeysResponse = z.infer<typeof publicKeysResponseSchema>;
@@ -417,3 +424,4 @@ export type GetSubscriptionsQuery = z.infer<typeof GetSubscriptionsQuerySchema>;
 export type GetSubscriptionsData = z.infer<typeof GetSubscriptionsDataSchema>;
 export type GetSubscriptionsResponse = z.infer<typeof GetSubscriptionsResponseSchema>;
 export type OAuth2TokenResponse = z.infer<typeof OAuth2TokenResponseSchema>;
+export type CertificateResponse = z.infer<typeof CertificateResponseSchema>;
