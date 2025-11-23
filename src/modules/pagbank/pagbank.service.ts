@@ -58,9 +58,15 @@ export class PagbankService {
       const certPath = path.join(certDir, 'cert.pem');
       const keyPath = path.join(certDir, 'key.pem');
 
+      console.log('certPath', certPath);
+      console.log('keyPath', keyPath);
+
       if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
         const cert = fs.readFileSync(certPath);
         const key = fs.readFileSync(keyPath);
+
+        console.log('cert', cert);
+        console.log('key', key);
 
         this.logger.log('Certificado digital PagBank carregado com sucesso.');
         return new https.Agent({
@@ -127,6 +133,12 @@ export class PagbankService {
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
+        console.log('\n\n ===== STATUS =====\n', error.response?.status, '\n\n');
+        console.log('\n\n ===== STATUS TEXT =====\n', error.response?.statusText, '\n\n');
+        console.log('\n\n ===== HEADERS =====\n', error.response?.headers, '\n\n');
+        console.log('\n\n ===== CONFIG =====\n', error.response?.config, '\n\n');
+        console.log('\n\n ===== REQUEST =====\n', error.response?.request, '\n\n');
+        console.log('\n\n ===== RESPONSE ===== \n', error.response?.data, '\n\n');
         const axiosError = error as AxiosError;
         const errorData = axiosError.response?.data;
 
