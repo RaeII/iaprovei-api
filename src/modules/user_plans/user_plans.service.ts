@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, FindOptionsWhere } from 'typeorm';
+import { Repository, FindOptionsWhere, In } from 'typeorm';
 import { UserPlan as UserPlanEntity, UserPlanStatus } from '@/entities/user_plan.entity';
 import { UserPlansValidator } from '@/modules/user_plans/user_plans.validator';
 import { DataNotFoundException } from '@/common/exceptions/data-not-found.exception';
@@ -237,6 +237,14 @@ export class UserPlansService {
   async findByPagbankCustomerId(customerId: string): Promise<UserPlanListData[]> {
     return this.userPlansRepository.find({
       where: { pagbank_customer_id: customerId },
+      select: this.getUserPlanListSelectFields(),
+      order: { created_at: 'DESC' },
+    });
+  }
+
+  async findByPagbankIds(pagbankIds: string[]): Promise<UserPlanListData[]> {
+    return this.userPlansRepository.find({
+      where: { pagbank_subscriber_id: In(pagbankIds) },
       select: this.getUserPlanListSelectFields(),
       order: { created_at: 'DESC' },
     });

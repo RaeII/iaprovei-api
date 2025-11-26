@@ -183,6 +183,8 @@ export class PagbankController {
          * Se o usuário já possui um customer no PagBank, é passado o id do customer para a criação da subscription
          */
         subscriptionData.customer = { id: userPlan.pagbank_customer_id } as any;
+        subscriptionData.customer.reference_id = `${user.id}I${plan.id}`;
+        subscriptionData.reference_id = `${user.id}I${plan.id}`;
       }
 
       const data = await this.pagbankService.createSubscription(subscriptionData);
@@ -346,8 +348,20 @@ export class PagbankController {
   async getSubscriptions(
     @Query(new ZodValidationPipe(GetSubscriptionsQuerySchema)) queryParams: GetSubscriptionsQuery
   ): Promise<GetSubscriptionsResponse> {
-    const data = await this.pagbankService.getSubscriptions(queryParams);
-    return { data };
+    const pagbankSubscriptions = await this.pagbankService.getSubscriptions(queryParams);
+
+    const subscriptionIds = pagbankSubscriptions.subscriptions.map(sub => sub.id);
+
+    if (subscriptionIds.length > 0) {
+      const userPlans = await this.userPlansService.findByPagbankIds(subscriptionIds);
+
+      (pagbankSubscriptions.subscriptions as any[]).forEach(sub => {
+        const userPlan = userPlans.find(up => up.pagbank_subscriber_id === sub.id);
+        sub['system'] = userPlan || null;
+      });
+    }
+
+    return { data: pagbankSubscriptions };
   }
 
   @Get('notifications')
