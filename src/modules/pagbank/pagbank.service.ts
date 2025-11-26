@@ -101,11 +101,11 @@ export class PagbankService {
       headers: additionalHeaders,
     };
 
-    const fullUrl = `${this.axiosInstance.defaults.baseURL}${endpoint}`;
+    /* const fullUrl = `${this.axiosInstance.defaults.baseURL}${endpoint}`; */
 
     try {
       // Log da requisição
-      console.log('\n' + '='.repeat(80));
+      /* console.log('\n' + '='.repeat(80));
       console.log('📤 PAGBANK REQUEST');
       console.log('='.repeat(80));
       console.log(`Método: ${method}`);
@@ -116,45 +116,26 @@ export class PagbankService {
         console.log(JSON.stringify(body, null, 2));
       } else {
         console.log('\nPayload: {}');
-      }
-
-      console.log('='.repeat(80) + '\n');
+      } 
+        console.log('='.repeat(80) + '\n');
+      */
 
       const response = await this.axiosInstance.request<T>(config);
 
       // Log da resposta
-      console.log('\n' + '='.repeat(80));
+      /* console.log('\n' + '='.repeat(80));
       console.log('='.repeat(80));
       console.log(`Status: ${response.status} ${response.statusText}`);
       console.log('\nResposta:');
       console.log(JSON.stringify(response.data, null, 2));
-      console.log('='.repeat(80) + '\n');
+      console.log('='.repeat(80) + '\n'); */
 
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        console.log('\n\n ===== STATUS =====\n', error.response?.status, '\n\n');
-        console.log('\n\n ===== STATUS TEXT =====\n', error.response?.statusText, '\n\n');
-        console.log('\n\n ===== HEADERS =====\n', error.response?.headers, '\n\n');
-        console.log('\n\n ===== CONFIG =====\n', error.response?.config, '\n\n');
-        console.log('\n\n ===== REQUEST =====\n', error.response?.request, '\n\n');
-        console.log('\n\n ===== RESPONSE ===== \n', error.response?.data, '\n\n');
         const axiosError = error as AxiosError;
         const errorData = axiosError.response?.data;
 
-        // Log do erro
-        console.log('\n' + '='.repeat(80));
-        console.log('❌ PAGBANK ERROR');
-        console.log('='.repeat(80));
-        console.log(`Método: ${method}`);
-        console.log(`URL: ${fullUrl}`);
-
-        if (body) {
-          console.log('\n📦 Payload:');
-          console.log(JSON.stringify(body, null, 2));
-        }
-
-        console.log(`\nStatus: ${axiosError.response?.status || 'N/A'}`);
         console.log('\n📦 Erro:');
         console.log(JSON.stringify(errorData, null, 2));
         console.log('='.repeat(80) + '\n');

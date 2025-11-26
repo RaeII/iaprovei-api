@@ -147,15 +147,22 @@ export class PagbankController {
       // Remove o token do reCAPTCHA antes de processar a subscription
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { recaptcha_token, ...subscriptionData } = createSubscriptionDto;
-
+      console.log('subscriptionData id', subscriptionData.plan.id);
       // Validar se o plano existe usando o id_pagbank
-      const plan = await this.plansService.findByIdPagbank(subscriptionData.plan.id);
+      const plan = await this.plansService.findOne(Number(subscriptionData.plan.id));
       const userPlan = await this.userPlansService.findByUserId(user.id);
+
       if (!plan) {
         throw new DataNotFoundException(`Plano com ID PagBank "${subscriptionData.plan.id}" não encontrado`);
       }
 
       if (userPlan?.is_active) throw new BadRequestException('Usuário já possui um plano ativo');
+
+      /**
+       * Atualiza o id para id do plano do Pagbank
+       */
+      subscriptionData.plan.id = plan.id_pagbank;
+      console.log('subscriptionData id_pagbank', subscriptionData.plan.id);
 
       if (userPlan?.pagbank_customer_id) {
         /* 

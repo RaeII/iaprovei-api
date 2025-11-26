@@ -23,7 +23,6 @@ export const PlanDetailSchema = PlanSchema;
 // Schema para planos ativos (apenas campos essenciais)
 export const PlanActiveSchema = PlanSchema.pick({
   id: true,
-  id_pagbank: true,
   title: true,
   description: true,
   description_topics: true,

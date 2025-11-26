@@ -36,7 +36,7 @@ export class PlansService {
   async findAllActive(): Promise<PlanActive[]> {
     return this.plansRepository.find({
       where: { is_active: true },
-      select: ['id', 'id_pagbank', 'title', 'description', 'description_topics', 'price', 'is_active'],
+      select: ['id', 'title', 'description', 'description_topics', 'price', 'is_active'],
     });
   }
 

@@ -1,0 +1,7 @@
+# TESTES
+
+## plano
+PLAN_22E9F759-8C44-45F9-8E29-783387AADDD4
+TESTEHOMOLOGACAO1
+
+1 - Listar assinaturas por plano

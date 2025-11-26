@@ -332,8 +332,18 @@ export const PaymentMethodTypeFilterSchema = z.enum(['BOLETO', 'CREDIT_CARD']);
 
 export const GetSubscriptionsQuerySchema = z.object({
   reference_id: z.string().optional(),
-  status: z.array(SubscriptionStatusFilterSchema).optional(),
-  payment_method_type: z.array(PaymentMethodTypeFilterSchema).optional(),
+  status: z
+    .preprocess((val) => {
+      if (val === undefined) return undefined;
+      return Array.isArray(val) ? val : [val];
+    }, z.array(SubscriptionStatusFilterSchema).optional())
+    .optional(),
+  payment_method_type: z
+    .preprocess((val) => {
+      if (val === undefined) return undefined;
+      return Array.isArray(val) ? val : [val];
+    }, z.array(PaymentMethodTypeFilterSchema).optional())
+    .optional(),
   created_at_start: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de data inválido. Use YYYY-MM-DD')
