@@ -68,7 +68,7 @@ export const CreatePlanSchema = z.object({
   reference_id: z
     .string()
     .min(1, 'Reference ID é obrigatório')
-    .max(65, 'Reference ID deve ter no máximo 65 caracteres'),
+    .max(65, 'Reference ID deve ter no máximo 65 caracteres').optional(),
   name: z.string().min(1, 'Nome é obrigatório').max(65, 'Nome deve ter no máximo 65 caracteres'),
   description: z.string().max(250, 'Descrição deve ter no máximo 250 caracteres').optional(),
   amount: PlanAmountSchema,
@@ -84,7 +84,7 @@ export const CreatePlanSchema = z.object({
 // Schema para a resposta de criação de plano
 export const PlanResponseSchema = z.object({
   id: z.string(),
-  reference_id: z.string(),
+  reference_id: z.string().optional(),
   status: PlanStatusSchema,
   name: z.string(),
   description: z.string().optional(),
@@ -159,7 +159,7 @@ export const CreateCustomerSimpleSchema = z.object({
   reference_id: z
     .string()
     .min(1, 'Reference ID é obrigatório')
-    .max(65, 'Reference ID deve ter no máximo 65 caracteres'),
+    .max(65, 'Reference ID deve ter no máximo 65 caracteres').optional(),
   name: z.string().min(1, 'Nome é obrigatório').max(100, 'Nome deve ter no máximo 100 caracteres'),
   email: z.string().email('Email deve ter um formato válido').max(100, 'Email deve ter no máximo 100 caracteres'),
   tax_id: z.string().min(11, 'CPF deve ter pelo menos 11 caracteres').max(14, 'CPF deve ter no máximo 14 caracteres'),
@@ -179,7 +179,7 @@ export const CreateCustomerSchema = z.object({
   reference_id: z
     .string()
     .min(1, 'Reference ID é obrigatório')
-    .max(65, 'Reference ID deve ter no máximo 65 caracteres'),
+    .max(65, 'Reference ID deve ter no máximo 65 caracteres').optional(),
   name: z.string().min(1, 'Nome é obrigatório').max(100, 'Nome deve ter no máximo 100 caracteres'),
   email: z.string().email('Email deve ter um formato válido').max(100, 'Email deve ter no máximo 100 caracteres'),
   tax_id: z.string().min(11, 'CPF deve ter pelo menos 11 caracteres').max(14, 'CPF deve ter no máximo 14 caracteres'),
@@ -210,14 +210,14 @@ export const CreateSubscriptionSchema = z.object({
   reference_id: z
     .string()
     .min(1, 'Reference ID é obrigatório')
-    .max(65, 'Reference ID deve ter no máximo 65 caracteres'),
-  recaptcha_token: z.string().optional(),
+    .max(65, 'Reference ID deve ter no máximo 65 caracteres').optional(),
+  recaptcha_token: z.string(),
 });
 
 // Schema para a resposta de criação de customer
 export const CustomerResponseSchema = z.object({
   id: z.string(),
-  reference_id: z.string(),
+  reference_id: z.string().optional(),
   name: z.string(),
   email: z.string(),
   tax_id: z.string(),
@@ -296,7 +296,7 @@ export const SubscriptionCustomerResponseSchema = z.object({
 // Schema para a resposta de criação de subscription
 export const SubscriptionResponseSchema = z.object({
   id: z.string(),
-  reference_id: z.string(),
+  reference_id: z.string().optional(),
   amount: PlanAmountSchema,
   status: UserPlanStatusSchema,
   trial: SubscriptionTrialSchema.optional(),
