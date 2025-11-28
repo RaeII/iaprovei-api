@@ -26,7 +26,7 @@ import { PlansModule } from './modules/plans/plans.module';
 import { UserPlansModule } from './modules/user_plans/user_plans.module';
 import { PagbankModule } from './modules/pagbank/pagbank.module';
 import { HeartsModule } from './modules/hearts/hearts.module';
-import { CronModule } from './cron';
+//import { CronModule } from './cron';
 
 @Module({
   controllers: [GlobalOptionsController],
@@ -59,7 +59,7 @@ import { CronModule } from './cron';
     UserPlansModule,
     PagbankModule,
     HeartsModule,
-    CronModule,
+    //CronModule,
   ],
   providers: [
     OverallFilterProvider,

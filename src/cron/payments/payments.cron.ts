@@ -22,10 +22,7 @@ export class PaymentsCron implements OnModuleInit {
   async handleCron() {
     try {
         console.log('Dale cron job');
-      const subscriptions = await this.pagbankService.getSubscriptions({});
-      console.log('subscriptions', subscriptions.subscriptions?.length);
-      console.log('subscriptions', subscriptions.subscriptions[0]);
-
+      const subscriptions = await this.pagbankService.getSubscriptions({created_at_start:"2025-11-26", created_at_end:"2025-11-28"});
 
       const userPlans = await this.userPlansService.findAll({limit: 1000, page: 1})
 
@@ -34,12 +31,8 @@ export class PaymentsCron implements OnModuleInit {
       });
 
       for (const userPlan of userPlans.data) {
-        console.log('userPlan', userPlan);
 
         const subscription = subscriptions.subscriptions.find(subscription => subscription.id == userPlan.pagbank_subscriber_id);
-
-        console.log('subscription', subscription);
-        console.log('subscription reference_id', subscription?.reference_id);
         
         /* 
          1°- Plano do usuário vindo do banco é obrigatório ter um plano vindo do Pagbank
@@ -62,7 +55,10 @@ export class PaymentsCron implements OnModuleInit {
           continue;
         }
 
-        if (subscription.status != userPlan.status) {
+        if(
+          subscription.status != userPlan.status || 
+          (subscription.status != UserPlanStatusSchema.Enum.ACTIVE && !!userPlan.is_active)
+        ){
           
           /*
            2°- Se o plano atual do usuário for diferente do status da assinatura
@@ -72,6 +68,7 @@ export class PaymentsCron implements OnModuleInit {
             subscription.status == UserPlanStatusSchema.Enum.ACTIVE &&
             userPlan.status != UserPlanStatusSchema.Enum.ACTIVE
           ) {
+
             await this.userPlansService.update(userPlan.id, {
               status: UserPlanStatusSchema.Enum.ACTIVE,
               is_active: true,
@@ -83,7 +80,7 @@ export class PaymentsCron implements OnModuleInit {
               message:`Plano do usuário estava ${userPlan.status}, foi atualizado para ${subscription.status}
               UserPlan ID: ${userPlan.id}
               UserPlan User ID: ${userPlan.user_id}
-              UserPlan Plan ID: ${userPlan.plan_id}
+              Plan ID: ${userPlan.plan_id}
               UserPlan Status: ${userPlan.status}
               pagbank_subscriber_id: ${userPlan.pagbank_subscriber_id}`
             });
@@ -103,7 +100,7 @@ export class PaymentsCron implements OnModuleInit {
               message:`Plano do usuário estava **invativo** ${userPlan.status}, foi atualizado para **ativo** ${subscription.status}
               UserPlan ID: ${userPlan.id}
               UserPlan User ID: ${userPlan.user_id}
-              UserPlan Plan ID: ${userPlan.plan_id}
+              Plan ID: ${userPlan.plan_id}
               UserPlan Status: ${userPlan.status}
               pagbank_subscriber_id: ${userPlan.pagbank_subscriber_id}`
             });
@@ -154,7 +151,10 @@ export class PaymentsCron implements OnModuleInit {
              });
         }
       }
+
+      console.log('feito')
     } catch (error) {
+      console.log(error)
       error.title = 'Erro ao processar assinaturas no Pagbank';
       await this.discordLogService.cron(error)
       .catch(async (e) => {

@@ -214,7 +214,7 @@ export class UserPlansService {
   }
 
   async cancelUserPlan(id: number): Promise<UserPlanDetail> {
-    return this.update(id, { status: UserPlanStatus.CANCELLED });
+    return this.update(id, { status: UserPlanStatus.CANCELED });
   }
 
   async activateUserPlan(id: number): Promise<UserPlanDetail> {

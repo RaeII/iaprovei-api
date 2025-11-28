@@ -63,16 +63,15 @@ export class PagbankController {
     return { data };
   }
 
-  @Get('public-key')
+  /* @Get('public-key')
   @ApiResponse({ schema: publicKeysResponseOpenapi })
   async getLocalPublicKey(): Promise<PublicKeys> {
     const data = await this.pagbankService.getLocalPublicKey();
     return data;
-  }
+  } */
 
   @Get('public-keys')
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @AdminOnly()
+  @UseGuards(JwtAuthGuard)
   @ApiResponse({ schema: publicKeysResponseOpenapi })
   async GetPublicKeys(): Promise<PublicKeysResponse> {
     const data = await this.pagbankService.GetPublicKeys();
@@ -162,7 +161,8 @@ export class PagbankController {
        * Atualiza o id para id do plano do Pagbank
        */
       subscriptionData.plan.id = plan.id_pagbank;
-      console.log('subscriptionData id_pagbank', subscriptionData.plan.id);
+      subscriptionData.customer.reference_id = `${user.id}I${plan.id}`;
+      subscriptionData.reference_id = `${user.id}I${plan.id}`;
 
       if (userPlan?.pagbank_customer_id) {
         /* 
@@ -183,13 +183,9 @@ export class PagbankController {
          * Se o usuário já possui um customer no PagBank, é passado o id do customer para a criação da subscription
          */
         subscriptionData.customer = { id: userPlan.pagbank_customer_id } as any;
-        subscriptionData.customer.reference_id = `${user.id}I${plan.id}`;
-        subscriptionData.reference_id = `${user.id}I${plan.id}`;
       }
 
       const data = await this.pagbankService.createSubscription(subscriptionData);
-
-      console.log('subscriptions', data);
 
       if (!userPlan) {
         await this.userPlansService.create({
@@ -211,11 +207,12 @@ export class PagbankController {
           next_invoice_at: data.next_invoice_at,
           trial_end_at: new Date(data.trial.end_at),
         });
+      }
 
-        await this.discordLogService
-          .payment({
-            title: 'NOVO PAGAMENTO',
-            message: `
+      await this.discordLogService
+        .payment({
+          title: 'NOVO PAGAMENTO',
+          message: `
           **_ _\nUsuário:** ${user.id}
           **Nome:** ${user.username}
           **pagbank_customer_id:** ${data.customer.id}
@@ -227,12 +224,13 @@ export class PagbankController {
           **Amount:** ${data.amount.value}
           **Status:** ${data.status}
           `,
-          })
-          .catch(error => {
-            console.log('Erro ao enviar log de pagamento', error);
-          });
-      }
+        })
+        .catch(error => {
+          console.log('Erro ao enviar log de pagamento', error);
+        });
+
       return { data };
+      
     } catch (error) {
       console.log('\n\n error ao criar assinatura', error, '\n\n');
       await this.discordLogService
@@ -272,7 +270,7 @@ export class PagbankController {
       console.log('\n\n response Cancel Subscription PagBank', response, '\n\n');
 
       const data = await this.userPlansService.update(userPlan.id, {
-        status: UserPlanStatus.CANCELLED,
+        status: UserPlanStatus.CANCELED,
         is_active: false,
       });
 

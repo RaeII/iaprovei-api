@@ -29,16 +29,14 @@ export class PlansController {
   ) {}
 
   @Get()
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @AdminOnly()
+  @UseGuards(JwtAuthGuard)
   @ApiResponse({ schema: planListResponseOpenapi })
   async findAll(): Promise<PlanListResponse> {
     return { data: await this.plansService.findAll() };
   }
 
   @Get('active')
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @AdminOnly()
+  @UseGuards(JwtAuthGuard)
   @ApiResponse({ schema: planListResponseOpenapi })
   async findAllActive(): Promise<PlanListResponse> {
     return { data: await this.plansService.findAllActive() };

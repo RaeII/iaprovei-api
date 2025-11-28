@@ -7,7 +7,7 @@ export const UserPlanStatusSchema = z.enum([
   'ACTIVE',
   'INACTIVE',
   'OVERDUE',
-  'CANCELLED',
+  'CANCELED',
   'PENDING_ACTION',
   'EXPIRED',
   'PENDING',

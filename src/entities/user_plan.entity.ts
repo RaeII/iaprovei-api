@@ -15,7 +15,7 @@ export enum UserPlanStatus {
   ACTIVE = 'ACTIVE',
   INACTIVE = 'INACTIVE',
   OVERDUE = 'OVERDUE', // Atrasado
-  CANCELLED = 'CANCELLED', // Cancelado
+  CANCELED = 'CANCELED', // Cancelado
   PENDING_ACTION = 'PENDING_ACTION', // Aguardando ação do usuário
   EXPIRED = 'EXPIRED', // assinatura chegou ao fim.
   PENDING = 'PENDING', // Aguardando pagamento
