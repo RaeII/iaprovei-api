@@ -8,7 +8,8 @@ export class DiscordLogService {
     this.urlWebhookDiscord = new Map()
       .set('payment', process.env.WEBHOOK_PAYMENT_DISCORD)
       .set('cancellation', process.env.WEBHOOK_CANCELLATION_DISCORD)
-      .set('error', process.env.WEBHOOK_ERROR_DISCORD);
+      .set('error', process.env.WEBHOOK_ERROR_DISCORD)
+      .set('cron', process.env.WEBHOOK_CRON_DISCORD);
   }
 
   maxLength = (str: string, length = 1020) => {
@@ -145,6 +146,19 @@ export class DiscordLogService {
       EmbedTitle: 'ERRO',
       title: e?.title || 'ERRO',
       userName: 'error',
+      field: [],
+    };
+
+    fields.field = await this.field(e);
+
+    await this.sendDiscord(fields);
+  };
+
+  cron = async (e: any) => {
+    const fields = {
+      EmbedTitle: 'CRON',
+      title: e?.title || 'Cron',
+      userName: 'cron',
       field: [],
     };
 

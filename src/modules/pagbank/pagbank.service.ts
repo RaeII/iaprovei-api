@@ -58,15 +58,9 @@ export class PagbankService {
       const certPath = path.join(certDir, 'cert.pem');
       const keyPath = path.join(certDir, 'key.pem');
 
-      console.log('certPath', certPath);
-      console.log('keyPath', keyPath);
-
       if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
         const cert = fs.readFileSync(certPath);
         const key = fs.readFileSync(keyPath);
-
-        console.log('cert', cert);
-        console.log('key', key);
 
         this.logger.log('Certificado digital PagBank carregado com sucesso.');
         return new https.Agent({
@@ -101,34 +95,9 @@ export class PagbankService {
       headers: additionalHeaders,
     };
 
-    /* const fullUrl = `${this.axiosInstance.defaults.baseURL}${endpoint}`; */
-
     try {
-      // Log da requisição
-      /* console.log('\n' + '='.repeat(80));
-      console.log('📤 PAGBANK REQUEST');
-      console.log('='.repeat(80));
-      console.log(`Método: ${method}`);
-      console.log(`URL: ${fullUrl}`);
-
-      if (body) {
-        console.log('\nPayload:');
-        console.log(JSON.stringify(body, null, 2));
-      } else {
-        console.log('\nPayload: {}');
-      } 
-        console.log('='.repeat(80) + '\n');
-      */
 
       const response = await this.axiosInstance.request<T>(config);
-
-      // Log da resposta
-      /* console.log('\n' + '='.repeat(80));
-      console.log('='.repeat(80));
-      console.log(`Status: ${response.status} ${response.statusText}`);
-      console.log('\nResposta:');
-      console.log(JSON.stringify(response.data, null, 2));
-      console.log('='.repeat(80) + '\n'); */
 
       return response.data;
     } catch (error) {

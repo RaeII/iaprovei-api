@@ -103,7 +103,7 @@ export class UserPlansService {
 
     // Get total count and paginated results
     const [data, total] = await Promise.all([
-      queryBuilder.orderBy('user_plan.created_at', 'DESC').skip(offset).take(limit).getRawMany(),
+      queryBuilder.orderBy('user_plan.created_at', 'DESC').skip(offset).take(limit).getMany(),
       queryBuilder.getCount(),
     ]);
 
