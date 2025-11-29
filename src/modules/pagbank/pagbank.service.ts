@@ -20,6 +20,8 @@ import {
   GetSubscriptionsData,
   OAuth2TokenResponse,
   CertificateResponse,
+  UpdatePreferencesRetries,
+  PreferencesRetriesResponse,
 } from './schemas/pagbank.schema';
 
 @Injectable()
@@ -202,6 +204,23 @@ export class PagbankService {
    */
   async updateNotifications(notificationData: UpdateNotifications): Promise<unknown> {
     return await this.request('preferences/notifications', 'PUT', notificationData);
+  }
+
+  /**
+   * Obtém as configurações de retentativas no PagBank
+   * @returns Promise com a resposta da API do PagBank
+   */
+  async getPreferencesRetries(): Promise<PreferencesRetriesResponse> {
+    return await this.request('preferences/retries', 'GET');
+  }
+
+  /**
+   * Atualiza as configurações de retentativas no PagBank
+   * @param preferencesData - Dados das preferências a serem atualizadas
+   * @returns Promise com a resposta da API do PagBank
+   */
+  async updatePreferencesRetries(preferencesData: UpdatePreferencesRetries): Promise<unknown> {
+    return await this.request('preferences/retries', 'PUT', preferencesData);
   }
 
   /**

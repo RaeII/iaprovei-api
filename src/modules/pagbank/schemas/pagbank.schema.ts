@@ -394,6 +394,27 @@ export const CertificateResponseSchema = z.object({
   pem: z.string(),
 });
 
+// Schema para atualização de preferências de retentativas
+export const RetryValueSchema = z.enum(['1', '3', '5', '7']);
+export const FinallyActionSchema = z.enum(['CANCEL', 'SUSPEND']);
+
+export const UpdatePreferencesRetriesSchema = z.object({
+  first_try: RetryValueSchema,
+  second_try: RetryValueSchema,
+  third_try: RetryValueSchema,
+  finally: FinallyActionSchema,
+});
+
+export const PreferencesRetriesResponseSchema = z.object({
+  first_try: z.number(),
+  second_try: z.number(),
+  third_try: z.number(),
+  finally: z.string(),
+});
+
+export const updatePreferencesRetriesOpenapi: any = zodToOpenAPI(UpdatePreferencesRetriesSchema);
+export const getPreferencesRetriesResponseOpenapi: any = zodToOpenAPI(z.object({ data: PreferencesRetriesResponseSchema }));
+
 // Type exports
 export type PublicKeys = z.infer<typeof PublicKeysSchema>;
 export type PublicKeysResponse = z.infer<typeof publicKeysResponseSchema>;
@@ -435,3 +456,5 @@ export type GetSubscriptionsData = z.infer<typeof GetSubscriptionsDataSchema>;
 export type GetSubscriptionsResponse = z.infer<typeof GetSubscriptionsResponseSchema>;
 export type OAuth2TokenResponse = z.infer<typeof OAuth2TokenResponseSchema>;
 export type CertificateResponse = z.infer<typeof CertificateResponseSchema>;
+export type UpdatePreferencesRetries = z.infer<typeof UpdatePreferencesRetriesSchema>;
+export type PreferencesRetriesResponse = z.infer<typeof PreferencesRetriesResponseSchema>;

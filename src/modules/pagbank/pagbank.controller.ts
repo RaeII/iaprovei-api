@@ -28,6 +28,11 @@ import {
   createCustomerSimpleOpenapi,
   createCustomerResponseOpenapi,
   PublicKeys,
+  UpdatePreferencesRetries,
+  UpdatePreferencesRetriesSchema,
+  updatePreferencesRetriesOpenapi,
+  PreferencesRetriesResponse,
+  getPreferencesRetriesResponseOpenapi,
 } from './schemas/pagbank.schema';
 import { UserBasicInfo } from '@/modules/user/schemas/user.schema';
 import { ApiBearerAuth, ApiResponse, ApiBody, ApiParam, ApiQuery } from '@nestjs/swagger';
@@ -378,6 +383,26 @@ export class PagbankController {
     @Body(new ZodValidationPipe(UpdateNotificationsSchema)) updateNotificationsDto: UpdateNotifications
   ): Promise<{ data: unknown }> {
     const data = await this.pagbankService.updateNotifications(updateNotificationsDto);
+    return { data };
+  }
+
+  @Get('preferences/retries')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @AdminOnly()
+  @ApiResponse({ schema: getPreferencesRetriesResponseOpenapi })
+  async getPreferencesRetries(): Promise<{ data: PreferencesRetriesResponse }> {
+    const data = await this.pagbankService.getPreferencesRetries();
+    return { data };
+  }
+
+  @Put('preferences/retries')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @AdminOnly()
+  @ApiBody({ schema: updatePreferencesRetriesOpenapi })
+  async updatePreferencesRetries(
+    @Body(new ZodValidationPipe(UpdatePreferencesRetriesSchema)) updatePreferencesRetriesDto: UpdatePreferencesRetries
+  ): Promise<{ data: unknown }> {
+    const data = await this.pagbankService.updatePreferencesRetries(updatePreferencesRetriesDto);
     return { data };
   }
 
