@@ -33,6 +33,8 @@ export class PaymentsCron implements OnModuleInit {
       for (const userPlan of userPlans.data) {
 
         const subscription = subscriptions.subscriptions.find(subscription => subscription.id == userPlan.pagbank_subscriber_id);
+
+        console.log("\n=== subscription ===\n",subscription,"\n===  ===\n");
         
         /* 
          1°- Plano do usuário vindo do banco é obrigatório ter um plano vindo do Pagbank
@@ -57,17 +59,20 @@ export class PaymentsCron implements OnModuleInit {
 
         if(
           subscription.status != userPlan.status || 
-          (subscription.status != UserPlanStatusSchema.Enum.ACTIVE && !!userPlan.is_active)
+          (subscription.status != UserPlanStatusSchema.Enum.ACTIVE && !!userPlan.is_active) || 
+          (subscription.status == UserPlanStatusSchema.Enum.ACTIVE && !userPlan.is_active)
         ){
+
+          console.log("foi")
           
           /*
            2°- Se o plano atual do usuário for diferente do status da assinatura
            e a assinatura for ativa, atualiza o status do plano para ativo caso o plano esteje desativo ou em teste
           */
-          if (
+          if(
             subscription.status == UserPlanStatusSchema.Enum.ACTIVE &&
-            userPlan.status != UserPlanStatusSchema.Enum.ACTIVE
-          ) {
+            (userPlan.status != UserPlanStatusSchema.Enum.ACTIVE || !userPlan.is_active)
+          ){
 
             await this.userPlansService.update(userPlan.id, {
               status: UserPlanStatusSchema.Enum.ACTIVE,
@@ -77,7 +82,7 @@ export class PaymentsCron implements OnModuleInit {
 
             await this.discordLogService.cron({
               title: `Plano do usuário atualizado para ${subscription.status}`,
-              message:`Plano do usuário estava ${userPlan.status}, foi atualizado para ${subscription.status}
+              message:`Plano do usuário estava ${userPlan.status}, is_active: ${userPlan.is_active}, foi atualizado para ${subscription.status}
               UserPlan ID: ${userPlan.id}
               UserPlan User ID: ${userPlan.user_id}
               Plan ID: ${userPlan.plan_id}
@@ -111,12 +116,11 @@ export class PaymentsCron implements OnModuleInit {
            O pagamento não está ocorrendo, assim o plano do usuário é desativado e atualizado com o status do pagbank
           */
           }else if(
-            subscription.status != UserPlanStatusSchema.Enum.TRIAL &&
-            subscription.status != UserPlanStatusSchema.Enum.ACTIVE &&
+            subscription.status == UserPlanStatusSchema.Enum.CANCELED &&
             !!userPlan.is_active
           ){
             await this.userPlansService.update(userPlan.id, {
-              status: subscription.status,
+              status: UserPlanStatusSchema.Enum.CANCELED,
               is_active: false,
               next_invoice_at: subscription.next_invoice_at
             });
