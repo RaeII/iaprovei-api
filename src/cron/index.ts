@@ -7,6 +7,6 @@ import { DiscordLogService } from '@/shared/services/discord-log.service';
 
 @Module({
   imports: [ScheduleModule.forRoot(), PagbankModule, UserPlansModule],
-  providers: [PaymentsCron,DiscordLogService],
+  providers: [PaymentsCron, DiscordLogService],
 })
 export class CronModule {}
