@@ -18,6 +18,10 @@ import {
   UpdateCustomerBillingInfo,
   GetSubscriptionsQuery,
   GetSubscriptionsData,
+  GetPaymentsQuery,
+  GetPaymentsData,
+  CreateRefund,
+  RefundResponse,
   OAuth2TokenResponse,
   CertificateResponse,
   UpdatePreferencesRetries,
@@ -98,7 +102,6 @@ export class PagbankService {
     };
 
     try {
-
       const response = await this.axiosInstance.request<T>(config);
 
       return response.data;
@@ -190,6 +193,15 @@ export class PagbankService {
   }
 
   /**
+   * Realiza uma nova tentativa de cobrança para uma assinatura
+   * @param subscriberId - ID do assinante (subscriber)
+   * @returns Promise com a resposta da API do PagBank
+   */
+  async retrySubscription(subscriberId: string): Promise<unknown> {
+    return await this.request(`subscriptions/${subscriberId}/retry`, 'PUT');
+  }
+
+  /**
    * Obtém as configurações de notificações no PagBank
    * @returns Promise com a resposta da API do PagBank
    */
@@ -269,6 +281,58 @@ export class PagbankService {
     const endpoint = queryString ? `subscriptions?${queryString}` : 'subscriptions';
 
     return await this.request<GetSubscriptionsData>(endpoint, 'GET');
+  }
+
+  /**
+   * Busca payments (pagamentos) do PagBank com filtros opcionais
+   * @param queryParams - Parâmetros de filtro para a busca
+   * @returns Promise com a lista de payments filtrados
+   */
+  async getPayments(queryParams: GetPaymentsQuery): Promise<GetPaymentsData> {
+    const params = new URLSearchParams();
+
+    if (queryParams.offset !== undefined) {
+      params.append('offset', queryParams.offset.toString());
+    }
+
+    if (queryParams.limit !== undefined) {
+      params.append('limit', queryParams.limit.toString());
+    }
+
+    if (queryParams.status && queryParams.status.length > 0) {
+      queryParams.status.forEach(status => {
+        params.append('status', status);
+      });
+    }
+
+    if (queryParams.payment_method_type && queryParams.payment_method_type.length > 0) {
+      queryParams.payment_method_type.forEach(type => {
+        params.append('payment_method_type', type);
+      });
+    }
+
+    if (queryParams.created_at_start) {
+      params.append('created_at_start', queryParams.created_at_start);
+    }
+
+    if (queryParams.created_at_end) {
+      params.append('created_at_end', queryParams.created_at_end);
+    }
+
+    const queryString = params.toString();
+    const endpoint = queryString ? `payments?${queryString}` : 'payments';
+
+    return await this.request<GetPaymentsData>(endpoint, 'GET');
+  }
+
+  /**
+   * Cria um estorno (refund) para um pagamento específico no PagBank
+   * @param paymentId - ID do pagamento a ser estornado
+   * @param refundData - Dados do estorno (valor e moeda)
+   * @returns Promise com os dados do estorno criado
+   */
+  async createRefund(paymentId: string, refundData: CreateRefund): Promise<RefundResponse> {
+    return await this.request<RefundResponse>(`payments/${paymentId}/refunds`, 'POST', refundData);
   }
 
   /**

@@ -3,6 +3,11 @@ import { z } from 'zod';
 import { UserPlanStatusSchema } from '@/modules/user_plans/schemas/user_plan.schema';
 
 // Enums para os schemas
+export enum PlanId {
+  PLAN_PRO = 1,
+  PLAN_NO_TRIAL = 2,
+}
+
 export const IntervalUnitSchema = z.enum(['DAY', 'MONTH', 'YEAR']);
 export const PaymentMethodSchema = z.enum(['CREDIT_CARD', 'DEBIT_CARD', 'PIX', 'BOLETO']);
 export const PlanStatusSchema = z.enum(['ACTIVE', 'INACTIVE']);
@@ -68,7 +73,8 @@ export const CreatePlanSchema = z.object({
   reference_id: z
     .string()
     .min(1, 'Reference ID é obrigatório')
-    .max(65, 'Reference ID deve ter no máximo 65 caracteres').optional(),
+    .max(65, 'Reference ID deve ter no máximo 65 caracteres')
+    .optional(),
   name: z.string().min(1, 'Nome é obrigatório').max(65, 'Nome deve ter no máximo 65 caracteres'),
   description: z.string().max(250, 'Descrição deve ter no máximo 250 caracteres').optional(),
   amount: PlanAmountSchema,
@@ -159,7 +165,8 @@ export const CreateCustomerSimpleSchema = z.object({
   reference_id: z
     .string()
     .min(1, 'Reference ID é obrigatório')
-    .max(65, 'Reference ID deve ter no máximo 65 caracteres').optional(),
+    .max(65, 'Reference ID deve ter no máximo 65 caracteres')
+    .optional(),
   name: z.string().min(1, 'Nome é obrigatório').max(100, 'Nome deve ter no máximo 100 caracteres'),
   email: z.string().email('Email deve ter um formato válido').max(100, 'Email deve ter no máximo 100 caracteres'),
   tax_id: z.string().min(11, 'CPF deve ter pelo menos 11 caracteres').max(14, 'CPF deve ter no máximo 14 caracteres'),
@@ -179,7 +186,8 @@ export const CreateCustomerSchema = z.object({
   reference_id: z
     .string()
     .min(1, 'Reference ID é obrigatório')
-    .max(65, 'Reference ID deve ter no máximo 65 caracteres').optional(),
+    .max(65, 'Reference ID deve ter no máximo 65 caracteres')
+    .optional(),
   name: z.string().min(1, 'Nome é obrigatório').max(100, 'Nome deve ter no máximo 100 caracteres'),
   email: z.string().email('Email deve ter um formato válido').max(100, 'Email deve ter no máximo 100 caracteres'),
   tax_id: z.string().min(11, 'CPF deve ter pelo menos 11 caracteres').max(14, 'CPF deve ter no máximo 14 caracteres'),
@@ -210,7 +218,8 @@ export const CreateSubscriptionSchema = z.object({
   reference_id: z
     .string()
     .min(1, 'Reference ID é obrigatório')
-    .max(65, 'Reference ID deve ter no máximo 65 caracteres').optional(),
+    .max(65, 'Reference ID deve ter no máximo 65 caracteres')
+    .optional(),
   recaptcha_token: z.string(),
 });
 
@@ -328,18 +337,173 @@ export const SubscriptionStatusFilterSchema = z.enum([
   'PENDING_ACTION',
 ]);
 
+export const PlanIdFilterSchema = z.nativeEnum(PlanId);
+
 export const PaymentMethodTypeFilterSchema = z.enum(['BOLETO', 'CREDIT_CARD']);
+
+// Schema para filtros de busca de payments
+export const PaymentStatusFilterSchema = z.enum(['APPROVED', 'DENIED', 'IN_ANALYSIS', 'PENDING', 'REFUNDED', 'UNPAID']);
+
+export const GetPaymentsQuerySchema = z.object({
+  offset: z
+    .preprocess(val => (val !== undefined ? Number(val) : undefined), z.number().int().min(0).optional())
+    .optional(),
+  limit: z
+    .preprocess(val => (val !== undefined ? Number(val) : 100), z.number().int().min(1).max(1000).default(100))
+    .optional(),
+  status: z
+    .preprocess(val => {
+      if (val === undefined) return undefined;
+      return Array.isArray(val) ? val : [val];
+    }, z.array(PaymentStatusFilterSchema).optional())
+    .optional(),
+  payment_method_type: z
+    .preprocess(val => {
+      if (val === undefined) return undefined;
+      return Array.isArray(val) ? val : [val];
+    }, z.array(PaymentMethodTypeFilterSchema).optional())
+    .optional(),
+  created_at_start: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de data inválido. Use YYYY-MM-DD')
+    .optional(),
+  created_at_end: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de data inválido. Use YYYY-MM-DD')
+    .optional(),
+});
+
+// Schema para result_set de payments (inclui datas de filtro)
+export const PaymentsResultSetSchema = z.object({
+  total: z.number().int(),
+  offset: z.number().int(),
+  limit: z.number().int(),
+  created_at_start: z.string().optional(),
+  created_at_end: z.string().optional(),
+});
+
+// Schema para amount no payment
+export const PaymentAmountSchema = z.object({
+  value: z.number(),
+  currency: z.string(),
+});
+
+// Schema para invoice no payment
+export const PaymentInvoiceSchema = z.object({
+  id: z.string(),
+  amount: PaymentAmountSchema,
+});
+
+// Schema para customer no payment
+export const PaymentCustomerSchema = z.object({
+  id: z.string(),
+  name: z.string().optional(),
+  email: z.string().optional(),
+});
+
+// Schema para card no payment method
+export const PaymentCardSchema = z.object({
+  token: z.string().optional(),
+  brand: z.string().optional(),
+  first_digits: z.string().optional(),
+  last_digits: z.string().optional(),
+  exp_month: z.string().optional(),
+  exp_year: z.string().optional(),
+  holder: z
+    .object({
+      name: z.string().optional(),
+    })
+    .optional(),
+});
+
+// Schema para payment method no payment
+export const PaymentPaymentMethodSchema = z.object({
+  type: z.string(),
+  card: PaymentCardSchema.optional(),
+  boleto: z
+    .object({
+      due_date: z.string().optional(),
+      barcode: z.string().optional(),
+      formatted_barcode: z.string().optional(),
+    })
+    .optional(),
+});
+
+// Schema para provider no payment
+export const PaymentProviderSchema = z.object({
+  name: z.string().optional(),
+  transaction_id: z.string().optional(),
+  code: z.string().optional(),
+  message: z.string().optional(),
+  reference: z.string().optional(),
+});
+
+// Schema para payment item
+export const PaymentItemSchema = z.object({
+  id: z.string(),
+  invoice: PaymentInvoiceSchema.optional(),
+  created_at: z.string(),
+  updated_at: z.string().optional(),
+  customer: PaymentCustomerSchema.optional(),
+  payment_method: PaymentPaymentMethodSchema.optional(),
+  status: z.string(),
+  provider: PaymentProviderSchema.optional(),
+  links: z.array(PlanLinkSchema).optional(),
+});
+
+// Schema para a resposta da listagem de payments
+export const GetPaymentsDataSchema = z.object({
+  result_set: PaymentsResultSetSchema,
+  payments: z.array(PaymentItemSchema),
+});
+
+export const GetPaymentsResponseSchema = z.object({
+  data: GetPaymentsDataSchema,
+});
+
+export const getPaymentsQueryOpenapi: any = zodToOpenAPI(GetPaymentsQuerySchema);
+export const getPaymentsResponseOpenapi: any = zodToOpenAPI(GetPaymentsResponseSchema);
+
+// Schema para o amount do refund
+export const RefundAmountSchema = z.object({
+  value: z.number().int().positive('Valor deve ser positivo').max(999999999, 'Valor deve ter no máximo 9 caracteres'),
+  currency: z.literal('BRL'),
+});
+
+// Schema para criar um refund (estorno)
+export const CreateRefundSchema = z.object({
+  amount: RefundAmountSchema,
+});
+
+// Schema para a resposta de refund
+export const RefundResponseSchema = z.object({
+  id: z.string(),
+  status: z.string(),
+  amount: z.object({
+    value: z.number(),
+    currency: z.string(),
+  }),
+  created_at: z.string(),
+  links: z.array(PlanLinkSchema).optional(),
+});
+
+export const CreateRefundResponseSchema = z.object({
+  data: RefundResponseSchema,
+});
+
+export const createRefundOpenapi: any = zodToOpenAPI(CreateRefundSchema);
+export const createRefundResponseOpenapi: any = zodToOpenAPI(CreateRefundResponseSchema);
 
 export const GetSubscriptionsQuerySchema = z.object({
   reference_id: z.string().optional(),
   status: z
-    .preprocess((val) => {
+    .preprocess(val => {
       if (val === undefined) return undefined;
       return Array.isArray(val) ? val : [val];
     }, z.array(SubscriptionStatusFilterSchema).optional())
     .optional(),
   payment_method_type: z
-    .preprocess((val) => {
+    .preprocess(val => {
       if (val === undefined) return undefined;
       return Array.isArray(val) ? val : [val];
     }, z.array(PaymentMethodTypeFilterSchema).optional())
@@ -413,7 +577,9 @@ export const PreferencesRetriesResponseSchema = z.object({
 });
 
 export const updatePreferencesRetriesOpenapi: any = zodToOpenAPI(UpdatePreferencesRetriesSchema);
-export const getPreferencesRetriesResponseOpenapi: any = zodToOpenAPI(z.object({ data: PreferencesRetriesResponseSchema }));
+export const getPreferencesRetriesResponseOpenapi: any = zodToOpenAPI(
+  z.object({ data: PreferencesRetriesResponseSchema })
+);
 
 // Type exports
 export type PublicKeys = z.infer<typeof PublicKeysSchema>;
@@ -458,3 +624,19 @@ export type OAuth2TokenResponse = z.infer<typeof OAuth2TokenResponseSchema>;
 export type CertificateResponse = z.infer<typeof CertificateResponseSchema>;
 export type UpdatePreferencesRetries = z.infer<typeof UpdatePreferencesRetriesSchema>;
 export type PreferencesRetriesResponse = z.infer<typeof PreferencesRetriesResponseSchema>;
+export type PaymentStatusFilter = z.infer<typeof PaymentStatusFilterSchema>;
+export type GetPaymentsQuery = z.infer<typeof GetPaymentsQuerySchema>;
+export type PaymentsResultSet = z.infer<typeof PaymentsResultSetSchema>;
+export type PaymentAmount = z.infer<typeof PaymentAmountSchema>;
+export type PaymentInvoice = z.infer<typeof PaymentInvoiceSchema>;
+export type PaymentCustomer = z.infer<typeof PaymentCustomerSchema>;
+export type PaymentCard = z.infer<typeof PaymentCardSchema>;
+export type PaymentPaymentMethod = z.infer<typeof PaymentPaymentMethodSchema>;
+export type PaymentProvider = z.infer<typeof PaymentProviderSchema>;
+export type PaymentItem = z.infer<typeof PaymentItemSchema>;
+export type GetPaymentsData = z.infer<typeof GetPaymentsDataSchema>;
+export type GetPaymentsResponse = z.infer<typeof GetPaymentsResponseSchema>;
+export type RefundAmount = z.infer<typeof RefundAmountSchema>;
+export type CreateRefund = z.infer<typeof CreateRefundSchema>;
+export type RefundResponse = z.infer<typeof RefundResponseSchema>;
+export type CreateRefundResponse = z.infer<typeof CreateRefundResponseSchema>;

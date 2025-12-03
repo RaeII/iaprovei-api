@@ -3,7 +3,7 @@ import { CronRunnerModule } from './cron/cron-runner.module';
 
 async function bootstrap() {
   await NestFactory.createApplicationContext(CronRunnerModule, {
-    logger: ['log', 'warn', 'error', 'fatal', 'verbose', 'debug'],
+    logger: ['error'],
   });
 
   // Keep the process alived

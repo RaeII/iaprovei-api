@@ -36,26 +36,44 @@ Doc webhook -> https://developer.pagbank.com.br/reference/webhooks-assinaturas
 # Criar plano
 
 {
-  "reference_id": "TESTEHOMOLOGACAO1",
+  "reference_id": "ProSemTeste",
   "name": "iaProvei Pro",
   "description": "Plano Pro, acesso à todos módulos de estudo e vida infinitas",
   "amount": {
-    "value": 2999,
+    "value": 2990,
     "currency": "BRL"
   },
   "interval": {
     "unit": "MONTH",
     "length": 1
   },
-  "trial": {
-    "days": 3,
-    "enabled": true,
-    "hold_setup_fee": true
-  },
   "payment_method": [
     "CREDIT_CARD"
   ],
   "editable": true
+}
+
+{
+    "reference_id": "Pro2990",
+    "name": "iaProvei Pro",
+    "description": "Plano Pro, acesso à todos módulos de estudo e vida infinitas",
+    "amount": {
+      "value": 2990,
+      "currency": "BRL"
+    },
+    "interval": {
+      "length": 1,
+      "unit": "MONTH"
+    },
+    "trial": {
+      "days": 3,
+      "enabled": true,
+      "hold_setup_fee": true
+    },
+    "payment_method": [
+      "CREDIT_CARD"
+    ],
+    "editable": true
 }
 
 Resposta:
@@ -67,11 +85,11 @@ Resposta:
     "name": "iaProvei Pro",
     "description": "Plano Pro, acesso à todos módulos de estudo e vida infinitas",
     "amount": {
-      "value": 2999,
+      "value": 2990,
       "currency": "BRL"
     },
     "interval": {
-      "length": 12,
+      "length": 1,
       "unit": "MONTH"
     },
     "trial": {

@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
+//import { Cron } from '@nestjs/schedule';
 import { PagbankService } from '@/modules/pagbank/pagbank.service';
 import { UserPlansService } from '@/modules/user_plans/user_plans.service';
 import { UserPlanStatusSchema } from '@/modules/user_plans/schemas/user_plan.schema';
@@ -17,14 +17,11 @@ export class PaymentsCron implements OnModuleInit {
     await this.handleCron();
   }
 
-  @Cron('0 */2 * * * *')
+  //@Cron('0 */2 * * * *')
   async handleCron() {
     try {
       console.log('Dale cron job');
-      const subscriptions = await this.pagbankService.getSubscriptions({
-        created_at_start: '2025-11-26',
-        created_at_end: '2025-11-28',
-      });
+      const subscriptions = await this.pagbankService.getSubscriptions({});
 
       const userPlans = await this.userPlansService.findAll({ limit: 1000, page: 1 });
 
@@ -42,7 +39,7 @@ export class PaymentsCron implements OnModuleInit {
          */
         if (!subscription) {
           await this.userPlansService.update(userPlan.id, {
-            status: UserPlanStatusSchema.Enum.INACTIVE,
+            status: UserPlanStatusSchema.Enum.CANCELED,
             is_active: false,
             next_invoice_at: null,
           });
@@ -86,11 +83,10 @@ export class PaymentsCron implements OnModuleInit {
               UserPlan Status: ${userPlan.status}
               pagbank_subscriber_id: ${userPlan.pagbank_subscriber_id}`,
             });
-
+          } else if (!userPlan.is_active && subscription.status == UserPlanStatusSchema.Enum.ACTIVE) {
             /**
              * 3°- Se o plano do usuário não estiver ativo e a assinatura for ativa
              */
-          } else if (!userPlan.is_active && subscription.status == UserPlanStatusSchema.Enum.ACTIVE) {
             await this.userPlansService.update(userPlan.id, {
               status: UserPlanStatusSchema.Enum.ACTIVE,
               is_active: true,
@@ -106,12 +102,37 @@ export class PaymentsCron implements OnModuleInit {
               UserPlan Status: ${userPlan.status}
               pagbank_subscriber_id: ${userPlan.pagbank_subscriber_id}`,
             });
-
+            /** ======================================================== */
+          } else if (
+            subscription.status != UserPlanStatusSchema.Enum.CANCELED &&
+            subscription.status != UserPlanStatusSchema.Enum.ACTIVE &&
+            subscription.status != UserPlanStatusSchema.Enum.INACTIVE &&
+            subscription.status != UserPlanStatusSchema.Enum.TRIAL &&
+            !!userPlan.is_active
+          ) {
             /* 
-           4°- Se o plano do usuário não estiver ativo e não tiver no periodo de teste
-           O pagamento não está ocorrendo, assim o plano do usuário é desativado e atualizado com o status do pagbank
-          */
+              4°- Se o plano do usuário não estiver ativo e a assinatura for cancelada
+              O pagamento não está ocorrendo, assim o plano do usuário é desativado e atualizado com o status do pagbank
+            */
+            await this.userPlansService.update(userPlan.id, {
+              status: subscription.status,
+              is_active: false,
+            });
+
+            await this.discordLogService.cron({
+              title: `Plano do usuário atualizado para ${subscription.status}`,
+              message: `Plano do usuário estava ${userPlan.status}, foi atualizado para **${subscription.status}
+              UserPlan ID: ${userPlan.id}**
+              UserPlan User ID: ${userPlan.user_id}
+              UserPlan Plan ID: ${userPlan.plan_id}
+              UserPlan Status: ${userPlan.status}
+              pagbank_subscriber_id: ${userPlan.pagbank_subscriber_id}`,
+            });
           } else if (subscription.status == UserPlanStatusSchema.Enum.CANCELED && !!userPlan.is_active) {
+            /* 
+              5°- Se o plano do usuário não estiver ativo e não tiver no periodo de teste
+              O pagamento não está ocorrendo, assim o plano do usuário é desativado e atualizado com o status do pagbank
+            */
             await this.userPlansService.update(userPlan.id, {
               status: UserPlanStatusSchema.Enum.CANCELED,
               is_active: false,

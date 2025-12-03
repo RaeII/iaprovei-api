@@ -22,17 +22,26 @@ import {
   GetSubscriptionsResponse,
   GetSubscriptionsQuerySchema,
   getSubscriptionsResponseOpenapi,
+  GetPaymentsQuery,
+  GetPaymentsResponse,
+  GetPaymentsQuerySchema,
+  getPaymentsResponseOpenapi,
+  CreateRefund,
+  CreateRefundResponse,
+  CreateRefundSchema,
+  createRefundOpenapi,
+  createRefundResponseOpenapi,
   CreateCustomerSimple,
   CreateCustomerResponse,
   CreateCustomerSimpleSchema,
   createCustomerSimpleOpenapi,
   createCustomerResponseOpenapi,
-  PublicKeys,
   UpdatePreferencesRetries,
   UpdatePreferencesRetriesSchema,
   updatePreferencesRetriesOpenapi,
   PreferencesRetriesResponse,
   getPreferencesRetriesResponseOpenapi,
+  PlanId,
 } from './schemas/pagbank.schema';
 import { UserBasicInfo } from '@/modules/user/schemas/user.schema';
 import { ApiBearerAuth, ApiResponse, ApiBody, ApiParam, ApiQuery } from '@nestjs/swagger';
@@ -44,7 +53,7 @@ import { PlansService } from '@/modules/plans/plans.service';
 import { UserPlansService } from '@/modules/user_plans/user_plans.service';
 import { DataNotFoundException } from '@/common/exceptions/data-not-found.exception';
 import { UserPlanStatus } from '@/entities/user_plan.entity';
-import { UserPlanDetail } from '@/modules/user_plans/schemas/user_plan.schema';
+import { UserPlanDetail, UserPlanStatusSchema } from '@/modules/user_plans/schemas/user_plan.schema';
 import { DiscordLogService } from '@/shared/services/discord-log.service';
 import { RecaptchaService } from '@/shared/services/recaptcha.service';
 
@@ -153,8 +162,16 @@ export class PagbankController {
       const { recaptcha_token, ...subscriptionData } = createSubscriptionDto;
       console.log('subscriptionData id', subscriptionData.plan.id);
       // Validar se o plano existe usando o id_pagbank
-      const plan = await this.plansService.findOne(Number(subscriptionData.plan.id));
+
       const userPlan = await this.userPlansService.findByUserId(user.id);
+
+      console.log('\n\n userPlan', userPlan, '\n\n');
+
+      const planId = userPlan ? PlanId.PLAN_NO_TRIAL : PlanId.PLAN_PRO;
+
+      console.log('\n\n planId', planId, '\n\n');
+
+      const plan = await this.plansService.findOne(planId);
 
       if (!plan) {
         throw new DataNotFoundException(`Plano com ID PagBank "${subscriptionData.plan.id}" não encontrado`);
@@ -190,9 +207,18 @@ export class PagbankController {
         subscriptionData.customer = { id: userPlan.pagbank_customer_id } as any;
       }
 
+      console.log('\n\n subscriptionData', subscriptionData, '\n\n');
+
       const data = await this.pagbankService.createSubscription(subscriptionData);
 
+      console.log('\n\n data Create Subscription PagBank', data, '\n\n');
+
+      if (data.status == UserPlanStatusSchema.Enum.CANCELED) {
+        throw new BadRequestException('Falha no pagamento.\nVerifique seu cartão e tente novamente.');
+      }
+
       if (!userPlan) {
+        console.log('\n\n userPlan not found, creating new user plan', '\n\n');
         await this.userPlansService.create({
           pagbank_customer_id: data.customer.id,
           pagbank_subscriber_id: data.id,
@@ -203,31 +229,39 @@ export class PagbankController {
           trial_end_at: new Date(data.trial.end_at),
         });
       } else {
-        await this.userPlansService.update(userPlan.id, {
+        console.log('\n\n userPlan found, updating user plan', '\n\n');
+        const updateUserPlan = {
           status: data.status,
-          is_active: true,
+          is_active: data.status == UserPlanStatusSchema.Enum.ACTIVE ? true : false,
           pagbank_customer_id: data.customer.id,
           pagbank_subscriber_id: data.id,
-          trial_start_at: new Date(data.trial.start_at),
+          trial_start_at: null,
           next_invoice_at: data.next_invoice_at,
-          trial_end_at: new Date(data.trial.end_at),
-        });
+          trial_end_at: null,
+        };
+
+        console.log('\n\n updateUserPlan', updateUserPlan, '\n\n');
+
+        if (data?.trial?.start_at) updateUserPlan.trial_start_at = new Date(data.trial.start_at);
+        if (data?.trial?.end_at) updateUserPlan.trial_end_at = new Date(data.trial.end_at);
+
+        await this.userPlansService.update(userPlan.id, updateUserPlan);
       }
 
       await this.discordLogService
         .payment({
           title: 'NOVO PAGAMENTO',
           message: `
-          **_ _\nUsuário:** ${user.id}
-          **Nome:** ${user.username}
-          **pagbank_customer_id:** ${data.customer.id}
-          **pagbank_subscriber_id:** ${data.id}
-          **trial_start_at:** ${data.trial.start_at}
-          **trial_end_at:** ${data.trial.end_at}
-          **next_invoice_at:** ${data.next_invoice_at}
-          **Plano:** ${plan.id}
-          **Amount:** ${data.amount.value}
-          **Status:** ${data.status}
+          **_ _\nUsuário:** ${user?.id}
+          **Nome:** ${user?.username}
+          **pagbank_customer_id:** ${data?.customer?.id}
+          **pagbank_subscriber_id:** ${data?.id}
+          **trial_start_at:** ${data?.trial?.start_at}
+          **trial_end_at:** ${data?.trial?.end_at}
+          **next_invoice_at:** ${data?.next_invoice_at}
+          **Plano:** ${plan?.id}
+          **Amount:** ${data?.amount?.value || 0}
+          **Status:** ${data?.status}
           `,
         })
         .catch(error => {
@@ -235,7 +269,6 @@ export class PagbankController {
         });
 
       return { data };
-      
     } catch (error) {
       console.log('\n\n error ao criar assinatura', error, '\n\n');
       await this.discordLogService
@@ -365,6 +398,101 @@ export class PagbankController {
     }
 
     return { data: pagbankSubscriptions };
+  }
+
+  @Get('payments')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @AdminOnly()
+  @ApiResponse({ schema: getPaymentsResponseOpenapi })
+  @ApiQuery({
+    name: 'offset',
+    required: false,
+    type: Number,
+    description: 'Número da página que deseja consultar. Deve ser um valor igual ou maior que zero.',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Tamanho da página desejada. Quantidade de resultados a serem retornados.',
+    example: 100,
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    type: [String],
+    enum: ['APPROVED', 'DENIED', 'IN_ANALYSIS', 'PENDING', 'REFUNDED', 'UNPAID'],
+    isArray: true,
+    description: 'Filtro por status do pagamento',
+  })
+  @ApiQuery({
+    name: 'payment_method_type',
+    required: false,
+    type: [String],
+    enum: ['BOLETO', 'CREDIT_CARD'],
+    isArray: true,
+    description: 'Filtro por tipo de método de pagamento',
+  })
+  @ApiQuery({
+    name: 'created_at_start',
+    required: false,
+    type: String,
+    description: 'Data de início do intervalo de busca (formato: YYYY-MM-DD)',
+    example: '2020-01-02',
+  })
+  @ApiQuery({
+    name: 'created_at_end',
+    required: false,
+    type: String,
+    description: 'Data final do intervalo de busca (formato: YYYY-MM-DD)',
+    example: '2020-01-02',
+  })
+  async getPayments(
+    @Query(new ZodValidationPipe(GetPaymentsQuerySchema)) queryParams: GetPaymentsQuery
+  ): Promise<GetPaymentsResponse> {
+    const data = await this.pagbankService.getPayments(queryParams);
+    console.log('\n\n data Get Payments PagBank', data, '\n\n');
+    return { data };
+  }
+
+  @Post('payments/:payment_id/refunds')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @AdminOnly()
+  @ApiParam({
+    name: 'payment_id',
+    description: 'ID do pagamento a ser estornado',
+    type: 'string',
+  })
+  @ApiBody({ schema: createRefundOpenapi })
+  @ApiResponse({ schema: createRefundResponseOpenapi })
+  async createRefund(
+    @Param('payment_id') paymentId: string,
+    @Body(new ZodValidationPipe(CreateRefundSchema)) refundDto: CreateRefund
+  ): Promise<CreateRefundResponse> {
+    if (!paymentId) {
+      throw new BadRequestException('O parâmetro payment_id é obrigatório.');
+    }
+    const data = await this.pagbankService.createRefund(paymentId, refundDto);
+    console.log('\n\n data Create Refund PagBank', data, '\n\n');
+    return { data };
+  }
+
+  @Put('subscriptions/retry')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @AdminOnly()
+  @ApiQuery({
+    name: 'subs_id',
+    required: true,
+    type: String,
+    description: 'ID da assinatura para reprocessar pagamento',
+  })
+  async retrySubscription(@Query('subs_id') subsId: string): Promise<{ data: unknown }> {
+    if (!subsId) {
+      throw new BadRequestException('O parâmetro subs_id é obrigatório.');
+    }
+    const data = await this.pagbankService.retrySubscription(subsId);
+    console.log('\n\n data Retry Subscription PagBank', data, '\n\n');
+    return { data };
   }
 
   @Get('notifications')

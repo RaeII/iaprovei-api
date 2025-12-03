@@ -1,3 +1,4 @@
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImxlYXJzaSIsInN1YiI6OSwiaXNfYWRtaW4iOjEsImlhdCI6MTc2NDcxMzA1NSwiZXhwIjoxNzY0Nzk5NDU1fQ.xYiwKYYfVghM0AzKNo1nS3NuQjC1_LNncXYcsgZnrDA
 # IAprovei API
 
 Educational platform API built with NestJS and TypeScript.
@@ -60,3 +61,5 @@ The application follows SOLID principles with:
 - **Liskov Substitution**: AI providers can be substituted
 - **Interface Segregation**: Focused interfaces for specific capabilities
 - **Dependency Inversion**: Services depend on abstractions, not implementations
+
+LUCAS MIGUEL SCHMIDT
