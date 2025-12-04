@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-//import { Cron } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { PagbankService } from '@/modules/pagbank/pagbank.service';
 import { UserPlansService } from '@/modules/user_plans/user_plans.service';
 import { UserPlanStatusSchema } from '@/modules/user_plans/schemas/user_plan.schema';
@@ -17,10 +17,15 @@ export class PaymentsCron implements OnModuleInit {
     await this.handleCron();
   }
 
-  //@Cron('0 */2 * * * *')
+  @Cron('0 */15 * * * *')
   async handleCron() {
     try {
       console.log('Dale cron job');
+      await this.discordLogService.cron({
+        title: 'DALE CRON JOB INICIADO',
+        message: 'Cron job iniciado',
+      });
+
       const subscriptions = await this.pagbankService.getSubscriptions({});
 
       const userPlans = await this.userPlansService.findAll({ limit: 1000, page: 1 });

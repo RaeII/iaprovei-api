@@ -209,11 +209,35 @@ export class PagbankController {
 
       console.log('\n\n subscriptionData', subscriptionData, '\n\n');
 
+      if (userPlan) {
+        const PLAN_STATUS_FAILED = ['OVERDUE', 'PENDING_ACTION', 'EXPIRED', 'PENDING', 'SUSPENDED'];
+        if (PLAN_STATUS_FAILED.includes(userPlan.status)) {
+          try {
+            console.log('\n\n canceling subscription for userPlan', userPlan, '\n\n');
+            const response = await this.pagbankService.cancelSubscription(userPlan.pagbank_subscriber_id);
+            console.log('\n\n response Cancel Subscription PagBank', response, '\n\n');
+            await this.userPlansService.update(userPlan.id, {
+              status: UserPlanStatus.CANCELED,
+              is_active: false,
+              next_invoice_at: null,
+            });
+          } catch (error) {
+            error.title = 'ERRO AO CANCELAR ASSINATURA!';
+            error.message = `Erro ao cancelar assinatura para um novo plano\nUserPlan ID: ${userPlan.id}\nUserPlan User ID: ${userPlan.user_id}\nUserPlan Plan ID: ${userPlan.plan_id}\nUserPlan Status: ${userPlan.status}\npagbank_subscriber_id: ${userPlan.pagbank_subscriber_id}`;
+            await this.discordLogService.payment(error).catch(error => {
+              console.log('Erro ao enviar log de pagamento', error);
+            });
+
+            throw new BadRequestException('Não foi possivel refazer o pagamento, tente novamente mais tarde.');
+          }
+        }
+      }
+
       const data = await this.pagbankService.createSubscription(subscriptionData);
 
       console.log('\n\n data Create Subscription PagBank', data, '\n\n');
 
-      if (data.status == UserPlanStatusSchema.Enum.CANCELED) {
+      if (data.status == UserPlanStatusSchema.Enum.CANCELED || data.status == UserPlanStatusSchema.Enum.OVERDUE) {
         throw new BadRequestException('Falha no pagamento.\nVerifique seu cartão e tente novamente.');
       }
 
