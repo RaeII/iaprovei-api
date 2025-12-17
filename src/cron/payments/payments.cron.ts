@@ -20,12 +20,6 @@ export class PaymentsCron implements OnModuleInit {
   @Cron('0 */15 * * * *')
   async handleCron() {
     try {
-      console.log('Dale cron job');
-      await this.discordLogService.cron({
-        title: 'DALE CRON JOB INICIADO',
-        message: 'Cron job iniciado',
-      });
-
       const subscriptions = await this.pagbankService.getSubscriptions({});
 
       const userPlans = await this.userPlansService.findAll({ limit: 1000, page: 1 });
@@ -173,8 +167,6 @@ export class PaymentsCron implements OnModuleInit {
           });
         }
       }
-
-      console.log('feito', new Date().toISOString());
     } catch (error) {
       console.log(error);
       error.title = 'Erro ao processar assinaturas no Pagbank';
