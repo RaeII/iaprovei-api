@@ -147,6 +147,29 @@ export class PaymentsCron implements OnModuleInit {
               UserPlan Status: ${userPlan.status}
               pagbank_subscriber_id: ${userPlan.pagbank_subscriber_id}`,
             });
+          } else if (
+            subscription.status == UserPlanStatusSchema.Enum.CANCELED &&
+            !userPlan.is_active &&
+            userPlan.status != UserPlanStatusSchema.Enum.CANCELED
+          ) {
+            /* 
+              6°- Se  assinatura for cancelada e o plano estiver diferente de cancelado (Com status de tentativa de pagamento) 
+              O plano do usuário é atualizado com o status do pagbank
+            */
+            await this.userPlansService.update(userPlan.id, {
+              status: UserPlanStatusSchema.Enum.CANCELED,
+              is_active: false,
+            });
+
+            await this.discordLogService.cron({
+              title: `Plano do usuário atualizado para ${subscription.status}`,
+              message: `Plano do usuário estava **${userPlan.status}**, foi atualizado para **${subscription.status}**
+              UserPlan ID: ${userPlan.id}
+              UserPlan User ID: ${userPlan.user_id}
+              UserPlan Plan ID: ${userPlan.plan_id}
+              UserPlan Status: ${userPlan.status}
+              pagbank_subscriber_id: ${userPlan.pagbank_subscriber_id}`,
+            });
           }
         }
       }
