@@ -5,6 +5,8 @@ docker pull ghcr.io/raeii/iaprovei-api:latest
 
 docker compose -f iaprovei-api.yml up -d --build --force-recreate
 
+docker compose -f iaprovei-api.yml logs -f
+
 # IAprovei API
 
 Educational platform API built with NestJS and TypeScript.
