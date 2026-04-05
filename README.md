@@ -1,4 +1,10 @@
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImxlYXJzaSIsInN1YiI6OSwiaXNfYWRtaW4iOjEsImlhdCI6MTc2NDcxMzA1NSwiZXhwIjoxNzY0Nzk5NDU1fQ.xYiwKYYfVghM0AzKNo1nS3NuQjC1_LNncXYcsgZnrDA
+docker build -t ghcr.io/raeii/iaprovei-api:latest .
+docker push ghcr.io/raeii/iaprovei-api:latest
+
+docker pull ghcr.io/raeii/iaprovei-api:latest
+
+docker compose -f iaprovei-api.yml up -d --build --force-recreate
+
 # IAprovei API
 
 Educational platform API built with NestJS and TypeScript.

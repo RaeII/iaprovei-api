@@ -6,7 +6,7 @@ WORKDIR /var/www/iaprove-api
 # Install pnpm globally
 RUN npm install -g pnpm
 
-EXPOSE 3000
+EXPOSE 4001
 
 ENV NODE_ENV=production
 
